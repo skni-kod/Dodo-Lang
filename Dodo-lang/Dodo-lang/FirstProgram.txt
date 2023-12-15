@@ -1,0 +1,16 @@
+//this is first program written in Dodo-lang
+//in the future this file will have .dod extenstion
+//main function
+i32 mn()
+{
+	//return value
+	ret 0;
+}
+
+//and that's it
+/*
+I personally believe that less is more and that beauty is hidden in the small things.
+As small as this program. 
+It doesn't matter that he doesn't do anything.
+He tries his best
+*/

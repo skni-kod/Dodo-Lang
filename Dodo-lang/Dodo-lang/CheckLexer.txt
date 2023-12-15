@@ -1,0 +1,31 @@
+//this is second program written in Dodo-lang
+//in the future this file will have .dod extenstion
+//about program - it has a lot of error - this is to check lexer
+//main function
+i32 mn()
+{
+	
+	//checking if corectly finds literals
+	char abracadabra = 'a';
+	string string = "aaaa";
+	i32 a = 0x12A;
+	f u = 12.12;
+	
+	f i = 12.12.12;
+	i32 = 213123;
+	i32 = 123123a123;
+	i32 b;
+	if(a >= b)
+	{
+		a = b
+		;
+	}
+	
+	//return value
+	ret 0;
+}
+
+//and that's it
+/*
+big commnet to check lexer strenght
+*/
