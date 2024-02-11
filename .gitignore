@@ -22,3 +22,12 @@ Release
 *.vbproj.user
 ipch
 *sdf
+
+# dodo-lang specific
+CMakeLists.txt
+cmake-build-debug/
+.idea/
+.sln
+.vxproj
+.vxproj.filters
+.vxproj.user
