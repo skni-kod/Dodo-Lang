@@ -6,11 +6,11 @@
 /*
 ABOUT THIS FILE:
 it contains two classes:
-- lexical_token,
-- line_of_program
+- LexicalToken,
+- ProgramLine
 ----------------------------------------------------------------------------------------------------------
 
-ABOUT lexical_token:
+ABOUT LexicalToken:
 - this is simple objects - it has type and value
 - all types are in token_type enum
 - value is string that contains the name of token like "for" or "while" or "variableName"
@@ -21,7 +21,7 @@ type none is using when this is not literal types
 - unexpected type means that there is probably mistake in literal format, but it is left to parser to decide 
 ----------------------------------------------------------------------------------------------------------
 
-ABOUT line_of_program:
+ABOUT ProgramLine:
 - have number of line
 - contains all tokens from one line of program file
 - contains number of tokens in line
@@ -37,7 +37,7 @@ FUTURE PLANS:
 */
 
 
-class lexical_token
+class LexicalToken
 {
 private:
 
@@ -45,10 +45,7 @@ private:
 	int type;
 	int literal_type;
 
-	//value
-	std::string value;
-
-	//names of token types - use for display
+    //names of token types - use for display
 	static std::string names[9];
 
 	//names of literal types - use for display
@@ -56,26 +53,29 @@ private:
 
 public:
 	//literal type is set to -1
-	lexical_token(int type, std::string value);
+	LexicalToken(int type, std::string value);
 
 	//allows to set literal type
-	lexical_token(int type, std::string value, int literal_type);
+	LexicalToken(int type, std::string value, int literal_type);
 
 	//friens
-	friend std::ostream& operator<<(std::ostream& os, const lexical_token& dt);
+	friend std::ostream& operator<<(std::ostream& os, const LexicalToken& dt);
 
 	//getters
 	int get_ltype();
 	int get_type();
 	std::string get_value();
+
+//value
+std::string value;
 };
 
-class line_of_program
+class ProgramLine
 {
 public:
 
 	//vector of all tokens in one line
-	std::vector<lexical_token> line;
+	std::vector<LexicalToken> line;
 	
 	//number of line - 
 	int line_number =0;
@@ -85,7 +85,7 @@ public:
 	void line_print() const;
 
 	//overriding << operator
-	friend std::ostream& operator<<(std::ostream& os, const line_of_program& l);
+	friend std::ostream& operator<<(std::ostream& os, const ProgramLine& l);
 	
 	//add token when it's not literal
 	void add_token(int type, std::string value);

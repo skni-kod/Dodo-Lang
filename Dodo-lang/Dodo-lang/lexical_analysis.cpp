@@ -26,16 +26,16 @@ list_of_tokens* list_of_tokens::get_instance()
 
 list_of_tokens::~list_of_tokens()
 {
-	if (list_of_tokens_ != nullptr)
-		delete list_of_tokens_;
+	//if (list_of_tokens_ != nullptr)
+		//delete list_of_tokens_;
 }
 
-std::vector<line_of_program> list_of_tokens::get_list_of_tokens()
+std::vector<ProgramLine> list_of_tokens::get_list_of_tokens()
 {
 	return token_list;
 }
 
-std::vector<line_of_program> list_of_tokens::analize_file(std::fstream& file)
+std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file)
 {
 	std::string line;
 	std::string word;
@@ -59,7 +59,7 @@ std::vector<line_of_program> list_of_tokens::analize_file(std::fstream& file)
 		probably_operand = false;
 		//this for analize one line of program and looks for tokens
 
-		line_of_program l;
+		ProgramLine l;
 		words_num = 0;
 		for (int i = 0; i < size; i++)
 		{

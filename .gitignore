@@ -27,7 +27,7 @@ ipch
 CMakeLists.txt
 cmake-build-debug/
 .idea/
-.sln
-.vxproj
-.vxproj.filters
-.vxproj.user
+*.user
+*.filters
+*.vcxproj
+*.sln

@@ -4,14 +4,14 @@
 #include <fstream>
 #include <string>
 
-//this contails line_of_program and lexical_token
-#include "lexical_token.h"
+//this contails ProgramLine and LexicalToken
+#include "lexicalToken.h"
 
 
 /*
 ABOUT LEXER:
 - for now it only analize one file
-- retruns vector of line object - one line have inside it all tokens that was in there  - more in lexical_token.h
+- retruns vector of line object - one line have inside it all tokens that was in there  - more in LexicalToken.h
 - his name is Bob. Bob still learns how to be a good lexer
 -------------------------------------------------------------------------------------------------------------------------------------
 
@@ -37,20 +37,20 @@ list_of_tokens* lt = list_of_tokens::get_instance();
 2. pass main programm file - this function creates vector of all tokens and returns it
 lt->analize_file(file_name);
 
-3. vector declaration (need to include  <vector> library, if this library is not included then needed to include "lexical_token.h")
-std::vector<line_of_program> list;
+3. vector declaration (need to include  <vector> library, if this library is not included then needed to include "LexicalToken.h")
+std::vector<ProgramLine> list;
 
 4. function to print all tokens that lexer found
 lt->list_of_tokens_print();
 
 5. function that takes all tokens list
-std::vector<line_of_program> get_list_of_tokens();
+std::vector<ProgramLine> get_list_of_tokens();
 
 B. VECTOR AND OBJECTS
 list of all tokens is inside of vector token_list, 
-this vector conteins line_of_program objects
-line_of_program has a number and vector with all tokens in line
-token object has three parameters - value, type and literal_type - check the lexical_token.h for more info
+this vector conteins ProgramLine objects
+ProgramLine has a number and vector with all tokens in line
+token object has three parameters - value, type and literal_type - check the LexicalToken.h for more info
 
 */
 
@@ -59,7 +59,7 @@ class list_of_tokens
 {
 private:
 	list_of_tokens() {};
-	std::vector<line_of_program> token_list;
+
 
 
 	//PARAMETERS
@@ -77,6 +77,8 @@ protected:
 
 public:
 
+    std::vector<ProgramLine> token_list;
+
 	//disabling construcotrs
 	list_of_tokens(list_of_tokens& lt) = delete;
 	void operator=(const list_of_tokens&) = delete;
@@ -88,22 +90,23 @@ public:
 	~list_of_tokens();
 
 	//return list of toknes
-	std::vector<line_of_program> get_list_of_tokens();
+	std::vector<ProgramLine> get_list_of_tokens();
 
-	//function that analizes program file and returs list of tokens - tokens are grouped in lines object - more in lexical_token.h
-	std::vector<line_of_program>analize_file(std::fstream& file);
+	//function that analizes program file and returs list of tokens - tokens are grouped in lines object - more in LexicalToken.h
+	std::vector<ProgramLine>analize_file(std::fstream& file);
 
 	//prints info about every line
 	void list_of_tokens_print();
 
 	//list of all keyword of dodo lang
 	//adding new elements REMEBER about changing numer_of_keywords value - this variable is abouve
+    // WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 	std::string list_of_keywords[26] =
 	{
 		"ret",
 		"while",
 		"dodo",
-		"i32",
+		"type",
 		"f",
 		"for",
 		"else",

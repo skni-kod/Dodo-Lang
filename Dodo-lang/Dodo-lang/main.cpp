@@ -3,8 +3,8 @@
 #include <vector>
 #include <string>
 #include "lexical_analysis.h"
-
-using namespace std;
+#include <memory>
+#include "parser/parser.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -26,18 +26,18 @@ int main(int argc, char* argv[])
 
 	//in future change to name from argv
 	//another file FirstProgram.txt
-	string file_name = "CheckLexer.txt";
+	std::string file_name = "CheckLexer.txt";
 	
 	//opening file
-	fstream plik;
-	plik.open(file_name, fstream::in);
+	std::fstream plik;
+	plik.open(file_name, std::fstream::in);
 	
 	//passing file to lexer and starting lexical analise
-	list_of_tokens* lt = list_of_tokens::get_instance();
+	std::unique_ptr<list_of_tokens> lt(list_of_tokens::get_instance());
 
 	//display original file:
 	//* - the switch to turn on/off below code
-	string line;
+	std::string line;
 	int licznik = 1;
 	while (getline(plik, line))
 	{
@@ -49,22 +49,19 @@ int main(int argc, char* argv[])
 	plik.seekg(0);
 	//*/
 
-	cout << "lexing..." << endl;
+	std::cout << "lexing..." << std::endl;
 
 	//getting the list of tokens - function below returns vector of lines
 	lt->analize_file(plik);
 
 	//below is for checking if the lexing procces was correct
-	//lt->list_of_tokens_print();
+	lt->list_of_tokens_print();
 
 	plik.close();
 
-	cout << "parsing..." << endl;
-	//parsing process
-	//checing if there are erros
-		//YES) displaying erros and stops compilation process
-		// NO) countinue
-	
+	std::cout << "Lexing done!\nParsing:\n";
+    RunParsing(lt->token_list);
+
 
 	return 0;
 }
