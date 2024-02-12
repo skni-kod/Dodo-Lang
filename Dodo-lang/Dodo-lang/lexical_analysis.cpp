@@ -102,7 +102,7 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file)
 
 
 			//constructing word - until find blank space or operand
-			//or constructing numeric literal - it's starts with number
+			//or constructing numeric literalType - it's starts with number
 			if ((isalpha(ch) || ch == '_') || word_under_construction || literal_under_construction || isdigit(ch))
 			{
 				//sets what kind of build it is
@@ -134,7 +134,7 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file)
 
 					//this oppened when lexer found word that is not operand or comment
 
-					//checking if it is a numeric literal
+					//checking if it is a numeric literalType
 					if (literal_under_construction)
 					{
 						l.add_token(7, word, true);
@@ -153,7 +153,7 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file)
 							break;
 						}
 					}
-					//if it is not keyword and it is not literal then it is identifier
+					//if it is not keyword and it is not literalType then it is identifier
 					if (word != "")
 					{
 						l.add_token(identifier, word);
@@ -206,7 +206,7 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file)
 					if (index2 != -1)
 					{
 						help = line.substr(i, index2 - i + 1);
-						//adding character literal
+						//adding character literalType
 						l.add_token(7, help, character);
 						i = index2 + 1;
 					}
@@ -226,7 +226,7 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file)
 					if (index2 != -1)
 					{
 						help = line.substr(i, index2 - i + 1);
-						//adding string literal
+						//adding string literalType
 						l.add_token(7, help, string_type);
 						i = index2 + 1;
 					}

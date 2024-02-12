@@ -4,7 +4,7 @@
 #include <string>
 #include "lexical_analysis.h"
 #include <memory>
-#include "parser/parser.hpp"
+#include "Parser/Parser.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -59,8 +59,15 @@ int main(int argc, char* argv[])
 
 	plik.close();
 
-	std::cout << "Lexing done!\nParsing:\n";
-    RunParsing(lt->token_list);
+	std::cout << "INFO L1: Lexing done!\nINFO L1: Parsing:\n";
+    try {
+        RunParsing(lt->token_list);
+    }
+    catch (ParserException& e){
+        std::cout << "Parsing has failed. compilation aborted!\n";
+        return 1;
+    }
+    std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating code:\n";
 
 
 	return 0;

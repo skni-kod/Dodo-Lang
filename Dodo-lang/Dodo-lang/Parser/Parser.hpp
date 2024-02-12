@@ -3,11 +3,18 @@
 
 #include "../lexicalToken.h"
 #include "../lexical_analysis.h"
-#include "../flags.hpp"
+#include "../Flags.hpp"
 
 struct ASTTree {
     // empty for now
 };
+
+class ParserException : public std::exception {
+public:
+    const char* what();
+};
+
+void ParserError(std::string message);
 
 ASTTree RunParsing(const std::vector<ProgramLine>& tokens);
 

@@ -9,13 +9,13 @@ void ProgramLine::line_print() const
 		std::cout << line[i];
 }
 
-//adds token with none literal type
+//adds token with none literalType type
 void ProgramLine::add_token(int type, std::string value)
 {
 	line.push_back(LexicalToken(type, value));
 }
 
-//adding token with decision what literal_type is
+//adding token with decision what literalType is
 void ProgramLine::add_token(int type, std::string value, int literal_type)
 {
 	line.push_back(LexicalToken(type, value, literal_type));
@@ -97,15 +97,15 @@ std::ostream& operator<<(std::ostream& os, const ProgramLine& l)
 //-----------------------------------LEXICAL TOKEN----------------------------------------------------------
 
 //names to dispaly
-std::string LexicalToken::names[9] = {"keyword", "operand", "identifier", "comma", "endline", "blockBegin", "blockEnd", "literal", "unexpected" };
+std::string LexicalToken::names[9] = {"keyword", "operand", "identifier", "comma", "endline", "blockBegin", "blockEnd", "literalType", "unexpected" };
 std::string LexicalToken::lnames[6] = {"none", "numeric", "character", "string_type", "float_type", "hex_type" };
 
 
 std::ostream& operator<<(std::ostream& os, const LexicalToken& lt)
 {
 	os << "[" << lt.names[lt.type] << "," << lt.value;
-	if (lt.literal_type != -1)
-		os << "," << lt.lnames[lt.literal_type + 1];
+	if (lt.literal != -1)
+		os << "," << lt.lnames[lt.literal + 1];
 	os << "]";
 	return os;
 }
@@ -115,21 +115,21 @@ LexicalToken::LexicalToken(int type, std::string value)
 {
 	this->type = type;
 	this->value = value;
-	literal_type = -1;
+    literal = -1;
 }
 
 LexicalToken::LexicalToken(int type, std::string value, int literal_type)
 {
 	this->type = type;
 	this->value = value;
-	this->literal_type = literal_type;
+	this->literal = literal_type;
 }
 
 //getters
 
 int LexicalToken::get_ltype()
 {
-	return this->literal_type;
+	return this->literal;
 }
 int LexicalToken::get_type()
 {

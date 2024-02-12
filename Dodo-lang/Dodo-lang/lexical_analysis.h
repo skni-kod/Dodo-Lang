@@ -24,9 +24,9 @@ code written in dodo  (before lexical analize):
 
 after lexical analysis:
 
-	[keyword, i32][identifier, a][operand, =][literal, 0][comma][identifier, b][operand, =][literal, 1][endline]
+	[keyword, i32][identifier, a][operand, =][literalType, 0][comma][identifier, b][operand, =][literalType, 1][endline]
 	[keyword, i32][identifier c][endline]
-	[literal, c][operand, =][literal, a][operand, +][literal, b][endline]
+	[literalType, c][operand, =][literalType, a][operand, +][literalType, b][endline]
 --------------------------------------------------------------------------------------------------------------------------------------
 
 HOW TO USE
@@ -50,7 +50,7 @@ B. VECTOR AND OBJECTS
 list of all tokens is inside of vector token_list, 
 this vector conteins ProgramLine objects
 ProgramLine has a number and vector with all tokens in line
-token object has three parameters - value, type and literal_type - check the LexicalToken.h for more info
+token object has three parameters - value, type and literalType - check the LexicalToken.h for more info
 
 */
 
@@ -65,7 +65,7 @@ private:
 	//PARAMETERS
 	//we are using them in functions - changing it here changes it in all functions
 	//-------------------------------------------------------------------------------------------
-	int number_of_operands = 26;
+	int number_of_operands = 27;
 	int numer_of_keywords = 17;
 	//------------------------------------------------------------------------------------------
 
@@ -124,7 +124,7 @@ public:
 
 	//list of all operators in dodo language
 	//	//adding new element REMEBER about changing numer_of_operands value - this variable is abouve
-	std::string list_of_operands[26] =
+	std::string list_of_operands[27] =
 	{
 		"(",
 		")",
@@ -151,7 +151,8 @@ public:
 		",",
 		"{",
 		"}",
-		";"
+		";",
+        ":"
 	};
 
 	//list of operators for commenting
