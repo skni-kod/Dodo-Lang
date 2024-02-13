@@ -3,19 +3,18 @@
 #include <vector>
 #include <string>
 #include "lexical_analysis.h"
-
-using namespace std;
+#include <memory>
 
 int main(int argc, char* argv[])
 {
 	//Compiling process:
 	/*
 	1. Read program file
-	
+
 	2. Lexical analysis
 
 	3. Parsing + syntax error detecting
-		- creating AST 
+		- creating AST
 
 	4. Compiling
 		- using assembly
@@ -26,19 +25,20 @@ int main(int argc, char* argv[])
 
 	//in future change to name from argv
 	//another file FirstProgram.txt
-	string file_name = "CheckLexer.txt";
-	
+	std::string file_name = "CheckLexer.txt";
+
 	//opening file
-	fstream plik;
-	plik.open(file_name, fstream::in);
-	
+	std::fstream plik;
+	plik.open(file_name, std::fstream::in);
+
 	//passing file to lexer and starting lexical analise
-	list_of_tokens* lt = list_of_tokens::get_instance();
+	std::unique_ptr<list_of_tokens> lt(list_of_tokens::get_instance());
 
 	//display original file:
 	//* - the switch to turn on/off below code
-	string line;
+	std::string line;
 	int licznik = 1;
+	
 	while (getline(plik, line))
 	{
 		std::cout << licznik << ". " << line << std::endl;
@@ -46,25 +46,32 @@ int main(int argc, char* argv[])
 	}
 
 	plik.clear();
-	plik.seekg(0);
 	//*/
+	
+	std::cout << "\n\n\n" << std::endl;
+	std::cout << "lexing..." << std::endl;
 
-	cout << "lexing..." << endl;
+	//do lexical analize. 
+	std::cout << "LINKER ERRORS: " << std::endl;
+	lt->lexical_analize(file_name);
+	std::cout << "\n\n\n" << std::endl;
 
-	//getting the list of tokens - function below returns vector of lines
-	lt->analize_file(plik);
-
+	
 	//below is for checking if the lexing procces was correct
-	//lt->list_of_tokens_print();
+	std::cout << "LEXER OUTPUT: " << std::endl;
+	lt->list_of_tokens_print();
+	
+
+	//LEXER HOW TO USE
+	//lt->f_token_list;// - list divided into files, lines and tokens f_token_list[0][0][0] - first file, first line inside this file, first token inside line
+	//lt->token_list;// - all lexical info divided into lines and tokens
+	//lt->f_size; //numer of files that was used
+	//lt->size; //number of lines inside token_list
+	//lt->f_token_list[0].p_size; // - number of lines inside first file
+	//lt->f_token_list[0][0].l_size; //-number of tokens inside first line in first file
 
 	plik.close();
-
-	cout << "parsing..." << endl;
-	//parsing process
-	//checing if there are erros
-		//YES) displaying erros and stops compilation process
-		// NO) countinue
-	
+	std::cout << "Lexing done!\nParsing:\n";
 
 	return 0;
 }
