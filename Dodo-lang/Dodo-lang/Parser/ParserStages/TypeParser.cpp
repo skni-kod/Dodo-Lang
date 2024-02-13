@@ -9,14 +9,7 @@ void ParseTypes(Generator<const LexicalToken*>& generator) {
 
         if (current->type == tokenType::keyword and current->value == "type") {
 
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
-
             // get name
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
             current = generator();
             if (current->type != tokenType::identifier) {
                 ParserError("expected an identifier after type keyword!");
@@ -24,9 +17,6 @@ void ParseTypes(Generator<const LexicalToken*>& generator) {
             const std::string& name = current->value;
 
             // get the : operand
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
             current = generator();
             if (current->type != tokenType::operand or current->value != ":") {
                 // TODO: find out how to call ":"
@@ -34,9 +24,6 @@ void ParseTypes(Generator<const LexicalToken*>& generator) {
             }
             // TODO: add custom behaviour types
 
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
             current = generator();
             if (current->type != tokenType::identifier) {
                 ParserError("expected an identifier after definition operand!");
@@ -55,18 +42,12 @@ void ParseTypes(Generator<const LexicalToken*>& generator) {
                 ParserError("incorrect data type!");
             }
 
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
             current = generator();
             if (current->type != tokenType::operand or current->value != "(") {
                 ParserError("expected a bracket operand after data type!");
             }
 
             // size
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
             current = generator();
             if (current->type != tokenType::literal or current->literal != literalType::numeric) {
                 ParserError("unexpected size type!");
@@ -96,17 +77,11 @@ void ParseTypes(Generator<const LexicalToken*>& generator) {
                 std::cout << size << " bytes in size\n";
             }
 
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
             current = generator();
             if (current->type != tokenType::operand or current->value != ")") {
                 ParserError("expected a bracket operand after data size!");
             }
 
-            if (!generator) {
-                ParserError("unexpected end of file!");
-            }
             current = generator();
             if (current->type != tokenType::endline) {
                 ParserError("expected an end line operand at the end of definition!");

@@ -44,3 +44,7 @@ type NonZero {
 ```
 
 Only one value type can exist inside a type, for multiples there are more complex data structures.
+
+###### Custom behaviour behaviour
+
+Type with a custom behaviour have some quirks. When defining behaviour only data type and this type objects can be used. When a variable of size different than one in any of the definitions is used to set value or for operations it's shortened or expanded to size of the closest candidate. Literal size is calculated as smallest data type size that can fit it or can be defined explicitly.

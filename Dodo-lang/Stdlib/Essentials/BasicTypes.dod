@@ -1,0 +1,32 @@
+// This as an essential dodo-lang standard library file. It's included by default.
+
+// basic signed integers
+type i8 : SIGNED_INTEGER(1);
+type i16 : SIGNED_INTEGER(2);
+type i24 : SIGNED_INTEGER(3);
+type i32 : SIGNED_INTEGER(4);
+type i40 : SIGNED_INTEGER(5);
+type i48 : SIGNED_INTEGER(6);
+type i56 : SIGNED_INTEGER(7);
+type i64 : SIGNED_INTEGER(8);
+
+// basic unsigned integers
+type u8 : UNSIGNED_INTEGER(1);
+type u16 : UNSIGNED_INTEGER(2);
+type u24 : UNSIGNED_INTEGER(3);
+type u32 : UNSIGNED_INTEGER(4);
+type u40 : UNSIGNED_INTEGER(5);
+type u48 : UNSIGNED_INTEGER(6);
+type u56 : UNSIGNED_INTEGER(7);
+type u64 : UNSIGNED_INTEGER(8);
+
+
+// basic floating point
+type f8 : FLOATING_POINT(1);
+type f16 : FLOATING_POINT(2);
+type f24 : FLOATING_POINT(3);
+type f32 : FLOATING_POINT(4);
+type f40 : FLOATING_POINT(5);
+type f48 : FLOATING_POINT(6);
+type f56 : FLOATING_POINT(7);
+type f64 : FLOATING_POINT(8);

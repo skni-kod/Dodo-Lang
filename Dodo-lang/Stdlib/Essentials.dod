@@ -1,0 +1,5 @@
+// This is the file included in every dodo-lang compilation by default.
+// It contains imports of essential standard library files.
+
+// basic types
+imp "BasicTypes.dod";

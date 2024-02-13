@@ -6,8 +6,7 @@ The parser is arguably the most important part of dodo-lang (to be updated if th
 
 ### Parts
 - [type parser](types.md)
-- struct parser
-- class parser
+- [object parser](objects.md)
 - function parser
 
 ### Output

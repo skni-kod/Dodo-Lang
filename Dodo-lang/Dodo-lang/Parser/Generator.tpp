@@ -1,10 +1,11 @@
-#ifndef GENERIC_GENERATOR_HPP
-#define GENERIC_GENERATOR_HPP
+#ifndef GENERIC_GENERATOR_TPP
+#define GENERIC_GENERATOR_TPP
 
 #include <coroutine>
 #include <utility>
 #include <exception>
 #include <concepts>
+#include "Parser.hpp"
 
 // This is a generic template for a generator coroutine for use in my projects
 // it might be replaced when C++ 23 is fully implemented.
@@ -60,6 +61,9 @@ private:
 
     void fill() {
         if (!full_) {
+            if (h_.done()) {
+                ParserError("unexpected end of file!");
+            }
             h_();
             if (h_.promise().exception_)
                 std::rethrow_exception(h_.promise().exception_);
@@ -68,4 +72,4 @@ private:
     }
 };
 
-#endif //GENERIC_GENERATOR_HPP
+#endif //GENERIC_GENERATOR_TPP
