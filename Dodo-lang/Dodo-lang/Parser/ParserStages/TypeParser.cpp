@@ -60,7 +60,7 @@ void ParseTypes(Generator<const LexicalToken*>& generator) {
             if (IsType(name)) {
                 ParserError("type redefinition!");
             }
-            parserTypes.insert(std::pair<std::string, ParserType>(name, ParserType(type, size)));
+            parserTypes.insert(name, ParserType(type, size));
             if (flags::informationLevel == flags::informationLevel::full) {
                 std::cout << "INFO L3: Added type: " << name;
                 switch (type) {

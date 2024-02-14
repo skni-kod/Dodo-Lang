@@ -2,10 +2,11 @@
 #include "Parser.hpp"
 
 bool IsType(const std::string& token) {
-    if (parserTypes.find(token) == parserTypes.end()) {
-        return false;
-    }
-    return true;
+    return parserTypes.IsKey(token);
+}
+
+bool IsObject(const std::string& token) {
+    return parserObjects.IsKey(token);
 }
 
 ParserType::ParserType(uint8_t type, uint8_t size) : type(type), size(size) {}

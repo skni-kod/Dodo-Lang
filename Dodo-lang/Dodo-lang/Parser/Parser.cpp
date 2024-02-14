@@ -2,6 +2,7 @@
 #include "Generator.tpp"
 #include "ParserVariables.hpp"
 #include "ParserStages/TypeParser.hpp"
+#include "ParserStages/ObjectDeclarationParser.hpp"
 
 uint64_t currentLine = 0;
 
@@ -38,6 +39,7 @@ ASTTree RunParsing(const std::vector<ProgramLine>& tokens) {
     // Pass 2 - getting object declarations
     {
         auto generator = TokenRunGenerator(tokens);
+        ParseObjectDeclarations(generator);
 
     }
 

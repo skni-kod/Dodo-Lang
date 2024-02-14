@@ -1,11 +1,12 @@
 #ifndef DODO_LANG_PARSER_VARIABLES_HPP
 #define DODO_LANG_PARSER_VARIABLES_HPP
 
-#include <unordered_map>
 #include <string>
 #include <cstdint>
 #include <memory>
 #include <vector>
+
+#include "MapWrapper.tpp"
 
 bool IsType(const std::string& token);
 bool IsObject(const std::string& token);
@@ -40,7 +41,7 @@ struct ParserObject {
     //ObjectDestructor destructor;
 };
 
-inline std::unordered_map <std::string, ParserType> parserTypes;
-inline std::unordered_map <std::string, ParserObject> parserObjects;
+inline MapWrapper <std::string, ParserType> parserTypes;
+inline MapWrapper <std::string, ParserObject> parserObjects;
 
 #endif //DODO_LANG_PARSER_VARIABLES_HPP
