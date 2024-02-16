@@ -1,4 +1,4 @@
-#include "lexical_analysis.h"
+#include "LexicalAnalysis.hpp"
 
 list_of_tokens* list_of_tokens::list_of_tokens_ = nullptr;
 
@@ -69,7 +69,6 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file, std::s
 		probably_operand = false;
 		//this for analize one line of program and looks for tokens
 
-        ProgramLine l;
 		words_num = 0;
 		for (int i = 0; i < size; i++)
 		{

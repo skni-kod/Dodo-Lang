@@ -1,8 +1,8 @@
 #ifndef DODO_LANG_PARSER_HPP
 #define DODO_LANG_PARSER_HPP
 
-#include "../lexicalToken.h"
-#include "../lexical_analysis.h"
+#include "../LexicalToken.hpp"
+#include "../LexicalAnalysis.hpp"
 #include "../Flags.hpp"
 
 struct ASTTree {
@@ -16,6 +16,6 @@ public:
 
 void ParserError(std::string message);
 
-ASTTree RunParsing(const std::vector<ProgramLine>& tokens);
+ASTTree RunParsing(const std::vector<ProgramPage>& tokens);
 
 #endif //DODO_LANG_PARSER_HPP

@@ -5,26 +5,37 @@
 #include "ParserStages/ObjectDeclarationParser.hpp"
 
 uint64_t currentLine = 0;
+const std::string* currentFile = nullptr;
 
 const char* ParserException::what() {
     return "Parser has encountered unexpected input";
 }
 
 void ParserError(const std::string message) {
-    std::cout << "ERROR! At line : " << currentLine + 1 << " : " << message << "\n";
+    if (currentFile == nullptr) {
+        std::cout << "ERROR! Outside file!\n";
+    }
+    else {
+        std::cout << "ERROR! " << *currentFile << " at line : " << currentLine + 1 << " : " << message << "\n";
+    }
     throw ParserException();
 }
 
-Generator <const LexicalToken*> TokenRunGenerator(const std::vector<ProgramLine>& tokens) {
-    for (auto& line : tokens) {
-        currentLine = line.line_number;
-        for (auto& token : line.line) {
-            co_yield &token;
+Generator <const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>& tokens) {
+    currentLine = 0;
+    currentFile = nullptr;
+    for (const auto& file : tokens) {
+        currentFile = &file.file_name;
+        for (const auto& line : file.page) {
+            currentLine = line.line_number;
+            for (const auto& token : line.line) {
+                co_yield &token;
+            }
         }
     }
 }
 
-ASTTree RunParsing(const std::vector<ProgramLine>& tokens) {
+ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
     ASTTree tree;
 
     // Pass 1 - parsing types

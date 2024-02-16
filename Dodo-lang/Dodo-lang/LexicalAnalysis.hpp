@@ -5,7 +5,7 @@
 #include <string>
 
 //this contails ProgramLine and LexicalToken
-#include "lexical_token.h"
+#include "LexicalToken.hpp"
 
 
 /*
@@ -58,7 +58,7 @@ B. VECTOR AND OBJECTS
 list of all tokens is inside of vector token_list,
 this vector conteins ProgramLine objects
 ProgramLine has a number and vector with all tokens in line
-token object has three parameters - value, type and literal_type - check the LexicalToken.h for more info
+token object has three parameters - value, type and literal - check the LexicalToken.h for more info
 
 */
 

@@ -12,10 +12,10 @@ it contains two classes:
 
 ABOUT LexicalToken:
 - this is simple objects - it has type and value
-- all types are in token_type enum
+- all types are in tokenType enum
 - value is string that contains the name of token like "for" or "while" or "variableName"
 - every word in program will be change into token (exepts of commnets)
-- have variable literal_type - it contains information about type of literal such as char, string, float, numeric and hex,
+- have variable literal - it contains information about type of literal such as char, string, float, numeric and hex,
 this types are not the real program types, they are used for checking if the format is correct (numeric can means i32, long etc),
 type none is using when this is not literal types
 - unexpected type means that there is probably mistake in literal format, but it is left to parser to decide
@@ -39,11 +39,11 @@ About ProgramPage:
 
 class LexicalToken
 {
-private:
+public:
 
 	//types are described at the end of that file
 	int type;
-	int literal_type;
+	int literal;
 
 	//names of token types - use for display
 	static std::string names[11];
@@ -51,7 +51,6 @@ private:
 	//names of literal types - use for display
 	static std::string lnames[6];
 
-public:
 	//literal type is set to -1
 	LexicalToken(int type, std::string value);
 
@@ -92,7 +91,7 @@ public:
 	//add token when it's not literal
 	void add_token(int type, std::string value);
 
-	//add literal token with literal_type - uses when adding strings and chars
+	//add literal token with literal - uses when adding strings and chars
 	void add_token(int type, std::string value, int literal_type);
 
 	//add literal token with numeric type check
@@ -129,7 +128,7 @@ public:
 };
 
 //it contains all token types
-enum token_type
+enum tokenType
 {
 	keyword = 0, //part of the language
 	operand = 1,
@@ -138,7 +137,7 @@ enum token_type
 	endline = 4, //;
 	blockBegin = 5, //{
 	blockEnd = 6, //}
-	litral = 7, //number, string, char, bool, etc.
+	literal = 7, //number, string, char, bool, etc.
 	unexpeted_type = 8, //if sth was expected to be literal but it turns out to it has wrong format
 	file_begin = 9, //tells that here is the begin of some file
 };
@@ -146,7 +145,7 @@ enum token_type
 //for now the lexer understands this literar types, numeric is integer, character is char, string_type is string
 //this types do not reprezents the actual program types - numeric can means int, long, long long etc
 //this types are only for checking if the number format is correct
-enum literar_type
+enum literalType
 {
 	none = -1, //this is when token is not literal
 	numeric = 0, // 213123

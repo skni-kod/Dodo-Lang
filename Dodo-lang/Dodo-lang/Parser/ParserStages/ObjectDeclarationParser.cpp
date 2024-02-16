@@ -13,7 +13,7 @@ void ParseObjectDeclarations(Generator<const LexicalToken*>& generator) {
             }
             parserObjects.insert(current->value, ParserObject());
             if (flags::informationLevel == flags::informationLevel::full){
-                std::cout << "INFO L3: Added object declaration: " << current->value << "\n";d
+                std::cout << "INFO L3: Added object declaration: " << current->value << "\n";
             }
 
             // TODO: add check for object definitions inside objects - maybe treating is as a normal object in another place?
