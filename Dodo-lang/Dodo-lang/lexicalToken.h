@@ -12,13 +12,13 @@ it contains two classes:
 
 ABOUT LexicalToken:
 - this is simple objects - it has type and value
-- all types are in tokenType enum
+- all types are in token_type enum
 - value is string that contains the name of token like "for" or "while" or "variableName"
 - every word in program will be change into token (exepts of commnets)
-- have variable literalType - it contains information about type of literalType such as char, string, float, numeric and hex,
+- have variable literal_type - it contains information about type of literal such as char, string, float, numeric and hex,
 this types are not the real program types, they are used for checking if the format is correct (numeric can means i32, long etc),
-type none is using when this is not literalType types
-- unexpected type means that there is probably mistake in literalType format, but it is left to parser to decide
+type none is using when this is not literal types
+- unexpected type means that there is probably mistake in literal format, but it is left to parser to decide
 ----------------------------------------------------------------------------------------------------------
 
 ABOUT ProgramLine:
@@ -31,34 +31,34 @@ code below is treated as two diffrent lexer lines
 i32 a = 2
 + 4;
 
-FUTURE PLANS:
-- add page object that will be containing all of the lines from one file of program
-#inc <library> - that instruction will be adding another page 
+About ProgramPage:
+- contains all info about one included file
+#imp "library" - that instruction will be adding another local file
 */
 
 
 class LexicalToken
 {
+private:
 
-public:
 	//types are described at the end of that file
 	int type;
-	int literal;
-private:
-    //names of token types - use for display
-	static std::string names[9];
+	int literal_type;
 
-	//names of literalType types - use for display
+	//names of token types - use for display
+	static std::string names[11];
+
+	//names of literal types - use for display
 	static std::string lnames[6];
 
 public:
-	//literalType type is set to -1
+	//literal type is set to -1
 	LexicalToken(int type, std::string value);
 
-	//allows to set literalType type
+	//allows to set literal type
 	LexicalToken(int type, std::string value, int literal_type);
 
-	//friens
+	//friends
 	friend std::ostream& operator<<(std::ostream& os, const LexicalToken& dt);
 
 	//getters
@@ -66,8 +66,8 @@ public:
 	int get_type();
 	std::string get_value();
 
-    //value
-    std::string value;
+	//value
+	std::string value;
 };
 
 class ProgramLine
@@ -76,53 +76,79 @@ public:
 
 	//vector of all tokens in one line
 	std::vector<LexicalToken> line;
-	
+
 	//number of line - 
-	int line_number =0;
-	
+	int line_number = 0;
+
+	int l_size = 0;
+
 	// function to print line with all info
 	//displays also types of numeric
 	void line_print() const;
 
 	//overriding << operator
 	friend std::ostream& operator<<(std::ostream& os, const ProgramLine& l);
-	
-	//add token when it's not literalType
+
+	//add token when it's not literal
 	void add_token(int type, std::string value);
 
-	//add literalType token with literalType - uses when adding strings and chars
+	//add literal token with literal_type - uses when adding strings and chars
 	void add_token(int type, std::string value, int literal_type);
 
-	//add literalType token with numeric type check
+	//add literal token with numeric type check
 	void add_token(int type, std::string value, bool checkNumeric);
+
+
+	//operators
+	LexicalToken& operator[](int);
 
 };
 
+//this conteins all info about one file
+class ProgramPage
+{
 
-//TODO
-//class page{};  - this gonna be used for multiple files lexing
+public:
+	//tells how many lines are inside
+	int p_size;
+
+	//tells the name of the file
+	std::string file_name;
+
+	//list of all lines inside of one page
+	std::vector<ProgramLine> page;
+
+	//add line to vector
+	void add_line(ProgramLine p_line);
+
+	friend std::ostream& operator<<(std::ostream& os, const ProgramPage& p);
+
+	//operators
+	ProgramLine& operator[](int);
+
+};
 
 //it contains all token types
-enum tokenType
+enum token_type
 {
 	keyword = 0, //part of the language
 	operand = 1,
 	identifier = 2, //variable names, functions names, object names etc
-	comma = 3,  
+	comma = 3,
 	endline = 4, //;
 	blockBegin = 5, //{
 	blockEnd = 6, //}
-	literal = 7, //number, string, char, bool, etc.
-	unexpeted_type  = 8 //if sth was expected to be literalType but it turns out to it has wrong format
+	litral = 7, //number, string, char, bool, etc.
+	unexpeted_type = 8, //if sth was expected to be literal but it turns out to it has wrong format
+	file_begin = 9, //tells that here is the begin of some file
 };
 
 //for now the lexer understands this literar types, numeric is integer, character is char, string_type is string
 //this types do not reprezents the actual program types - numeric can means int, long, long long etc
 //this types are only for checking if the number format is correct
-//in the future the hex type will be added
-enum literalType
+enum literar_type
 {
-	none = -1, //this is when token is not literalType
+	none = -1, //this is when token is not literal
 	numeric = 0, // 213123
 	character = 1, // '...'
 	string_type = 2, // "..."

@@ -2,6 +2,8 @@
 //in the future this file will have .dod extenstion
 //about program - it has a lot of error - this is to check lexer
 //main function
+#imp "FirstProgram. txt"
+
 i32 mn()
 {
 	

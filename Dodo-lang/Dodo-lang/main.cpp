@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
 	//* - the switch to turn on/off below code
 	std::string line;
 	int licznik = 1;
+
 	while (getline(plik, line))
 	{
 		std::cout << licznik << ". " << line << std::endl;
@@ -46,16 +47,29 @@ int main(int argc, char* argv[])
 	}
 
 	plik.clear();
-	plik.seekg(0);
 	//*/
 
+	std::cout << "\n\n\n" << std::endl;
 	std::cout << "lexing..." << std::endl;
 
-	//getting the list of tokens - function below returns vector of lines
-	lt->analize_file(plik);
+	//do lexical analize.
+	std::cout << "LINKER ERRORS: " << std::endl;
+	lt->lexical_analize(file_name);
+	std::cout << "\n\n\n" << std::endl;
+
 
 	//below is for checking if the lexing procces was correct
+	std::cout << "LEXER OUTPUT: " << std::endl;
 	lt->list_of_tokens_print();
+
+
+	//LEXER HOW TO USE
+	//lt->f_token_list;// - list divided into files, lines and tokens f_token_list[0][0][0] - first file, first line inside this file, first token inside line
+	//lt->token_list;// - all lexical info divided into lines and tokens
+	//lt->f_size; //numer of files that was used
+	//lt->size; //number of lines inside token_list
+	//lt->f_token_list[0].p_size; // - number of lines inside first file
+	//lt->f_token_list[0][0].l_size; //-number of tokens inside first line in first file
 
 	plik.close();
 

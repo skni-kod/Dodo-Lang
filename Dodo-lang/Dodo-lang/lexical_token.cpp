@@ -9,13 +9,13 @@ void ProgramLine::line_print() const
 		std::cout << line[i];
 }
 
-//adds token with none literalType type
+//adds token with none literal type
 void ProgramLine::add_token(int type, std::string value)
 {
 	line.push_back(LexicalToken(type, value));
 }
 
-//adding token with decision what literalType is
+//adding token with decision what literal_type is
 void ProgramLine::add_token(int type, std::string value, int literal_type)
 {
 	line.push_back(LexicalToken(type, value, literal_type));
@@ -40,7 +40,7 @@ void ProgramLine::add_token(int type, std::string value, bool checkNumeric)
 		for (int i = 2; i < size; i++)
 		{
 			ch = value[i];
-			if (!isdigit(ch) && !((ch >= 65 && ch <= 69)|| (ch >= 95 && ch <=101) ))
+			if (!isdigit(ch) && !((ch >= 65 && ch <= 69) || (ch >= 95 && ch <= 101)))
 			{
 				line.push_back(LexicalToken(unexpeted_type, value));
 				return;
@@ -81,7 +81,7 @@ void ProgramLine::add_token(int type, std::string value, bool checkNumeric)
 		line.push_back(LexicalToken(unexpeted_type, value));
 		return;
 	}
-		
+
 }
 
 std::ostream& operator<<(std::ostream& os, const ProgramLine& l)
@@ -89,23 +89,36 @@ std::ostream& operator<<(std::ostream& os, const ProgramLine& l)
 	int s = l.line.size();
 	for (int i = 0; i < s;i++)
 		os << l.line[i];
-	
+
 	return os;
+}
+
+LexicalToken& ProgramLine::operator[](int l_ind)
+{
+	int i = l_ind;
+
+	if (abs(l_ind) > l_size)
+		i = l_ind % l_size;
+
+	if (i < 0)
+		i = l_size - i;
+
+	return line[i];
 }
 
 
 //-----------------------------------LEXICAL TOKEN----------------------------------------------------------
 
 //names to dispaly
-std::string LexicalToken::names[9] = {"keyword", "operand", "identifier", "comma", "endline", "blockBegin", "blockEnd", "literalType", "unexpected" };
-std::string LexicalToken::lnames[6] = {"none", "numeric", "character", "string_type", "float_type", "hex_type" };
+std::string LexicalToken::names[11] = { "keyword", "operand", "identifier", "comma", "endline", "blockBegin", "blockEnd", "literal", "unexpected", "fileBegin", "fileEnd"};
+std::string LexicalToken::lnames[6] = { "none", "numeric", "character", "string_type", "float_type", "hex_type" };
 
 
 std::ostream& operator<<(std::ostream& os, const LexicalToken& lt)
 {
 	os << "[" << lt.names[lt.type] << "," << lt.value;
-	if (lt.literal != -1)
-		os << "," << lt.lnames[lt.literal + 1];
+	if (lt.literal_type != -1)
+		os << "," << lt.lnames[lt.literal_type + 1];
 	os << "]";
 	return os;
 }
@@ -115,21 +128,21 @@ LexicalToken::LexicalToken(int type, std::string value)
 {
 	this->type = type;
 	this->value = value;
-    literal = -1;
+	literal_type = -1;
 }
 
 LexicalToken::LexicalToken(int type, std::string value, int literal_type)
 {
 	this->type = type;
 	this->value = value;
-	this->literal = literal_type;
+	this->literal_type = literal_type;
 }
 
 //getters
 
 int LexicalToken::get_ltype()
 {
-	return this->literal;
+	return this->literal_type;
 }
 int LexicalToken::get_type()
 {
@@ -138,4 +151,38 @@ int LexicalToken::get_type()
 std::string LexicalToken::get_value()
 {
 	return this->value;
+}
+
+//----------------------------PROGRAM PAGE------------------------------------------------
+
+
+void ProgramPage::add_line(ProgramLine p_line)
+{
+	page.push_back(p_line);
+}
+
+ProgramLine& ProgramPage::operator[](int p_ind)
+{
+	int i = p_ind;
+
+	if (abs(p_ind) > p_size)
+		i = p_ind % p_size;
+
+	if (i < 0)
+		i = p_size - i;
+
+	return page[i];
+}
+
+
+std::ostream& operator<<(std::ostream& os, const ProgramPage& p)
+{
+	os << "FILE NAME: " << p.file_name << std::endl;
+
+	for (int i = 0; i < p.p_size; i++)
+	{
+		os << p.page[i] << std::endl;
+	}
+
+	return os;
 }
