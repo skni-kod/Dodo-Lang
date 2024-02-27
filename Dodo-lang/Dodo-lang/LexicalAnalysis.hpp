@@ -146,14 +146,14 @@ public:
 		"for",
 		"else",
 		"if",
-		"bool",
+		"protected",
 		"struct",
 		"if",
 		"class",
 		"true",
 		"break",
-		"bool",
-		"char",
+		"private",
+		"public",
 		"const"
 	};
 

@@ -39,6 +39,9 @@ struct ParserObject {
     //std::vector <MethodOverload> methods;
     //std::vector <ObjectConstructor> constructors;
     //ObjectDestructor destructor;
+    enum Access {
+        publicAccess, protectedAccess, privateAccess
+    };
 };
 
 inline MapWrapper <std::string, ParserType> parserTypes;
