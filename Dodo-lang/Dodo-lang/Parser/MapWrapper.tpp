@@ -17,7 +17,7 @@ public:
         return true;
     }
 
-    const TV& operator[](const TK& key) {
+    TV& operator[](const TK& key) {
         if (map.find(key) == map.end()) {
             ParserError("call to undefined token!");
         }

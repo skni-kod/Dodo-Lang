@@ -21,11 +21,21 @@ struct ParserType {
     uint8_t size:6;                         // allowed values 0-8 (maybe 16 in the future)
     //std::unique_ptr <TypeBehaviour> behaviour = nullptr;
     ParserType(uint8_t type, uint8_t size); // assumes valid input
+    ParserType() = default;
 };
 
 struct ParserObject;
 
 struct ObjectMember {
+    enum Access {
+        publicAccess, protectedAccess, privateAccess
+    };
+    enum Type {
+        value, pointer, reference
+    };
+    uint8_t type:2 = Type::value;
+    uint8_t access:2 = Access::publicAccess;
+    uint8_t defaultValue:1 = false;
     union {
         ParserType* dataPointer = nullptr;
         ParserObject* objectPointer;
@@ -33,15 +43,39 @@ struct ObjectMember {
 
 };
 
-struct ParserObject {
-    std::unordered_map <std::string, ParserObject> subObjects;
-    std::vector <ObjectMember> members;
-    //std::vector <MethodOverload> methods;
-    //std::vector <ObjectConstructor> constructors;
-    //ObjectDestructor destructor;
+struct FunctionVariable {
+    enum Type {
+        value, pointer, reference
+    };
+    uint8_t type:2 = Type::value;
+    uint8_t defaultValue:1 = false;
+    union {
+        ParserType* dataPointer = nullptr;
+        ParserObject* objectPointer;
+    };
+};
+
+struct ObjectMethod {
     enum Access {
         publicAccess, protectedAccess, privateAccess
     };
+    uint8_t access:2 = Access::publicAccess;
+    std::vector <FunctionVariable> arguments;
+    //std::unique_ptr <FunctionFlow> flow;
+};
+
+struct ParserObject {
+    enum Access {
+        publicAccess, protectedAccess, privateAccess
+    };
+
+    std::vector <ObjectMember> members;
+    //std::vector <ObjectMethod> methods;
+    //std::vector <ObjectConstructor> constructors;
+    //ObjectDestructor destructor;
+    ParserObject* parent = nullptr;
+    uint8_t parentAccess = Access::publicAccess;
+
 };
 
 inline MapWrapper <std::string, ParserType> parserTypes;
