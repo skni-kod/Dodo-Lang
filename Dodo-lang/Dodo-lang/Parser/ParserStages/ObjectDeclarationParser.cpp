@@ -13,15 +13,37 @@ void ParseObjectDeclarations(Generator<const LexicalToken*>& generator) {
             }
             parserObjects.insert(current->value, ParserObject());
             if (flags::informationLevel == flags::informationLevel::full){
-                std::cout << "INFO L3: Added object declaration: " << current->value << "\n";
+                std::cout << "INFO L3: Added object declaration : " << current->value << "\n";
             }
-
-            // TODO: add check for object definitions inside objects - maybe treating is as a normal object in another place?
         }
     }
 }
 
-void ParseObjectMethodDefinitions(Generator<const LexicalToken*>& generator) {
+inline ObjectMethod ParseFunctionPrototype(Generator<const LexicalToken*>& generator, const std::string& name, const std::string& returnType, const uint8_t& publicness, const uint8_t& typeType) {
+    uint64_t bracketLevel = 1;
+    ObjectMethod method;
+    method.access = publicness;
+    method.returnType.type = typeType;
+    if (returnType == "void") {
+        method.returnType.isVoid = true;
+    }
+    else if (IsType(returnType)) {
+        method.returnType.dataPointer = &parserTypes[returnType];
+    }
+    else {
+        method.returnType.isObject = true;
+        method.returnType.objectPointer = &parserObjects[returnType];
+    }
+    while (true) {
+        const LexicalToken* current = generator();
+        if (current->type == tokenType::operand and current->value == ")") {
+            return std::move(method);
+        }
+
+    }
+}
+
+void ParseObjectMethodMemberDefinitions(Generator<const LexicalToken*>& generator) {
     while (generator) {
         const LexicalToken* current = generator();
         if (current->type == tokenType::keyword and (current->value == "struct" or current->value == "class")) {
@@ -87,7 +109,7 @@ void ParseObjectMethodDefinitions(Generator<const LexicalToken*>& generator) {
                             // found a method or variable
                             const std::string& type = current->value;
 
-                            if (!IsDeclarable(type)) {
+                            if (!IsDeclarable(type) and current->value != "void") {
                                 ParserError("cannot declare with non existent type!");
                             }
 
@@ -106,18 +128,31 @@ void ParseObjectMethodDefinitions(Generator<const LexicalToken*>& generator) {
                                 temp.type = ObjectMember::Type::value;
                                 temp.defaultValue = false;
                                 if (IsObject(type)) {
+                                    temp.isObject = true;
                                     temp.objectPointer = &parserObjects[type];
                                 }
                                 else if (IsType(type)) {
                                     temp.dataPointer = &parserTypes[type];
                                 }
                                 parserObjects[currentObject].members.emplace_back(temp);
+                                if (flags::informationLevel >= flags::informationLevel::full) {
+                                    std::cout << "INFO L3: Added member to object : " <<
+                                    currentObject << " : " << type << " " << name << "\n";
+                                }
 
                             }
                             else if (current->type == tokenType::operand) {
                                 if (current->value == "(") {
                                     // a function
-                                    ParserError("methods have not yet been implemented!");
+                                    parserObjects[currentObject].methods.emplace_back
+                                    (ParseFunctionPrototype(generator, name, type,objectAccess, 0));
+                                    if (flags::informationLevel >= flags::informationLevel::full) {
+                                        std::cout << "INFO L3: Added method to object : " << currentObject << " : " << type << " " << name << "(";
+                                        for (const auto& n : parserObjects[currentObject].methods.back().arguments) {
+                                            // TODO: add names of types and objects into their objects
+                                        }
+                                        std::cout << ")\n";
+                                    }
                                 }
                                 else if (current->value == "=") {
                                     ParserError("initial values have not yet been introduced!");

@@ -36,6 +36,7 @@ struct ObjectMember {
     uint8_t type:2 = Type::value;
     uint8_t access:2 = Access::publicAccess;
     uint8_t defaultValue:1 = false;
+    uint8_t isObject:1 = false;
     union {
         ParserType* dataPointer = nullptr;
         ParserObject* objectPointer;
@@ -49,6 +50,9 @@ struct FunctionVariable {
     };
     uint8_t type:2 = Type::value;
     uint8_t defaultValue:1 = false;
+    uint8_t isVoid:1 = false;
+    uint8_t isObject:1 = false;
+    std::string name;
     union {
         ParserType* dataPointer = nullptr;
         ParserObject* objectPointer;
@@ -61,6 +65,7 @@ struct ObjectMethod {
     };
     uint8_t access:2 = Access::publicAccess;
     std::vector <FunctionVariable> arguments;
+    FunctionVariable returnType;
     //std::unique_ptr <FunctionFlow> flow;
 };
 
@@ -70,7 +75,7 @@ struct ParserObject {
     };
 
     std::vector <ObjectMember> members;
-    //std::vector <ObjectMethod> methods;
+    std::vector <ObjectMethod> methods;
     //std::vector <ObjectConstructor> constructors;
     //ObjectDestructor destructor;
     ParserObject* parent = nullptr;

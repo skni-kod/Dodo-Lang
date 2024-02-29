@@ -4,6 +4,7 @@
 #include "ParserStages/TypeParser.hpp"
 #include "ParserStages/ObjectDeclarationParser.hpp"
 
+
 uint64_t currentLine = 0;
 const std::string* currentFile = nullptr;
 
@@ -57,7 +58,7 @@ ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
     // Pass 3 - parsing all objects
     {
         auto generator = TokenRunGenerator(tokens);
-
+        ParseObjectMethodMemberDefinitions(generator);
         if (flags::informationLevel > flags::informationLevel::minimal) {
             std::cout << "INFO L2: Finished object parsing with : " << parserObjects.size() << " object definition(s)\n";
         }
