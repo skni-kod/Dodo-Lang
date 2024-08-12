@@ -10,7 +10,7 @@ private:
     std::unordered_map <TK, TV> map;
 public:
 
-    bool IsKey(TK key) {
+    bool isKey(TK key) {
         if (map.find(key) == map.end()) {
             return false;
         }

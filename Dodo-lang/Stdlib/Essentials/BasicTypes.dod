@@ -20,7 +20,6 @@ type u48 : UNSIGNED_INTEGER(6);
 type u56 : UNSIGNED_INTEGER(7);
 type u64 : UNSIGNED_INTEGER(8);
 
-
 // basic floating point
 type f8 : FLOATING_POINT(1);
 type f16 : FLOATING_POINT(2);

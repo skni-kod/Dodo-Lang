@@ -18,7 +18,7 @@ struct ParserType {
         SIGNED_INTEGER, UNSIGNED_INTEGER, FLOATING_POINT
     };
     uint8_t type:2;                         // allowed values 0-2
-    uint8_t size:6;                         // allowed values 0-8 (maybe 16 in the future)
+    uint8_t size:6;                         // allowed values 0-8 (maybe more in future)
     //std::unique_ptr <TypeBehaviour> behaviour = nullptr;
     ParserType(uint8_t type, uint8_t size); // assumes valid input
     ParserType() = default;

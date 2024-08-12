@@ -62,7 +62,7 @@ private:
     void fill() {
         if (!full_) {
             if (h_.done()) {
-                ParserError("unexpected end of file!");
+                ParserError("Unexpected end of file!");
             }
             h_();
             if (h_.promise().exception_)

@@ -15,18 +15,15 @@ int main(int argc, char* argv[])
 	2. Lexical analysis
 
 	3. Parsing + syntax error detecting
-		- creating AST 
 
-	4. Compiling
-		- using assembly
+	4. Transpiling to target assembly
 
-	5. Run program and create exe
+    5. Creating executable
 	*/
 
 
 	//in future change to name from argv
-	//another file FirstProgram.txt
-	std::string file_name = "CheckLexer.txt";
+	const std::string file_name = "dodotest.dod";
 	
 	//opening file
 	std::fstream plik;

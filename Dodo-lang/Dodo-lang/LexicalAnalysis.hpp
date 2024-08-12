@@ -32,9 +32,9 @@ code written in dodo  (before lexical analize):
 
 after lexical analysis:
 
-	[keyword, i32][identifier, a][operand, =][literal, 0][comma][identifier, b][operand, =][literal, 1][endline]
-	[keyword, i32][identifier c][endline]
-	[literal, c][operand, =][literal, a][operand, +][literal, b][endline]
+	[keyword, i32][identifier, a][operand, =][literal, 0][comma][identifier, b][operand, =][literal, 1][expressionEnd]
+	[keyword, i32][identifier c][expressionEnd]
+	[literal, c][operand, =][literal, a][operand, +][literal, b][expressionEnd]
 --------------------------------------------------------------------------------------------------------------------------------------
 
 HOW TO USE

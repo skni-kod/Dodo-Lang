@@ -2,11 +2,11 @@
 #include "Parser.hpp"
 
 bool IsType(const std::string& token) {
-    return parserTypes.IsKey(token);
+    return parserTypes.isKey(token);
 }
 
 bool IsObject(const std::string& token) {
-    return parserObjects.IsKey(token);
+    return parserObjects.isKey(token);
 }
 
 bool IsDeclarable(const std::string& token) {

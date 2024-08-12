@@ -110,7 +110,7 @@ LexicalToken& ProgramLine::operator[](int l_ind)
 //-----------------------------------LEXICAL TOKEN----------------------------------------------------------
 
 //names to dispaly
-std::string LexicalToken::names[11] = { "keyword", "operand", "identifier", "comma", "endline", "blockBegin", "blockEnd", "literal", "unexpected", "fileBegin", "fileEnd"};
+std::string LexicalToken::names[11] = { "keyword", "operand", "identifier", "comma", "expressionEnd", "blockBegin", "blockEnd", "literal", "unexpected", "fileBegin", "fileEnd"};
 std::string LexicalToken::lnames[6] = { "none", "numeric", "character", "string_type", "float_type", "hex_type" };
 
 
@@ -128,21 +128,21 @@ LexicalToken::LexicalToken(int type, std::string value)
 {
 	this->type = type;
 	this->value = value;
-    literal = -1;
+    literalValue = -1;
 }
 
 LexicalToken::LexicalToken(int type, std::string value, int literal_type)
 {
 	this->type = type;
 	this->value = value;
-	this->literal = literal_type;
+	this->literalValue = literal_type;
 }
 
 //getters
 
 int LexicalToken::get_ltype()
 {
-	return this->literal;
+	return this->literalValue;
 }
 int LexicalToken::get_type()
 {

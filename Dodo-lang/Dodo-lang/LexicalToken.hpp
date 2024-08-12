@@ -3,6 +3,8 @@
 #include <vector>
 #include <ostream>
 
+// TODO: Rewrite to make this comfortable to use
+
 /*
 ABOUT THIS FILE:
 it contains two classes:
@@ -41,9 +43,23 @@ class LexicalToken
 {
 public:
 
+    enum type
+    {
+        keyword,
+        operand,
+        identifier,
+        comma,
+        expressionEnd,
+        blockBegin,
+        blockEnd,
+        literal,
+        unexpected,
+        fileBegin
+    };
+
 	//types are described at the end of that file
-	int type;
-	int literal;
+	uint8_t type;
+	int literalValue;
 
 	//names of token types - use for display
 	static std::string names[11];
