@@ -7,3 +7,7 @@ type i40 : SIGNED_INTEGER(5);
 type i48 : SIGNED_INTEGER(6);
 type i56 : SIGNED_INTEGER(7);
 type i64 : SIGNED_INTEGER(8);
+
+i32* test(i32 k) {
+    return 1;
+}

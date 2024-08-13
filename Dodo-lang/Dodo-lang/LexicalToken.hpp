@@ -43,7 +43,7 @@ class LexicalToken
 {
 public:
 
-    enum type
+    enum Type
     {
         keyword,
         operand,
@@ -163,7 +163,7 @@ enum tokenType
 //this types are only for checking if the number format is correct
 enum literalType
 {
-	none = -1, //this is when token is not literal
+	nonee = -1, //this is when token is not literal
 	numeric = 0, // 213123
 	character = 1, // '...'
 	string_type = 2, // "..."
