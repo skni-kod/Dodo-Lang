@@ -95,7 +95,7 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
     while (current->type != LexicalToken::Type::blockEnd) {
 
         // FUNCTION INSTRUCTIONS
-        CreateInstruction(generator, current);
+        function.instructions.push_back(CreateInstruction(generator, current));
 
         current = generator();
     }

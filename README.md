@@ -1,48 +1,23 @@
 # Dodo-Lang
 
-## Table of contents
-* [General info](#general-info)
-* [Technologies](#technologies)
-* [About dodo-lang](#About-dodo-lang)
-* [Plans](#plans)
-
 ## General info:
-The goal of the project is to create a simple compiled language called Dodo-lang. We are writing it in cpp.
-We also want to create own lexer and parser.
+The goal of this project is to create a simple, C++ style programming language compiler written in C++.
 
 ## Technologies:
-- cpp
-- assembly
+- C++
+- GNU Assembler
+- GNU Linker
 
 ## About dodo-lang:
-This language will have strongly-typed variables. mn() will be main funcion.
-And the file extension will be probably .dod because why not :-)
-### List of keywords:
-- asm
-- bool
-- break
-- char
-- const
-- dodo...while (u know, dodo instead of do. What a clever joke. This joke is probably the best thing about this language)
-- else
-- false
-- f (float)
-- for
-- if
-- i32 (int)
-- ret (return)
-- size (sizeof)
-- true
-- interrupt
+The language itself is to be statically typed, have objects and possibly bindings for more advanced features such as graphics. As of now it is being developed for x86-64 linux, with plans for it to work at least on 32 and 64 bit x86 linux and windows, arm is possible too. There will be no need for header files or specific definition order. The compilation order is as follows: .dodo file -- dodo-lang compiler -> .s file -- gnu as -> .o file -- gnu ld -> executable.
 
-### Operands:
-- +, -
-- =
-- ==, !=
-- ()
-- {}
-- []
+Documentation will be added in the future when the projects achieves any real functionality
 
-## Plans:
-First we want to achieve compilation. Then we want to add variables and functions.
-In the distant future maybe other stuff like objects or sth.
+
+The project is being developed as a SKNI "KOD" project.
+
+
+## Currenty achieved goals:
+- base types parsing
+- very simple function parsing
+- compilation chain to generate an executable

@@ -13,6 +13,7 @@ ABOUT LEXER:
 - for now it only analize one file
 - creates vector of line object - one line have inside it all tokens that was in there  - more in LexicalToken.h
 - his name is Bob. Bob still learns how to be a good lexer
+- "Bob" isn't being developed and will be replaced soon
 
 - IMPORTANT VARIABLES:
 	- f_token_list - conteins information created in lexical process, this info is divided into pages, lines and tokens
@@ -138,7 +139,7 @@ public:
 	//because reasons
 	std::string list_of_keywords[17] =
 	{
-		"ret",
+		"return",
 		"while",
 		"dodo",
 		"type",

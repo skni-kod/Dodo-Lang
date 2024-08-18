@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "MapWrapper.tpp"
+#include "Parser.hpp"
+#include "Generator.tpp"
 
 #define INSERT_SUBTYPE_ENUM \
 enum Subtype { \
@@ -29,24 +31,6 @@ struct ParserType {
     ParserType() = default;
 };
 
-struct ParserObject;
-
-struct ObjectMember {
-    enum Access {
-        publicAccess, protectedAccess, privateAccess
-    };
-    INSERT_SUBTYPE_ENUM
-    uint8_t type:2 = Subtype::value;
-    uint8_t access:2 = Access::publicAccess;
-    uint8_t defaultValue:1 = false;
-    uint8_t isObject:1 = false;
-    union {
-        ParserType* dataPointer = nullptr;
-        ParserObject* objectPointer;
-    };
-
-};
-
 struct FunctionArgument {
     INSERT_SUBTYPE_ENUM
     uint8_t type:2 = Subtype::value;
@@ -59,24 +43,42 @@ struct ParserValue {
     enum Type {
         literalValue, calculatedValue
     };
+    uint8_t type = 0;
+    // this constructor automatically parses mathematical expressions
+    // BEWARE it also takes the ',' or ';' at the end
+    ParserValue(Generator<const LexicalToken*>& generator);
+    ParserValue() = default;
 };
 
-struct InstructionDeclaration {
+struct DeclarationInstruction {
     std::string typeName;
     std::string name;
-    ParserValue initialValue;
+    ParserValue expression;
     INSERT_SUBTYPE_ENUM
     uint8_t subtype = 0;
+};
+
+struct ReturnInstruction {
+    ParserValue expression;
+    INSERT_SUBTYPE_ENUM
+    uint8_t subtype = 0;
+    explicit ReturnInstruction(Generator<const LexicalToken*>& generator);
 };
 
 struct FunctionInstruction {
     enum Type {
         declaration, returnValue, mathematical, functionCall
     };
-    uint8_t type = 0;
     union Variant {
-        std::unique_ptr<InstructionDeclaration> declaration;
-    };
+        DeclarationInstruction* declarationInstruction = nullptr;
+        ReturnInstruction* returnInstruction;
+    }Variant;
+    uint8_t type = 0;
+    ~FunctionInstruction();
+    FunctionInstruction() = default;
+    FunctionInstruction(const FunctionInstruction& F);
+    FunctionInstruction(FunctionInstruction&& F);
+
 };
 
 struct ParserFunction {
@@ -85,35 +87,11 @@ struct ParserFunction {
     std::string name;
     uint8_t returnValueType:2 = 0;
     std::vector <FunctionArgument> arguments;
-};
-
-struct ObjectMethod {
-    enum Access {
-        publicAccess, protectedAccess, privateAccess
-    };
-    uint8_t access:2 = Access::publicAccess;
-    std::vector <FunctionArgument> arguments;
-    FunctionArgument returnType;
-    //std::unique_ptr <FunctionFlow> flow;
-};
-
-struct ParserObject {
-    enum Access {
-        publicAccess, protectedAccess, privateAccess
-    };
-
-    std::vector <ObjectMember> members;
-    std::vector <ObjectMethod> methods;
-    //std::vector <ObjectConstructor> constructors;
-    //ObjectDestructor destructor;
-    ParserObject* parent = nullptr;
-    uint8_t parentAccess = Access::publicAccess;
-
+    std::vector <FunctionInstruction> instructions;
 };
 
 inline MapWrapper <std::string, ParserType> parserTypes;
 inline MapWrapper <std::string, ParserFunction> parserFunctions;
 
-inline MapWrapper <std::string, ParserObject> parserObjects;
 
 #endif //DODO_LANG_PARSER_VARIABLES_HPP

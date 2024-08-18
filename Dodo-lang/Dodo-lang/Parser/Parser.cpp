@@ -1,9 +1,8 @@
 #include "Parser.hpp"
 #include "Generator.tpp"
-
 #include "ParserVariables.hpp"
-
 #include "SyntaxAnalysis/SyntaxAnalysis.hpp"
+#include "CreateTree/CreateTree.hpp"
 
 uint64_t currentLine = 0;
 const std::string* currentFile = nullptr;
@@ -12,7 +11,7 @@ const char* ParserException::what() {
     return "Parser has encountered unexpected input";
 }
 
-void ParserError(const std::string message) {
+void ParserError(const std::string& message) {
     if (currentFile == nullptr) {
         std::cout << "ERROR! Outside file!\n";
     }
@@ -37,7 +36,6 @@ Generator <const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>
 }
 
 ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
-    ASTTree tree;
 
     // Step 1: syntax analysis and creating initial structures
     {
@@ -67,5 +65,5 @@ ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
 
     // ...
 
-    return std::move(tree);
+    return CreateTree();
 }

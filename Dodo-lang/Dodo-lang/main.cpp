@@ -5,6 +5,7 @@
 #include "LexicalAnalysis.hpp"
 #include <memory>
 #include "Parser/Parser.hpp"
+#include "CodeGenerator/GenerateCode.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -78,8 +79,22 @@ int main(int argc, char* argv[])
         std::cout << "Parsing has failed. compilation aborted!\n";
         return 1;
     }
-    std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating code:\n";
+    std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating assembly code:\n";
 
+    // temp
+    TargetArchitecture = "X86-64";
+    TargetSystem = "LINUX";
+
+    try {
+        GenerateCode();
+    }
+    catch (CodeException& e){
+        std::cout << "Code generation has failed. compilation aborted!\n";
+        return 1;
+    }
+
+    std::system("as -o build/out.o build/out.s");
+    std::system("ld build/out.o -o build/out");
 
 	return 0;
 }

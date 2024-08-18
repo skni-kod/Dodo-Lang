@@ -4,17 +4,14 @@
 #include "../LexicalToken.hpp"
 #include "../LexicalAnalysis.hpp"
 #include "../Flags.hpp"
-
-struct ASTTree {
-    // empty for now
-};
+#include "CreateTree/CreateTree.hpp"
 
 class ParserException : public std::exception {
 public:
     const char* what();
 };
 
-void ParserError(std::string message);
+void ParserError(const std::string& message);
 
 ASTTree RunParsing(const std::vector<ProgramPage>& tokens);
 
