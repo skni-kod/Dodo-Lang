@@ -163,10 +163,12 @@ enum tokenType
 //this types are only for checking if the number format is correct
 enum literalType
 {
-	nonee = -1, //this is when token is not literal
+	nonee = -1, //this is when token is not literal, why does this exist though since there's an unexpected token type?
 	numeric = 0, // 213123
 	character = 1, // '...'
 	string_type = 2, // "..."
 	float_type = 3, // 12.43
-	hex_type = 4 // 0x...
+	hex_type = 4, // 0x...
+    binary_type, // 0b...
+    octal_type // 0o...
 };

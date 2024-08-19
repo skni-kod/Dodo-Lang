@@ -26,7 +26,6 @@ struct ParserType {
     };
     uint8_t type:2;                         // allowed values 0-2
     uint8_t size:6;                         // allowed values 1-8 (maybe more in future)
-    //std::unique_ptr <TypeBehaviour> behaviour = nullptr;
     ParserType(uint8_t type, uint8_t size); // assumes valid input
     ParserType() = default;
 };
@@ -38,16 +37,19 @@ struct FunctionArgument {
     std::string typeName;
 };
 
-// TODO: rethink this
 struct ParserValue {
-    enum Type {
-        literalValue, calculatedValue
+    enum Node {
+        constant, variable, operation, empty
     };
-    uint8_t type = 0;
-    // this constructor automatically parses mathematical expressions
-    // BEWARE it also takes the ',' or ';' at the end
-    ParserValue(Generator<const LexicalToken*>& generator);
-    ParserValue() = default;
+    enum Operation {
+        addition, subtraction, multiplication, division // ...
+    };
+    // maybe put this into a union, would require getting rid of unique_ptr and be more annoying though
+    std::unique_ptr<ParserValue> left = nullptr;
+    std::unique_ptr<ParserValue> right = nullptr;
+    std::unique_ptr<std::string> value = nullptr;
+    uint8_t nodeType = 0;
+    uint8_t operationType = 0;
 };
 
 struct DeclarationInstruction {
@@ -62,7 +64,6 @@ struct ReturnInstruction {
     ParserValue expression;
     INSERT_SUBTYPE_ENUM
     uint8_t subtype = 0;
-    explicit ReturnInstruction(Generator<const LexicalToken*>& generator);
 };
 
 struct FunctionInstruction {
@@ -77,7 +78,8 @@ struct FunctionInstruction {
     ~FunctionInstruction();
     FunctionInstruction() = default;
     FunctionInstruction(const FunctionInstruction& F);
-    FunctionInstruction(FunctionInstruction&& F);
+    FunctionInstruction(FunctionInstruction&& F) noexcept ;
+    void DeleteAfterCopy();
 
 };
 

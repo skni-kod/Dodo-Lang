@@ -95,9 +95,13 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
     while (current->type != LexicalToken::Type::blockEnd) {
 
         // FUNCTION INSTRUCTIONS
-        function.instructions.push_back(CreateInstruction(generator, current));
+        function.instructions.emplace_back(CreateInstruction(generator, current));
 
         current = generator();
     }
     parserFunctions.insert(function.name, std::move(function));
+    for (auto& n : function.instructions) {
+        n.DeleteAfterCopy();
+    }
+    std::cout << parserFunctions.size() << "\n";
 }

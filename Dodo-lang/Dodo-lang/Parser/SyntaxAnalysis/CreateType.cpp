@@ -61,13 +61,13 @@ void CreateType(Generator<const LexicalToken*>& generator) {
     }
 
     current = generator();
-    if (current->type != LexicalToken::Type::literal) {
+    if (current->type != LexicalToken::Type::literal or current->literalValue != literalType::numeric) {
         ParserError("Expected a number inside basic type size bracket!");
     }
     if (std::stoi(current->value) < 1 or std::stoi(current->value) > 8) {
         ParserError("Invalid value inside basic type size bracket!");
     }
-    uint8_t size = current->literalValue;
+    uint8_t size = std::stoll(current->value);
 
     // type <name> : <type>(<size>)
     if (!generator) {
