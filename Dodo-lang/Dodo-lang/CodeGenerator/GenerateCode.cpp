@@ -79,46 +79,204 @@ uint64_t GetTypeSize(const std::string& typeName) {
     }
 }
 
+struct ValueType {
+    uint8_t reg:1 = 1;
+    uint8_t val:1 = 1;
+    uint8_t sta:1 = 1;
+    uint8_t hea:1 = 1;
+    ValueType(uint8_t reg, uint8_t val, uint8_t sta, uint8_t hea) : reg(reg), val(val), sta(sta), hea(hea) {}
+};
+
 // takes a mathematical expression and returns the value to put wherever the user wants
-std::string CalculateExpression(const StackVector& variables, std::ofstream& out, uint16_t outputSize, const ParserValue& expression) {
+std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint16_t outputSize,
+                                const ParserValue& expression, ValueType valueType = {1, 1, 1, 1}) {
+
+    if (expression.nodeType == ParserValue::Node::empty) {
+        // shouldn't happen afaik
+        CodeError("Empty node in wrong place!");
+    }
 
     // if given node is a constant just return it's value
     if (expression.nodeType == ParserValue::constant) {
         // fixed sizes for now
         if (outputSize > 4) {
             uint64_t number = ConvertNumber(*expression.value, 64);
-            return "$" + std::to_string(number);
+            if (valueType.val) {
+                return "$" + std::to_string(number);
+            }
+            else if (valueType.reg) {
+                out << "movq    $" << std::to_string(number) << ", %rax\n";
+                return "%rax";
+            }
+            else {
+                CodeError("Unsupported value return type for node type!");
+            }
+
         }
         else if (outputSize > 2) {
             uint64_t number = ConvertNumber(*expression.value, 32);
             if (number > 4294967295) {
                 CodeError("Invalid number for this size of variable!");
             }
-            return "$" + std::to_string(number);
+            if (valueType.val) {
+                return "$" + std::to_string(number);
+            }
+            else if (valueType.reg) {
+                out << "movl    $" << std::to_string(number) << ", %eax\n";
+                return "%eax";
+            }
+            else {
+                CodeError("Unsupported value return type for node type!");
+            }
         }
         else if (outputSize > 1) {
             uint64_t number = ConvertNumber(*expression.value, 16);
             if (number > 65535) {
                 CodeError("Invalid number for this size of variable!");
             }
-            return "$" + std::to_string(number);
+            if (valueType.val) {
+                return "$" + std::to_string(number);
+            }
+            else if (valueType.reg) {
+                out << "movw    $" << std::to_string(number) << ", %ax\n";
+                return "%ax";
+            }
+            else {
+                CodeError("Unsupported value return type for node type!");
+            }
         }
         else {
             uint64_t number = ConvertNumber(*expression.value, 8);
             if (number > 255) {
                 CodeError("Invalid number for this size of variable!");
             }
-            return "$" + std::to_string(number);
+            if (valueType.val) {
+                return "$" + std::to_string(number);
+            }
+            else if (valueType.reg) {
+                out << "movb    $" << std::to_string(number) << ", %al\n";
+                return "%al";
+            }
+            else {
+                CodeError("Unsupported value return type for node type!");
+            }
         }
     }
 
     // if given node is a variable
     if (expression.nodeType == ParserValue::Node::variable) {
+        auto& var = variables.find(*expression.value);
+        if (var.size == outputSize) {
+            // situation is simple, just return the stack location
+            if (valueType.sta) {
+                return "-" + std::to_string(var.offset) + "(%rbp)";
+            }
+            else if (valueType.reg) {
+                switch (var.size) {
+                    case 8:
+                        out << "movq    -" << var.offset << "(%rbp), %rax\n";
+                        return "%rax";
+                    case 4:
+                        out << "movl    -" << var.offset << "(%rbp), %eax\n";
+                        return "%eax";
+                    case 2:
+                        out << "movw    -" << var.offset << "(%rbp), %ax\n";
+                        return "%ax";
+                    case 1:
+                        out << "movb    -" << var.offset << "(%rbp), %al\n";
+                        return "%al";
+                    default:
+                        CodeError("Invalid variable size!");
+                }
+            }
+            else {
+                CodeError("Unsupported value return type for node type!");
+            }
 
+        }
+        else {
+            // TODO: add conversion skip with unsigned value move
+            // TODO: figure out the mystery of movsb and movsw instructions
+            if (valueType.reg) {
+                switch (outputSize) {
+                    case 8:
+                        switch (var.size) {
+                            case 4:
+                                out << "movl    -" << var.offset << "(%rbp), %eax\n";
+                                out << "cltq\n";
+                                return "%rax";
+                            case 2:
+                                out << "movsw   -" << var.offset << "(%rbp), %eax\n";
+                                out << "cwtl\n";
+                                return "%rax";
+                            case 1:
+                                out << "movsb   -" << var.offset << "(%rbp), %eax\n";
+                                out << "cwtl\n";
+                                return "%rax";
+                            default:
+                                CodeError("Invalid variable size!");
+                        }
+                    case 4:
+                        switch (var.size) {
+                            case 8:
+                                out << "movq    -" << var.offset << "(%rbp), %rax\n";
+                                return "%eax";
+                            case 2:
+                                out << "movsw   -" << var.offset << "(%rbp), %eax\n";
+                                return "%eax";
+                            case 1:
+                                out << "movsb   -" << var.offset << "(%rbp), %eax\n";
+                                return "%eax";
+                            default:
+                                CodeError("Invalid variable size!");
+                        }
+                    case 2:
+                        switch (var.size) {
+                            case 8:
+                                out << "movq    -" << var.offset << "(%rbp), %rax\n";
+                                return "%ax";
+                            case 4:
+                                out << "movl    -" << var.offset << "(%rbp), %eax\n";
+                                return "%ax";
+                            case 1:
+                                out << "movb    -" << var.offset << "(%rbp), %al\n";
+                                out << "cbtw\n";
+                                return "%ax";
+                            default:
+                                CodeError("Invalid variable size!");
+                        }
+                    case 1:
+                        switch (var.size) {
+                            case 8:
+                                out << "movq    -" << var.offset << "(%rbp), %rax\n";
+                                return "%al";
+                            case 4:
+                                out << "movl    -" << var.offset << "(%rbp), %eax\n";
+                                return "%al";
+                            case 2:
+                                out << "movw    -" << var.offset << "(%rbp), %ax\n";
+                                return "%al";
+                            default:
+                                CodeError("Invalid variable size!");
+                        }
+                    default:
+                        CodeError("Invalid output size!");
+
+                }
+            }
+            else if (valueType.sta) {
+                CodeError("Adaptive size variable return from stack not yet supported!");
+            }
+            else {
+                CodeError("Unsupported value return type for node type!");
+            }
+        }
     }
 
-    CodeError("Expression generation error!");
-    return "";
+    // if given node is an actual multi thingy expression
+
+    std::cout << "Complex expressions not yet added to code generator!\n";
+    return "$0";
 }
 
 void GenerateFunction(const std::string& identifier, std::ofstream& out) {
@@ -166,35 +324,26 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                         if (var.offset % 8 != 0) {
                             var.offset = (var.offset / 8 + 1) * 8;
                         }
-                        uint64_t number = ConvertNumber(*dec.expression.value, 64);
-                        out << "movq    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
+                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                        out << "movq    " << source << ", -" << var.offset << "(%rbp)\n";
                     }
                     else if (var.size > 2) {
                         if (var.offset % 4 != 0) {
                             var.offset = (var.offset / 4 + 1) * 4;
                         }
-                        uint64_t number = ConvertNumber(*dec.expression.value, 32);
-                        if (number > 4294967295) {
-                            CodeError("Invalid number for this size of variable!");
-                        }
-                        out << "movl    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
+                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                        out << "movl    " << source << ", -" << var.offset << "(%rbp)\n";
                     }
                     else if (var.size > 1) {
                         if (var.offset % 2 != 0) {
                             var.offset = (var.offset / 2 + 1) * 2;
                         }
-                        uint64_t number = ConvertNumber(*dec.expression.value, 16);
-                        if (number > 65535) {
-                            CodeError("Invalid number for this size of variable!");
-                        }
-                        out << "movw    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
+                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                        out << "movw    " << source << ", -" << var.offset << "(%rbp)\n";
                     }
                     else {
-                        uint64_t number = ConvertNumber(*dec.expression.value, 8);
-                        if (number > 255) {
-                            CodeError("Invalid number for this size of variable!");
-                        }
-                        out << "movb    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
+                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                        out << "movb    " << source << ", -" << var.offset << "(%rbp)\n";
                     }
                 }
                 else {
@@ -229,61 +378,21 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 // TODO: Change 0 to value
                 if (identifier == "main") {
                     if (TargetArchitecture == "X86-64") {
+
+                        std::string source = CalculateExpression(variables, out, 8, ret.expression);
+                        out << "movq    " << source << ", %rdi\n";
+
                         // interrupt number
                         out << "movq    $60, %rax\n";
-                        if (ret.expression.nodeType == ParserValue::Node::empty) {
-                            // shouldn't happen afaik
-                            CodeError("Empty return statement!");
-                        }
-                        if (ret.expression.nodeType == ParserValue::Node::constant) {
-                            out << "movq    $" << ConvertNumber(*ret.expression.value, 64) << ", %rdi\n";
-                        }
-                        else if (ret.expression.nodeType == ParserValue::Node::variable) {
-                            auto& var = variables.find(*ret.expression.value);
-                            if (var.size > 4) {
-                                out << "movq    -" << var.offset << "(%rbp), %rdi\n";
-                            }
-                            else if (var.size > 2) {
-                                // might be a stupid way
-                                out << "movq    $0, %rdi\n";
-                                out << "movl    -" << var.offset << "(%rbp), %edi\n";
-                            }
-                            else if (var.size > 1) {
-                                // might be an even dumber way
-                                out << "movq    $0, %rbx\n";
-                                out << "movw    -" << var.offset << "(%rbp), %bx\n";
-                                out << "movq    %rbx, %rdi\n";
-                            }
-                            else {
-                                // might be an even dumber way
-                                out << "movq    $0, %rbx\n";
-                                out << "movb    -" << var.offset << "(%rbp), %bl\n";
-                                out << "movq    %rbx, %rdi\n";
-                            }
-                        }
-                        else {
-                            // because complex expressions are not yet supported
-                            out << "movq    $0, %rdi\n";
-                        }
                         // call out to the kernel to end this misery
                         out << "syscall\n";
-                    }
-                    else if (TargetArchitecture == "X86-32") {
-                        // 32 bit not yet supported
-                        out << "movl    $1, %eax\n";
-                        out << "movl    $0, %ebx\n";
-                        out << "int     $80\n";
                     }
                 }
                 else {
                     if (TargetArchitecture == "X86-64") {
+                        // value here;
                         out << "movq    $0, %rax\n";
                         out << "popq    %rbp\n";
-                        out << "ret\n";
-                    }
-                    else if (TargetArchitecture == "X86-32") {
-                        out << "movl    $0, %eax\n";
-                        out << "popl    %ebp\n";
                         out << "ret\n";
                     }
                 }
@@ -295,25 +404,15 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     if (not didReturn) {
         if (identifier == "main") {
             if (TargetArchitecture == "X86-64") {
-                out << "movq    $60, %rax\n";
                 out << "movq    $0, %rdi\n";
+                out << "movq    $60, %rax\n";
                 out << "syscall\n";
-            }
-            else if (TargetArchitecture == "X86-32") {
-                out << "movl    $1, %eax\n";
-                out << "movl    $0, %ebx\n";
-                out << "int     $80\n";
             }
         }
         else {
             if (TargetArchitecture == "X86-64") {
                 out << "movq    $0, %rax\n";
                 out << "popq    %rbp\n";
-                out << "ret\n";
-            }
-            else if (TargetArchitecture == "X86-32") {
-                out << "movl    $0, %eax\n";
-                out << "popl    %ebp\n";
                 out << "ret\n";
             }
         }
@@ -340,6 +439,8 @@ void GenerateCode() {
     // ...
     out << ".global _start\n";
     // ...
+
+    // TODO: make this a loop for all functions
     GenerateFunction("main", out);
 }
 

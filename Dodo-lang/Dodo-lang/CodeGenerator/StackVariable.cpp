@@ -4,7 +4,6 @@
 StackVariable &StackVector::find(const std::string& name) {
     for (auto& n : vec) {
         for (auto& m : n) {
-
             if (m.name == name) {
                 return m;
             }

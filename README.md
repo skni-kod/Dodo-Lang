@@ -18,6 +18,6 @@ The project is being developed as a SKNI "KOD" project.
 
 
 ## Currenty achieved goals:
-- base types parsing
-- very simple function parsing
-- compilation chain to generate an executable
+- simple type declaration
+- main function with the ability to declare variables with constants or other variables and returning value in the same way
+- all converted to assembly and working correctly as executable
