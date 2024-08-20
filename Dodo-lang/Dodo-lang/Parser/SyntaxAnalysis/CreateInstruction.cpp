@@ -24,7 +24,6 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
             // with value
             if (current->type == LexicalToken::Type::operand and current->value == "=") {
                 instruction.Variant.declarationInstruction->expression = ParseMath(generator);
-                std::cout << *instruction.Variant.declarationInstruction->expression.value << "\n";
             }
             else if (current->type == LexicalToken::Type::expressionEnd) {
                 instruction.Variant.declarationInstruction->expression.nodeType = ParserValue::Node::empty;

@@ -42,14 +42,13 @@ struct ParserValue {
         constant, variable, operation, empty
     };
     enum Operation {
-        addition, subtraction, multiplication, division // ...
+        addition, subtraction, multiplication, division, functionCall
     };
-    // maybe put this into a union, would require getting rid of unique_ptr and be more annoying though
+    uint8_t nodeType = 0;
+    uint8_t operationType = 0;
     std::unique_ptr<ParserValue> left = nullptr;
     std::unique_ptr<ParserValue> right = nullptr;
     std::unique_ptr<std::string> value = nullptr;
-    uint8_t nodeType = 0;
-    uint8_t operationType = 0;
 };
 
 struct DeclarationInstruction {

@@ -3,16 +3,24 @@
 
 StackVariable &StackVector::find(const std::string& name) {
     for (auto& n : vec) {
-        if (n.name == name) {
-            return n;
+        for (auto& m : n) {
+
+            if (m.name == name) {
+                return m;
+            }
         }
     }
-    CodeError("Variable: " + name + " not found!");
+    CodeError("Variable: " + name + " not found at this point!");
 }
 
 uint64_t StackVector::lastOffset() {
-    if (not vec.empty()) {
-        return vec.back().offset;
+    if (not vec.empty() and not vec.back().empty()) {
+        return vec.back().back().offset;
     }
     return 0;
+}
+
+StackVector::StackVector() {
+    // so that the first level is always here
+    vec.emplace_back();
 }

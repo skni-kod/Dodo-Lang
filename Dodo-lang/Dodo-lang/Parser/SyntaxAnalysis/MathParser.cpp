@@ -54,11 +54,11 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
             }
             ParserValue value;
             value.nodeType = ParserValue::Node::constant;
-            if (tokens[range.first]->value[0] == '-') {
+            if (tokens[range.first + 1]->value.front() == '-') {
                 value.value = std::make_unique<std::string>(tokens[range.first]->value.substr(1, tokens[range.first]->value.size() - 1));
             }
             else {
-                value.value = std::make_unique<std::string>("-" + tokens[range.first]->value);
+                value.value = std::make_unique<std::string>("-" + tokens[range.first + 1]->value);
             }
             return std::move(value);
         }
@@ -68,7 +68,90 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         return ParseMathInternal(tokens, {range.first + 1, range.second - 1});
     }
 
-    // TODO: add complex expression handling here
+    // TODO: add function calls here
+
+    // complex expression parsing
+
+    // bracket check definitions to avoid repeating most of the code
+    uint16_t bracketLevel = 0;
+#define MATH_CHECK_BRACKET                          \
+    if (tokens[n]->value == "(") {                  \
+        bracketLevel++;                             \
+        continue;                                   \
+    }                                               \
+    if (tokens[n]->value == ")") {                  \
+        if (bracketLevel == 0) {                    \
+            ParserError("Invalid closing bracket!");\
+        }                                           \
+        bracketLevel--;                             \
+        continue;                                   \
+    }
+#define MATH_CHECK_BRACKET_AFTER                    \
+    if (bracketLevel != 0) {                        \
+        ParserError("Invalid bracket pairs!");      \
+    }
+
+    // example: 1 + 5 - 6 + 5 * 5 / 6 + 3
+    // -> (1 + 5 - 6 + 5 * 5 / 6) + (3)
+    // -> ((1 + 5 - 6) + (5 * 5 / 6)) + (3)
+    // -> (((1) + (5 - 6)) + (5 * 5 / 6)) + (3)
+    for (int64_t n = range.second - 1; n >= range.first; n--) {
+        MATH_CHECK_BRACKET
+        if (tokens[n]->value == "+") {
+            ParserValue value;
+            value.nodeType      = ParserValue::Node     ::operation;
+            value.operationType = ParserValue::Operation::addition ;
+            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
+            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            return std::move(value);
+        }
+    }
+    MATH_CHECK_BRACKET_AFTER
+
+    // (((1) + (5 - 6)) + (5 * 5 / 6)) + (3)
+    // -> (((1) + ((5) - (6))) + (5 * 5 / 6)) + (3)
+    for (int64_t n = range.second - 1; n >= range.first; n--) {
+        MATH_CHECK_BRACKET
+        if (tokens[n]->value == "-") {
+            ParserValue value;
+            value.nodeType      = ParserValue::Node     ::operation  ;
+            value.operationType = ParserValue::Operation::subtraction;
+            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
+            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            return std::move(value);
+        }
+    }
+    MATH_CHECK_BRACKET_AFTER
+
+    // (((1) + ((5) - (6))) + (5 * 5 / 6)) + (3)
+    // -> (((1) + ((5) - (6))) + ((5) * (5 / 6))) + (3)
+    for (int64_t n = range.second - 1; n >= range.first; n--) {
+        MATH_CHECK_BRACKET
+        if (tokens[n]->value == "*") {
+            ParserValue value;
+            value.nodeType      = ParserValue::Node     ::operation     ;
+            value.operationType = ParserValue::Operation::multiplication;
+            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
+            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            return std::move(value);
+        }
+    }
+    MATH_CHECK_BRACKET_AFTER
+
+    // (((1) + ((5) - (6))) + ((5) * (5 / 6))) + (3)
+    // -> (((1) + ((5) - (6))) + ((5) * ((5) / (6)))) + (3)
+    for (int64_t n = range.second - 1; n >= range.first; n--) {
+        MATH_CHECK_BRACKET
+        if (tokens[n]->value == "/") {
+            ParserValue value;
+            value.nodeType      = ParserValue::Node     ::operation;
+            value.operationType = ParserValue::Operation::division ;
+            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
+            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            return std::move(value);
+        }
+    }
+    MATH_CHECK_BRACKET_AFTER
 
     return {};
 }

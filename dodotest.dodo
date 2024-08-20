@@ -13,10 +13,10 @@ type u64 : UNSIGNED_INTEGER(8);
 
 i32 main() {
     i32 test = 5;
-    i64 test2 = 4623477;
+    i64 test2 = 536;
     i8 test3 = 5;
     i8 test4;
     i16 test5 = 53;
     i64 test6;
-    return test4;
+    return test;
 }

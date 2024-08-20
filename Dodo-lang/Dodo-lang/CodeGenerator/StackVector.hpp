@@ -14,9 +14,10 @@ struct StackVariable {
 };
 
 struct StackVector {
-    std::vector<StackVariable> vec;
+    std::vector<std::vector<StackVariable>> vec;
     StackVariable& find(const std::string& name);
     uint64_t lastOffset();
+    StackVector();
 };
 
 #endif //DODO_LANG_STACK_VECTOR_HPP

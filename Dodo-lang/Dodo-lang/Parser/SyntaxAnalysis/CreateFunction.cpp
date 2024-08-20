@@ -103,5 +103,4 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
     for (auto& n : function.instructions) {
         n.DeleteAfterCopy();
     }
-    std::cout << parserFunctions.size() << "\n";
 }

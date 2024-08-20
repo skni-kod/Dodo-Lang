@@ -10,14 +10,64 @@ const char *CodeException::what() {
     return "Code generation failed!";
 }
 
-uint64_t ConvertNumber(const std::string& value) {
-    // TODO: Make this support all the numeric types
-    return std::stoll(value);
+// converts a string to a value that is the decimal number of binary representation of the number
+uint64_t ConvertNumber(const std::string& value, uint16_t bitSize) {
+    // detecting what this value even is, yeah lexer could do that but I want to be sure it works exactly as intended
+    std::string temp = value;
+    if (temp.empty()) {
+        CodeError("Empty string passed to numeric conversion!");
+    }
+
+    bool isNegative = false;
+
+    if (temp.front() == '-') {
+        if (temp.size() == 1) {
+            CodeError("A '-' operand passed to numeric conversion!");
+        }
+        temp = temp.substr(1, temp.size() - 1);
+        isNegative = true;
+    }
+
+    // checking if it's a 0x..., 0b... or 0o...
+    if (temp.size() > 2 and temp.front() == 0 and (temp[1] == 'x' or temp[1] == 'b' or temp[1] == 'o')) {
+        // TODO: add non decimals
+        return 0;
+    }
+
+    bool isFloatingPoint = false;
+    for (auto& n : temp) {
+        if (n == '.') {
+            if (isFloatingPoint == false) {
+                isFloatingPoint = true;
+            }
+            else {
+                CodeError("Multi dot floating point number!");
+            }
+        }
+    }
+
+    if (isFloatingPoint) {
+        // TODO: add floats
+        return 0;
+    }
+
+    uint64_t number = std::stoll(temp);
+    if (isNegative) {
+        // shifts the one to the leftmost position of defines size of var
+        uint64_t theOne = 1;
+        theOne <<= (bitSize - 1);
+        uint64_t negativeBase = -1;
+        negativeBase >>= (64 - bitSize + 1);
+        // binary or's the values to always produce the binary representation
+        number = (negativeBase - number + 1) | theOne;
+    }
+
+    return number;
 }
 
 void CodeError(const std::string message) {
     std::cout << "ERROR! Code generation failed : " << message << "\n";
-    throw new CodeException;
+    throw CodeException();
 }
 
 uint64_t GetTypeSize(const std::string& typeName) {
@@ -27,6 +77,48 @@ uint64_t GetTypeSize(const std::string& typeName) {
     else {
         CodeError("Variable of non-existent type!");
     }
+}
+
+// takes a mathematical expression and returns the value to put wherever the user wants
+std::string CalculateExpression(const StackVector& variables, std::ofstream& out, uint16_t outputSize, const ParserValue& expression) {
+
+    // if given node is a constant just return it's value
+    if (expression.nodeType == ParserValue::constant) {
+        // fixed sizes for now
+        if (outputSize > 4) {
+            uint64_t number = ConvertNumber(*expression.value, 64);
+            return "$" + std::to_string(number);
+        }
+        else if (outputSize > 2) {
+            uint64_t number = ConvertNumber(*expression.value, 32);
+            if (number > 4294967295) {
+                CodeError("Invalid number for this size of variable!");
+            }
+            return "$" + std::to_string(number);
+        }
+        else if (outputSize > 1) {
+            uint64_t number = ConvertNumber(*expression.value, 16);
+            if (number > 65535) {
+                CodeError("Invalid number for this size of variable!");
+            }
+            return "$" + std::to_string(number);
+        }
+        else {
+            uint64_t number = ConvertNumber(*expression.value, 8);
+            if (number > 255) {
+                CodeError("Invalid number for this size of variable!");
+            }
+            return "$" + std::to_string(number);
+        }
+    }
+
+    // if given node is a variable
+    if (expression.nodeType == ParserValue::Node::variable) {
+
+    }
+
+    CodeError("Expression generation error!");
+    return "";
 }
 
 void GenerateFunction(const std::string& identifier, std::ofstream& out) {
@@ -70,45 +162,39 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
 
                 if (dec.expression.nodeType != ParserValue::Node::empty) {
                     // TODO: Change this into a dedicated function with all the checks etc
-                    if (dec.expression.nodeType == ParserValue::Node::constant) {
-                        if (var.size > 4) {
-                            if (var.offset % 8 != 0) {
-                                var.offset = (var.offset / 8 + 1) * 8;
-                            }
-                            uint64_t number = ConvertNumber(*dec.expression.value);
-                            out << "movq    $" << number << ", -" << var.offset << "(%rbp)\n";
+                    if (var.size > 4) {
+                        if (var.offset % 8 != 0) {
+                            var.offset = (var.offset / 8 + 1) * 8;
                         }
-                        else if (var.size > 2) {
-                            if (var.offset % 4 != 0) {
-                                var.offset = (var.offset / 4 + 1) * 4;
-                            }
-                            uint64_t number = ConvertNumber(*dec.expression.value);
-                            if (number > 4294967295) {
-                                CodeError("Invalid number for this size of variable!");
-                            }
-                            out << "movl    $" << number << ", -" << var.offset << "(%rbp)\n";
-                        }
-                        else if (var.size > 1) {
-                            if (var.offset % 2 != 0) {
-                                var.offset = (var.offset / 2 + 1) * 2;
-                            }
-                            uint64_t number = ConvertNumber(*dec.expression.value);
-                            if (number > 65535) {
-                                CodeError("Invalid number for this size of variable!");
-                            }
-                            out << "movw    $" << number << ", -" << var.offset << "(%rbp)\n";
-                        }
-                        else {
-                            uint64_t number = ConvertNumber(*dec.expression.value);
-                            if (number > 255) {
-                                CodeError("Invalid number for this size of variable!");
-                            }
-                            out << "movb    $" << number << ", -" << var.offset << "(%rbp)\n";
-                        }
+                        uint64_t number = ConvertNumber(*dec.expression.value, 64);
+                        out << "movq    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
                     }
-                    else if (dec.expression.nodeType == ParserValue::Node::variable) {
-                        // TODO: Add variable copying here or in the complete function idk,
-                        //  also don't forget size check or maybe movb to rax ensures all is well?
+                    else if (var.size > 2) {
+                        if (var.offset % 4 != 0) {
+                            var.offset = (var.offset / 4 + 1) * 4;
+                        }
+                        uint64_t number = ConvertNumber(*dec.expression.value, 32);
+                        if (number > 4294967295) {
+                            CodeError("Invalid number for this size of variable!");
+                        }
+                        out << "movl    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
+                    }
+                    else if (var.size > 1) {
+                        if (var.offset % 2 != 0) {
+                            var.offset = (var.offset / 2 + 1) * 2;
+                        }
+                        uint64_t number = ConvertNumber(*dec.expression.value, 16);
+                        if (number > 65535) {
+                            CodeError("Invalid number for this size of variable!");
+                        }
+                        out << "movw    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
+                    }
+                    else {
+                        uint64_t number = ConvertNumber(*dec.expression.value, 8);
+                        if (number > 255) {
+                            CodeError("Invalid number for this size of variable!");
+                        }
+                        out << "movb    " << CalculateExpression(variables, out, var.size, dec.expression) << ", -" << var.offset << "(%rbp)\n";
                     }
                 }
                 else {
@@ -135,7 +221,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                         out << "movb    $0, -" << var.offset << "(%rbp)\n";
                     }
                 }
-                variables.vec.push_back(var);
+                variables.vec.back().push_back(var);
                 break;
             }
             case FunctionInstruction::Type::returnValue:
@@ -150,7 +236,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                             CodeError("Empty return statement!");
                         }
                         if (ret.expression.nodeType == ParserValue::Node::constant) {
-                            out << "movq    $" << ConvertNumber(*ret.expression.value) << ", %rdi\n";
+                            out << "movq    $" << ConvertNumber(*ret.expression.value, 64) << ", %rdi\n";
                         }
                         else if (ret.expression.nodeType == ParserValue::Node::variable) {
                             auto& var = variables.find(*ret.expression.value);
