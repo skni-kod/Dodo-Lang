@@ -12,6 +12,17 @@ StackVariable &StackVector::find(const std::string& name) {
     CodeError("Variable: " + name + " not found at this point!");
 }
 
+StackVariable &StackVector::find(uint64_t offset) {
+    for (auto& n : vec) {
+        for (auto& m : n) {
+            if (m.offset == offset) {
+                return m;
+            }
+        }
+    }
+    CodeError("Variable with offset: " + std::to_string(offset) + " not found at this point!");
+}
+
 uint64_t StackVector::lastOffset() {
     if (not vec.empty() and not vec.back().empty()) {
         return vec.back().back().offset;
@@ -26,7 +37,7 @@ StackVector::StackVector() {
 
 const StackVariable &StackVector::push(StackVariable var) {
     // for now only places on the back
-    // TODO: add searching through
+    // TODO: add stack compression
     if (vec.back().empty()) {
         var.offset = var.size * var.amount;
     }

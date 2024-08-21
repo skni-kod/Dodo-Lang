@@ -2,4 +2,4 @@
 // It contains imports of essential standard library files.
 
 // basic types
-imp "BasicTypes.dod";
+#import "Essentials/BasicTypes.dodo"

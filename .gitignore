@@ -24,7 +24,6 @@ ipch
 *sdf
 
 # dodo-lang specific
-CMakeLists.txt
 cmake-build-debug/
 .idea/
 *.user

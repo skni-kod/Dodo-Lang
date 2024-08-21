@@ -16,6 +16,7 @@ struct StackVariable {
 struct StackVector {
     std::vector<std::vector<StackVariable>> vec;
     StackVariable& find(const std::string& name);
+    StackVariable& find(uint64_t offset);
     uint64_t lastOffset();
     StackVector();
     // reserves the given amount of space on the stack

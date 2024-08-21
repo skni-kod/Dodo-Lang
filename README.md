@@ -17,7 +17,19 @@ Documentation will be added in the future when the projects achieves any real fu
 The project is being developed as a SKNI "KOD" project.
 
 
-## Currenty achieved goals:
+## Currently achieved goals:
 - simple type declaration
-- main function with the ability to declare variables with constants or other variables and returning value in the same way
-- all converted to assembly and working correctly as executable
+- main function with the ability to declare variables and return values
+- support for addition, subtraction, multiplication and division operations
+- support for complex mathematical expressions
+- variable storage on stack
+
+## Short term plans:
+- variable value assignment after declaration
+- function calls
+- multi file support in lexer
+- splitting integer operations into signed and unsigned
+- floating point values
+- pointers and arrays
+- syscalls
+- macro like system
