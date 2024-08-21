@@ -11,12 +11,9 @@ const char *CodeException::what() {
 }
 
 // converts a string to a value that is the decimal number of binary representation of the number
-uint64_t ConvertNumber(const std::string& value, uint16_t bitSize) {
+uint64_t ConvertValue(const std::string& value, uint16_t bitSize) {
     // detecting what this value even is, yeah lexer could do that but I want to be sure it works exactly as intended
     std::string temp = value;
-    if (temp.empty()) {
-        CodeError("Empty string passed to numeric conversion!");
-    }
 
     bool isNegative = false;
 
@@ -28,11 +25,6 @@ uint64_t ConvertNumber(const std::string& value, uint16_t bitSize) {
         isNegative = true;
     }
 
-    // checking if it's a 0x..., 0b... or 0o...
-    if (temp.size() > 2 and temp.front() == 0 and (temp[1] == 'x' or temp[1] == 'b' or temp[1] == 'o')) {
-        // TODO: add non decimals
-        return 0;
-    }
 
     bool isFloatingPoint = false;
     for (auto& n : temp) {
@@ -63,6 +55,30 @@ uint64_t ConvertNumber(const std::string& value, uint16_t bitSize) {
     }
 
     return number;
+}
+
+uint64_t ConvertValue(const ParserValue& value, uint16_t bitSize) {
+    // detecting what this value even is, yeah lexer could do that but I want to be sure it works exactly as intended
+
+    if (value.secondType == ParserValue::Value::floating) {
+        // TODO: add floats
+        return 0;
+    }
+
+    if (value.isNegative) {
+        uint64_t number = std::stoll(value.value->substr(1, value.value->size() - 1));
+        // shifts the one to the leftmost position of defines size of var
+        uint64_t theOne = 1;
+        theOne <<= (bitSize - 1);
+        uint64_t negativeBase = -1;
+        negativeBase >>= (64 - bitSize + 1);
+        // binary or's the values to always produce the binary representation
+        number = (negativeBase - number + 1) | theOne;
+        return number;
+    }
+
+    // just an integer
+    return std::stoll(*value.value);
 }
 
 void CodeError(const std::string message) {
@@ -100,7 +116,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
     if (expression.nodeType == ParserValue::constant) {
         // fixed sizes for now
         if (outputSize > 4) {
-            uint64_t number = ConvertNumber(*expression.value, 64);
+            uint64_t number = ConvertValue(*expression.value, 64);
             if (valueType.val) {
                 return "$" + std::to_string(number);
             }
@@ -114,7 +130,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 
         }
         else if (outputSize > 2) {
-            uint64_t number = ConvertNumber(*expression.value, 32);
+            uint64_t number = ConvertValue(*expression.value, 32);
             if (number > 4294967295) {
                 CodeError("Invalid number for this size of variable!");
             }
@@ -130,7 +146,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
             }
         }
         else if (outputSize > 1) {
-            uint64_t number = ConvertNumber(*expression.value, 16);
+            uint64_t number = ConvertValue(*expression.value, 16);
             if (number > 65535) {
                 CodeError("Invalid number for this size of variable!");
             }
@@ -146,7 +162,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
             }
         }
         else {
-            uint64_t number = ConvertNumber(*expression.value, 8);
+            uint64_t number = ConvertValue(*expression.value, 8);
             if (number > 255) {
                 CodeError("Invalid number for this size of variable!");
             }
@@ -274,8 +290,81 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
     }
 
     // if given node is an actual multi thingy expression
+    if (expression.nodeType == ParserValue::Node::operation) {
+        switch (expression.secondType) {
+            case ParserValue::Operation::addition:
+            {
+                uint8_t largestSize = outputSize;
+                if (expression.left->nodeType == ParserValue::Node::variable) {
+                    auto& var = variables.find(*expression.left->value);
+                    if (var.size > largestSize) {
+                        largestSize = var.size;
+                    }
+                }
+                if (expression.right->nodeType == ParserValue::Node::variable) {
+                    auto& var = variables.find(*expression.right->value);
+                    if (var.size > largestSize) {
+                        largestSize = var.size;
+                    }
+                }
 
-    std::cout << "Complex expressions not yet added to code generator!\n";
+                std::string left = CalculateExpression(variables, out, largestSize, *expression.left, {0, 1, 1, 1});
+                std::string right = CalculateExpression(variables, out, largestSize, *expression.right, {0, 1, 1, 1});
+
+                switch(largestSize) {
+                    case 8:
+                    {
+                        out << "movq    " << left << ", %rax\n";
+                        out << "addq    " << right << ", %rax\n";
+                    }
+                    break;
+                    case 4:
+                    {
+                        out << "movl    " << left << ", %eax\n";
+                        out << "addl    " << right << ", %eax\n";
+                    }
+                    break;
+                    case 2:
+                    {
+                        out << "movw    " << left << ", %ax\n";
+                        out << "addw    " << right << ", rax\n";
+                    }
+                    break;
+                    case 1:
+                    {
+                        out << "movb    " << left << ", %al\n";
+                        if (expression.left->nodeType == ParserValue::Node::operation) {
+                            variables.free(left);
+                        }
+                        out << "addb    " << right << ", %al\n";
+                        if (expression.right->nodeType == ParserValue::Node::operation) {
+                            variables.free(right);
+                        }
+
+                        if (valueType.reg) {
+                            return "%al";
+                        }
+                        else if (valueType.sta) {
+                            StackVariable var;
+                            var.size = 1;
+                            var.amount = 1;
+                            std::string temp =  variables.pushAndStr(var);
+                            out << "movb    %al, " << temp << "\n";
+                            return temp;
+                        }
+
+                    }
+                    break;
+                }
+                CodeError("Unsupported value return type for node type!");
+            }
+
+            default:
+                CodeError("Unhandled operation type!");
+        }
+    }
+
+    CodeError("Unhandled expression path!");
     return "$0";
 }
 
@@ -315,35 +404,25 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 StackVariable var;
                 var.size = GetTypeSize(dec.typeName);
                 var.amount = 1;
-                var.offset = variables.lastOffset() + (var.size * var.amount);
                 var.name = dec.name;
 
                 if (dec.expression.nodeType != ParserValue::Node::empty) {
                     // TODO: Change this into a dedicated function with all the checks etc
                     if (var.size > 4) {
-                        if (var.offset % 8 != 0) {
-                            var.offset = (var.offset / 8 + 1) * 8;
-                        }
                         std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
-                        out << "movq    " << source << ", -" << var.offset << "(%rbp)\n";
+                        out << "movq    " << source << ", " << variables.pushAndStr(var) << "\n";
                     }
                     else if (var.size > 2) {
-                        if (var.offset % 4 != 0) {
-                            var.offset = (var.offset / 4 + 1) * 4;
-                        }
                         std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
-                        out << "movl    " << source << ", -" << var.offset << "(%rbp)\n";
+                        out << "movl    " << source << ", " << variables.pushAndStr(var) << "\n";
                     }
                     else if (var.size > 1) {
-                        if (var.offset % 2 != 0) {
-                            var.offset = (var.offset / 2 + 1) * 2;
-                        }
                         std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
-                        out << "movw    " << source << ", -" << var.offset << "(%rbp)\n";
+                        out << "movw    " << source << ", " << variables.pushAndStr(var) << "\n";
                     }
                     else {
                         std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
-                        out << "movb    " << source << ", -" << var.offset << "(%rbp)\n";
+                        out << "movb    " << source << ", " << variables.pushAndStr(var) << "\n";
                     }
                 }
                 else {

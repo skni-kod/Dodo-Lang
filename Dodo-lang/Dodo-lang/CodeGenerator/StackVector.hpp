@@ -18,6 +18,14 @@ struct StackVector {
     StackVariable& find(const std::string& name);
     uint64_t lastOffset();
     StackVector();
+    // reserves the given amount of space on the stack
+    const StackVariable& push(StackVariable var);
+    std::string pushAndStr(StackVariable var);
+    // frees the last element from the stack
+    void free_back();
+    // frees the element at given offset
+    void free(uint64_t offset);
+    void free(std::string result);
 };
 
 #endif //DODO_LANG_STACK_VECTOR_HPP

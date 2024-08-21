@@ -63,3 +63,47 @@ void FunctionInstruction::DeleteAfterCopy() {
             break;
     }
 }
+
+void ParserValue::fillValue(std::string val) {
+    std::string temp = val;
+    if (temp.empty()) {
+        ParserError("Empty string passed to numeric conversion!");
+    }
+
+    if (temp.front() == '-') {
+        if (temp.size() == 1) {
+            ParserError("A \"-\" string passed to numeric conversion!");
+        }
+        temp = temp.substr(1, temp.size() - 1);
+        isNegative = true;
+    }
+
+    // checking if it's a 0x..., 0b... or 0o...
+    if (temp.size() > 2 and temp.front() == 0 and (temp[1] == 'x' or temp[1] == 'b' or temp[1] == 'o')) {
+        ParserError("Non decimals not yet supported!");
+        // TODO: add non decimals
+        return;
+    }
+
+    bool isFloatingPoint = false;
+    for (auto& n : temp) {
+        if (n == '.') {
+            if (isFloatingPoint == false) {
+                isFloatingPoint = true;
+            }
+            else {
+                ParserError("Multi dot floating point number!");
+            }
+        }
+    }
+
+    if (isFloatingPoint) {
+        // TODO: add floats
+        ParserError("Floating point numbers not yet supported!");
+        return;
+    }
+
+    // at this point val is a valid decimal, so just input it into the pointer
+    value = std::make_unique<std::string>(val);
+    secondType = Value::integer;
+}

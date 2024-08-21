@@ -11,11 +11,6 @@ type u32 : UNSIGNED_INTEGER(4);
 type u64 : UNSIGNED_INTEGER(8);
 
 i32 main() {
-    i16 test = 6;
-    i64 test2 = 536;
-    i8 test3 = test;
-    i8 test4;
-    i16 test5 = 53;
-    i64 test6;
-    return test3;
+    i8 test = (((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8))) + 9;
+    return test;
 }

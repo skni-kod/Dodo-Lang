@@ -44,11 +44,17 @@ struct ParserValue {
     enum Operation {
         addition, subtraction, multiplication, division, functionCall
     };
+    enum Value {
+        integer, floating
+    };
     uint8_t nodeType = 0;
-    uint8_t operationType = 0;
+    uint8_t secondType = 0;
+    bool isNegative = false;
     std::unique_ptr<ParserValue> left = nullptr;
     std::unique_ptr<ParserValue> right = nullptr;
     std::unique_ptr<std::string> value = nullptr;
+    // takes the input and prepares the value and it's classification
+    void fillValue(std::string val);
 };
 
 struct DeclarationInstruction {
