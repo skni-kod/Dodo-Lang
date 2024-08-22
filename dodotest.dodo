@@ -11,8 +11,9 @@ type u32 : UNSIGNED_INTEGER(4);
 type u64 : UNSIGNED_INTEGER(8);
 
 i32 main() {
-    i64 k = 53;
-    i32 wow = 6;
-    i16 test = (5 + wow) + k;
-    return test / 2;
+    let i64 k = 53;
+    let i32 wow = 6;
+    mut i16 test = (5 + wow) + k;
+    test = k / wow;
+    return k / wow;
 }

@@ -63,6 +63,14 @@ struct DeclarationInstruction {
     ParserValue expression;
     INSERT_SUBTYPE_ENUM
     uint8_t subtype = 0;
+    bool isMutable = false;
+};
+
+struct ValueChangeInstruction {
+    std::string name;
+    ParserValue expression;
+    INSERT_SUBTYPE_ENUM
+    uint8_t subtype = 0;
 };
 
 struct ReturnInstruction {
@@ -73,11 +81,12 @@ struct ReturnInstruction {
 
 struct FunctionInstruction {
     enum Type {
-        declaration, returnValue, mathematical, functionCall
+        declaration, returnValue, valueChange, functionCall
     };
     union Variant {
         DeclarationInstruction* declarationInstruction = nullptr;
         ReturnInstruction* returnInstruction;
+        ValueChangeInstruction* valueChangeInstruction;
     }Variant;
     uint8_t type = 0;
     ~FunctionInstruction();

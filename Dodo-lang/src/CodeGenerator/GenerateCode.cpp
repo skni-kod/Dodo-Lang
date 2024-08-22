@@ -24,7 +24,7 @@ char AddInstructionPostfix(uint16_t size) {
         case 8:
             return 'q';
         default:
-            CodeError("Invalid size in postfix function!");
+            CodeError("Invalid singleSize in postfix function!");
     }
     return 0;
 }
@@ -40,7 +40,7 @@ std::string AddRegisterA(uint16_t size) {
         case 8:
             return "%rax";
         default:
-            CodeError("Invalid size in register A function!");
+            CodeError("Invalid singleSize in register A function!");
     }
     return "";
 }
@@ -80,7 +80,7 @@ uint64_t ConvertValue(const std::string& value, uint16_t bitSize) {
 
     uint64_t number = std::stoll(temp);
     if (isNegative) {
-        // shifts the one to the leftmost position of defines size of var
+        // shifts the one to the leftmost position of defines singleSize of var
         uint64_t theOne = 1;
         theOne <<= (bitSize - 1);
         uint64_t negativeBase = -1;
@@ -102,7 +102,7 @@ uint64_t ConvertValue(const ParserValue& value, uint16_t bitSize) {
 
     if (value.isNegative) {
         uint64_t number = std::stoll(value.value->substr(1, value.value->size() - 1));
-        // shifts the one to the leftmost position of defines size of var
+        // shifts the one to the leftmost position of defines singleSize of var
         uint64_t theOne = 1;
         theOne <<= (bitSize - 1);
         uint64_t negativeBase = -1;
@@ -146,13 +146,13 @@ struct RegisterNames {
             case 8:
                 return size8;
             default:
-                CodeError("Invalid size in custom register function!");
+                CodeError("Invalid singleSize in custom register function!");
         }
         return "0";
     }
 };
 
-// converts value in given register to given size and if asked returns it to the source register
+// converts value in given register to given singleSize and if asked returns it to the source register
 // pass registers as in "%reg"
 std::string ConvertSizeInRegister(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, RegisterNames registers = {}, bool returnToOriginal = false) {
     switch (originalSize) {
@@ -194,7 +194,7 @@ std::string ConvertSizeInRegister(std::ofstream& out, uint8_t originalSize, uint
                     }
                     return "%rax";
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 2:
             switch(targetSize) {
@@ -224,7 +224,7 @@ std::string ConvertSizeInRegister(std::ofstream& out, uint8_t originalSize, uint
                     }
                     return "%rax";
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 4:
             switch(targetSize) {
@@ -245,7 +245,7 @@ std::string ConvertSizeInRegister(std::ofstream& out, uint8_t originalSize, uint
                     }
                     return "%rax";
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 8:
             switch(targetSize) {
@@ -258,16 +258,16 @@ std::string ConvertSizeInRegister(std::ofstream& out, uint8_t originalSize, uint
                 case 8:
                     return registers.size8;
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         default:
-            CodeError("Invalid size for size conversion!");
+            CodeError("Invalid singleSize for singleSize conversion!");
     }
     // will never get here
     return "";
 }
 
-// converts value from given location on stack to given size and returns it as a any or specified register value if asked
+// converts value from given location on stack to given singleSize and returns it as a any or specified register value if asked
 // pass registers as in "%reg"
 std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, uint64_t offset,
                                   bool mustBeReg = false, StackVector* stack = nullptr, bool mustUseGivenReg = false, RegisterNames registers = {}) {
@@ -285,7 +285,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     out << "cbtw\n";
                     if (stack) {
                         StackVariable var;
-                        var.size = targetSize;
+                        var.singleSize = targetSize;
                         var.amount = 1;
                         std::string address = stack->pushAndStr(var);
                         out << "movw    %ax, " << address << "\n";
@@ -302,7 +302,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     out << "movsb   -" << offset << "(%rbp), %eax\n";
                     if (stack) {
                         StackVariable var;
-                        var.size = targetSize;
+                        var.singleSize = targetSize;
                         var.amount = 1;
                         std::string address = stack->pushAndStr(var);
                         out << "movl    %eax, " << address << "\n";
@@ -320,7 +320,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     out << "cltq\n";
                     if (stack) {
                         StackVariable var;
-                        var.size = targetSize;
+                        var.singleSize = targetSize;
                         var.amount = 1;
                         std::string address = stack->pushAndStr(var);
                         out << "movq    %rax, " << address << "\n";
@@ -334,7 +334,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return "%rax";
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 2:
             switch(targetSize) {
@@ -354,7 +354,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     out << "movsw   -" << offset << "(%rbp), %eax\n";
                     if (stack) {
                         StackVariable var;
-                        var.size = targetSize;
+                        var.singleSize = targetSize;
                         var.amount = 1;
                         std::string address = stack->pushAndStr(var);
                         out << "movl    %eax, " << address << "\n";
@@ -372,7 +372,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     out << "cltq\n";
                     if (stack) {
                         StackVariable var;
-                        var.size = targetSize;
+                        var.singleSize = targetSize;
                         var.amount = 1;
                         std::string address = stack->pushAndStr(var);
                         out << "movq    %rax, " << address << "\n";
@@ -386,7 +386,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return "%rax";
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 4:
             switch(targetSize) {
@@ -413,7 +413,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     out << "cltq\n";
                     if (stack) {
                         StackVariable var;
-                        var.size = targetSize;
+                        var.singleSize = targetSize;
                         var.amount = 1;
                         std::string address = stack->pushAndStr(var);
                         out << "movq    %rax, " << address << "\n";
@@ -427,7 +427,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return "%rax";
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 8:
             switch(targetSize) {
@@ -456,10 +456,10 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return '-' + std::to_string(offset) + "(%rbp)";
                 default:
-                    CodeError("Invalid size for size conversion!");
+                    CodeError("Invalid singleSize for singleSize conversion!");
             }
         default:
-            CodeError("Invalid size for size conversion!");
+            CodeError("Invalid singleSize for singleSize conversion!");
     }
     // will never get here
     return "";
@@ -513,14 +513,14 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         auto& var = variables.find(*expression.value);
         if (not valueType.reg) {
             // strictly stack
-            return ConvertSizeFromStack(out, var.size, outputSize, var.offset, false, &variables);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, false, &variables);
         }
         if (not valueType.sta) {
             // strictly register
-            return ConvertSizeFromStack(out, var.size, outputSize, var.offset, true);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, true, nullptr, true, registers);
         }
         else {
-            return ConvertSizeFromStack(out, var.size, outputSize, var.offset);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset);
         }
     }
 
@@ -531,15 +531,15 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         bool rightLarger = false;
         if (expression.left->nodeType == ParserValue::Node::variable) {
             auto& var = variables.find(*expression.left->value);
-            if (var.size > largestSize) {
-                largestSize = var.size;
+            if (var.singleSize > largestSize) {
+                largestSize = var.singleSize;
                 leftLarger = true;
             }
         }
         if (expression.right->nodeType == ParserValue::Node::variable) {
             auto& var = variables.find(*expression.right->value);
-            if (var.size > largestSize) {
-                largestSize = var.size;
+            if (var.singleSize > largestSize) {
+                largestSize = var.singleSize;
                 rightLarger = true;
             }
         }
@@ -547,7 +547,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         std::string left = CalculateExpression(variables, out, largestSize, *expression.left, {0, 1, 1, 1});
         std::string right;
         if (expression.secondType == ParserValue::Operation::division) {
-            right = CalculateExpression(variables, out, largestSize, *expression.right, {1, 0, 1, 1}, {"%bl", "%bx", "%ebx", "%rbx"});
+            right = CalculateExpression(variables, out, largestSize, *expression.right, {1, 0, 0, 0}, {"%bl", "%bx", "%ebx", "%rbx"});
         }
         else {
             right = CalculateExpression(variables, out, largestSize, *expression.right, {0, 1, 1, 1});
@@ -555,30 +555,38 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 
 
         out << "mov" << AddInstructionPostfix(largestSize) << "    " << left << ", " << AddRegisterA(largestSize) << "\n";
-        if (expression.left->nodeType == ParserValue::Node::operation or leftLarger) {
+        if (expression.left->nodeType == ParserValue::Node::operation) {
+            variables.free(left);
+        }
+        if (leftLarger and not (expression.left->nodeType == ParserValue::Node::variable and
+        variables.find(*expression.left->value).singleSize >= largestSize)) {
             variables.free(left);
         }
 
         // operations really only change this part
         switch (expression.secondType) {
             case ParserValue::Operation::addition:
-                out << "add" << AddInstructionPostfix(largestSize) << "    " << right << ", " << AddRegisterA(largestSize) << "\n";
+                out << "add" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
             case ParserValue::Operation::subtraction:
-                out << "sub" << AddInstructionPostfix(largestSize) << "    " << right << ", " << AddRegisterA(largestSize) << "\n";
+                out << "sub" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
             case ParserValue::Operation::multiplication:
-                out << "imul" << AddInstructionPostfix(largestSize) << "   " << right << ", " << AddRegisterA(largestSize) << "\n";
+                out << "imul" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
             case ParserValue::Operation::division:
-                out << "idiv" << AddInstructionPostfix(largestSize) << "   " << right << ", " << AddRegisterA(largestSize) << "\n";
+                out << "idiv" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
             default:
                 CodeError("Unsupported operation type!");
         }
 
 
-        if (expression.right->nodeType == ParserValue::Node::operation or rightLarger) {
+        if (expression.right->nodeType == ParserValue::Node::operation) {
+            variables.free(right);
+        }
+        if (rightLarger and not (expression.right->nodeType == ParserValue::Node::variable and
+                                variables.find(*expression.right->value).singleSize >= largestSize)) {
             variables.free(right);
         }
 
@@ -589,11 +597,11 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         }
         else if (valueType.sta) {
             StackVariable var;
-            var.size = largestSize;
+            var.singleSize = largestSize;
             var.amount = 1;
 
             std::string varAddress =  variables.pushAndStr(var);
-            out << "mov" << AddInstructionPostfix(largestSize) << "    " << reg << ", " << varAddress << "\n";
+            out << "mov" << AddInstructionPostfix(outputSize) << "    " << reg << ", " << varAddress << "\n";
             return varAddress;
         }
         else {
@@ -635,86 +643,81 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     bool didReturn = false;
     for (const auto& current : function->instructions) {
         switch (current.type) {
-            case FunctionInstruction::Type::declaration:
-            {
-                const DeclarationInstruction& dec = *current.Variant.declarationInstruction;
+            case FunctionInstruction::Type::declaration: {
+                const DeclarationInstruction &dec = *current.Variant.declarationInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (dec.expression.nodeType == ParserValue::Node::operation) {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name << " = expression\n";
-                    }
-                    else if (dec.expression.nodeType == ParserValue::Node::constant) {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name << " = constant\n";
-                    }
-                    else if (dec.expression.nodeType == ParserValue::Node::variable) {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name << " = variable\n";
-                    }
-                    else {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name << "\n";
+                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                            << " = expression\n";
+                    } else if (dec.expression.nodeType == ParserValue::Node::constant) {
+                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                            << " = constant\n";
+                    } else if (dec.expression.nodeType == ParserValue::Node::variable) {
+                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                            << " = variable\n";
+                    } else {
+                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                            << "\n";
                     }
                 }
                 StackVariable var;
-                var.size = GetTypeSize(dec.typeName);
+                var.singleSize = GetTypeSize(dec.typeName);
                 var.amount = 1;
                 var.name = dec.name;
+                var.isMutable = dec.isMutable;
 
                 if (dec.expression.nodeType != ParserValue::Node::empty) {
                     // TODO: Change this into a dedicated function with all the checks etc
-                    if (var.size > 4) {
-                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                    if (var.singleSize > 4) {
+                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
+                                                                 {1, 1, 0, 1});
                         out << "movq    " << source << ", " << variables.pushAndStr(var) << "\n";
-                    }
-                    else if (var.size > 2) {
-                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                    } else if (var.singleSize > 2) {
+                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
+                                                                 {1, 1, 0, 1});
                         out << "movl    " << source << ", " << variables.pushAndStr(var) << "\n";
-                    }
-                    else if (var.size > 1) {
-                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                    } else if (var.singleSize > 1) {
+                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
+                                                                 {1, 1, 0, 1});
                         out << "movw    " << source << ", " << variables.pushAndStr(var) << "\n";
-                    }
-                    else {
-                        std::string source = CalculateExpression(variables, out, var.size, dec.expression, {1, 1, 0, 1});
+                    } else {
+                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
+                                                                 {1, 1, 0, 1});
                         out << "movb    " << source << ", " << variables.pushAndStr(var) << "\n";
                     }
-                }
-                else {
+                } else {
                     // declaring with a zero to avoid trash or exploits(?), also for debugging
-                    if (var.size > 4) {
+                    if (var.singleSize > 4) {
                         if (var.offset % 8 != 0) {
                             var.offset = (var.offset / 8 + 1) * 8;
                         }
                         out << "movq    $0, " << variables.pushAndStr(var) << "\n";
-                    }
-                    else if (var.size > 2) {
+                    } else if (var.singleSize > 2) {
                         if (var.offset % 4 != 0) {
                             var.offset = (var.offset / 4 + 1) * 4;
                         }
                         out << "movl    $0, " << variables.pushAndStr(var) << "\n";
-                    }
-                    else if (var.size > 1) {
+                    } else if (var.singleSize > 1) {
                         if (var.offset % 2 != 0) {
                             var.offset = (var.offset / 2 + 1) * 2;
                         }
                         out << "movw    $0, " << variables.pushAndStr(var) << "\n";
-                    }
-                    else {
+                    } else {
                         out << "movb    $0, " << variables.pushAndStr(var) << "\n";
                     }
                 }
                 break;
             }
-            case FunctionInstruction::Type::returnValue:
-                const ReturnInstruction& ret = *current.Variant.returnInstruction;
+            case FunctionInstruction::Type::returnValue: {
+                const ReturnInstruction &ret = *current.Variant.returnInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (ret.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Expression return\n";
-                    }
-                    else if (ret.expression.nodeType == ParserValue::Node::constant) {
+                    } else if (ret.expression.nodeType == ParserValue::Node::constant) {
                         out << setting::CommentCharacter << " Constant return\n";
-                    }
-                    else if (ret.expression.nodeType == ParserValue::Node::variable) {
+                    } else if (ret.expression.nodeType == ParserValue::Node::variable) {
                         out << setting::CommentCharacter << " Variable return\n";
-                    }
-                    else {
+                    } else {
                         out << setting::CommentCharacter << " Valueless return\n";
                     }
                 }
@@ -729,8 +732,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                         // call out to the kernel to end this misery
                         out << "syscall\n";
                     }
-                }
-                else {
+                } else {
                     if (TargetArchitecture == "X86-64") {
                         // value here;
                         out << "movq    $0, %rax\n";
@@ -740,6 +742,37 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 }
                 didReturn = true;
                 break;
+            }
+            case FunctionInstruction::Type::valueChange:
+            {
+                const ValueChangeInstruction &val = *current.Variant.valueChangeInstruction;
+                if (setting::OutputDodoInstructions) {
+                    if (val.expression.nodeType == ParserValue::Node::operation) {
+                        out << setting::CommentCharacter << " Value change of: " << val.name << " = expression\n";
+                    } else if (val.expression.nodeType == ParserValue::Node::constant) {
+                        out << setting::CommentCharacter << " Value change of: " << val.name << " = constant\n";
+                    } else if (val.expression.nodeType == ParserValue::Node::variable) {
+                        out << setting::CommentCharacter << " Value change of: " << " " << val.name << " = variable\n";
+                    } else {
+                        out << setting::CommentCharacter << " Value change of: " << " " << val.name << "\n";
+                    }
+                }
+                StackVariable &var = variables.find(val.name);
+                if (not var.isMutable) {
+                    CodeError("Variable: " + var.name + " is immutable!");
+                }
+
+                if (val.expression.nodeType != ParserValue::Node::empty) {
+                    // TODO: add memory to memory move, movsq didn't work in visualizer so I didn't risk it
+                    std::string source = CalculateExpression(variables, out, var.singleSize, val.expression,
+                                                             {1, 1, 0, 1});
+                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
+                        << var.getAddress() << "\n";
+                } else {
+                    CodeError("No expression in value assignment!");
+                }
+                break;
+            }
         }
     }
 

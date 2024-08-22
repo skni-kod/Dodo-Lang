@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 	//lt->f_token_list;// - list divided into files, lines and tokens f_token_list[0][0][0] - first file, first line inside this file, first token inside line
 	//lt->token_list;// - all lexical info divided into lines and tokens
 	//lt->f_size; //numer of files that was used
-	//lt->size; //number of lines inside token_list
+	//lt->singleSize; //number of lines inside token_list
 	//lt->f_token_list[0].p_size; // - number of lines inside first file
 	//lt->f_token_list[0][0].l_size; //-number of tokens inside first line in first file
 

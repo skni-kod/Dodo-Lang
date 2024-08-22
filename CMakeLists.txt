@@ -34,7 +34,7 @@ add_executable(Dodo_Lang
         Dodo-lang/src/CodeGenerator/GenerateCode.cpp
         Dodo-lang/src/Parser/SyntaxAnalysis/MathParser.cpp
         Dodo-lang/src/CodeGenerator/StackVector.hpp
-        Dodo-lang/src/CodeGenerator/StackVariable.cpp
+        Dodo-lang/src/CodeGenerator/StackVector.cpp
         Dodo-lang/src/CodeGenerator/GeneratorSettings.hpp
 )
 

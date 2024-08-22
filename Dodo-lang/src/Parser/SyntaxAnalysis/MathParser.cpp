@@ -117,20 +117,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
     // -> ((1 + 5 - 6) + (5 * 5 / 6)) + (3)
     // -> (((1) + (5 - 6)) + (5 * 5 / 6)) + (3)
     for (int64_t n = range.second - 1; n >= range.first; n--) {
-        if (tokens[n]->value == ")") {
-        bracketLevel++;
-        continue;
-    }
-    if (tokens[n]->value == "(") {
-        if (bracketLevel == 0) {
-            ParserError("Invalid closing bracket!");
-        }
-        bracketLevel--;
-        continue;
-    }
-    if (bracketLevel) {
-        continue;
-    }
+        MATH_CHECK_BRACKET
         if (tokens[n]->value == "+") {
             ParserValue value;
             value.nodeType      = ParserValue::Node     ::operation;
@@ -202,6 +189,19 @@ ParserValue ParseMath(Generator<const LexicalToken*> &generator) {
         current = generator();
     }
     return std::move(ParseMath(tokens));
+}
+
+ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<const LexicalToken*> front) {
+    const LexicalToken* current = generator();
+    LexicalToken frontBrace = {LexicalToken::Type::operand, "("};
+    LexicalToken backBrace  = {LexicalToken::Type::operand, ")"};
+    front.push_back(&frontBrace);
+    while (current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) {
+        front.push_back(current);
+        current = generator();
+    }
+    front.push_back(&backBrace);
+    return std::move(ParseMath(front));
 }
 
 

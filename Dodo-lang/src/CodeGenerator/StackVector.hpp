@@ -7,10 +7,12 @@
 
 struct StackVariable {
     uint64_t offset = 0;
-    uint8_t size = 4;
+    uint8_t singleSize = 4;
+    bool isMutable = false;
     uint32_t amount = 1;
     std::string name;
     std::string typeName;
+    std::string getAddress() const;
 };
 
 struct StackVector {

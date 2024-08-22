@@ -55,31 +55,31 @@ void CreateType(Generator<const LexicalToken*>& generator) {
         ParserError("Expected an opening bracket after basic type type definition!");
     }
 
-    // type <name> : <type>(<size>
+    // type <name> : <type>(<singleSize>
     if (!generator) {
         ParserError("Expected more tokens after base type type definition bracket opening!");
     }
 
     current = generator();
     if (current->type != LexicalToken::Type::literal or current->literalValue != literalType::numeric) {
-        ParserError("Expected a number inside basic type size bracket!");
+        ParserError("Expected a number inside basic type singleSize bracket!");
     }
     if (std::stoi(current->value) < 1 or std::stoi(current->value) > 8) {
-        ParserError("Invalid value inside basic type size bracket!");
+        ParserError("Invalid value inside basic type singleSize bracket!");
     }
     uint8_t size = std::stoll(current->value);
 
-    // type <name> : <type>(<size>)
+    // type <name> : <type>(<singleSize>)
     if (!generator) {
-        ParserError("Expected more tokens after base type size definition!");
+        ParserError("Expected more tokens after base type singleSize definition!");
     }
 
     current = generator();
     if (current->value != ")") {
-        ParserError("Expected a closing bracket after basic type size definition!");
+        ParserError("Expected a closing bracket after basic type singleSize definition!");
     }
 
-    // type <name> : <type>(<size>);
+    // type <name> : <type>(<singleSize>);
     if (!generator) {
         ParserError("Expected more tokens after base type type definition bracket!");
     }

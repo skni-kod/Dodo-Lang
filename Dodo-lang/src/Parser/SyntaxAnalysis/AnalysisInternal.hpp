@@ -10,5 +10,7 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
 FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator, const LexicalToken* firstToken);
 ParserValue ParseMath(const std::vector<const LexicalToken*>& tokens);
 ParserValue ParseMath(Generator<const LexicalToken*> &generator);
+// use this one when doing stuff like a += 5 ---> a = a + 5
+ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<const LexicalToken*> front);
 
 #endif //DODO_LANG_ANALYSIS_INTERNAL_HPP

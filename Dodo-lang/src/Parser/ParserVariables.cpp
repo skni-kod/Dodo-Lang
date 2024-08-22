@@ -22,6 +22,10 @@ FunctionInstruction::~FunctionInstruction() {
             delete Variant.returnInstruction;
             Variant.returnInstruction = nullptr;
             break;
+        case Type::valueChange:
+            delete Variant.valueChangeInstruction;
+            Variant.valueChangeInstruction = nullptr;
+            break;
     }
 }
 
@@ -33,6 +37,9 @@ FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
             break;
         case Type::returnValue:
             Variant.returnInstruction = F.Variant.returnInstruction;
+            break;
+        case Type::valueChange:
+            Variant.valueChangeInstruction = F.Variant.valueChangeInstruction;
             break;
     }
     // bypassing these damned copy operators, this thing does not copy anywhere and it's a big pain to write all this
@@ -50,6 +57,10 @@ FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
             Variant.returnInstruction = F.Variant.returnInstruction;
             F.Variant.returnInstruction = nullptr;
             break;
+        case Type::valueChange:
+            Variant.valueChangeInstruction = F.Variant.valueChangeInstruction;
+            F.Variant.valueChangeInstruction = nullptr;
+            break;
     }
 }
 
@@ -60,6 +71,9 @@ void FunctionInstruction::DeleteAfterCopy() {
             break;
         case Type::returnValue:
             Variant.returnInstruction = nullptr;
+            break;
+        case Type::valueChange:
+            Variant.valueChangeInstruction = nullptr;
             break;
     }
 }

@@ -21,7 +21,7 @@ ABOUT LEXER:
 	- token_list - contains information created in lexical process, this info is divided into lines and tokens
 		token_list[0][0] - first line, first token in this line
 	- f_size - number of analized files
-	- size - number of lines inside token_list
+	- singleSize - number of lines inside token_list
 -------------------------------------------------------------------------------------------------------------------------------------
 
 WORKING EXAMPLE:
