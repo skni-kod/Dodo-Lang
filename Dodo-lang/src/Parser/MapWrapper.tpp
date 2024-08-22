@@ -5,10 +5,8 @@
 #include "Parser.hpp"
 
 template <typename TK, typename TV>
-class MapWrapper {
-private:
+struct MapWrapper {
     std::unordered_map <TK, TV> map;
-public:
 
     bool isKey(TK key) {
         if (map.find(key) == map.end()) {

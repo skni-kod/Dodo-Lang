@@ -13,38 +13,6 @@ const char *CodeException::what() {
     return "Code generation failed!";
 }
 
-char AddInstructionPostfix(uint16_t size) {
-    switch(size) {
-        case 1:
-            return 'b';
-        case 2:
-            return 'w';
-        case 4:
-            return 'l';
-        case 8:
-            return 'q';
-        default:
-            CodeError("Invalid singleSize in postfix function!");
-    }
-    return 0;
-}
-
-std::string AddRegisterA(uint16_t size) {
-    switch(size) {
-        case 1:
-            return "%al";
-        case 2:
-            return "%ax";
-        case 4:
-            return "%eax";
-        case 8:
-            return "%rax";
-        default:
-            CodeError("Invalid singleSize in register A function!");
-    }
-    return "";
-}
-
 // converts a string to a value that is the decimal number of binary representation of the number
 uint64_t ConvertValue(const std::string& value, uint16_t bitSize) {
     // detecting what this value even is, yeah lexer could do that but I want to be sure it works exactly as intended
@@ -119,152 +87,6 @@ uint64_t ConvertValue(const ParserValue& value, uint16_t bitSize) {
 void CodeError(const std::string message) {
     std::cout << "ERROR! Code generation failed : " << message << "\n";
     throw CodeException();
-}
-
-struct RegisterNames {
-    std::string size1 = "%al";
-    std::string size2 = "%ax";
-    std::string size4 = "%eax";
-    std::string size8 = "%rax";
-    RegisterNames(std::string size1, std::string size2, std::string size4, std::string size8) :
-        size1(std::move(size1)), size2(std::move(size2)), size4(std::move(size4)), size8(std::move(size8)) {}
-    RegisterNames() = default;
-    bool nonDefault() const {
-        if (size1 != "%al" or size2 != "%ax" or size4 != "%eax" or size8 != "%rax") {
-            return true;
-        }
-        return false;
-    }
-    std::string registerBySize(uint16_t size) {
-        switch(size) {
-            case 1:
-                return size1;
-            case 2:
-                return size2;
-            case 4:
-                return size4;
-            case 8:
-                return size8;
-            default:
-                CodeError("Invalid singleSize in custom register function!");
-        }
-        return "0";
-    }
-};
-
-// converts value in given register to given singleSize and if asked returns it to the source register
-// pass registers as in "%reg"
-std::string ConvertSizeInRegister(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, RegisterNames registers = {}, bool returnToOriginal = false) {
-    switch (originalSize) {
-        case 1:
-            switch(targetSize) {
-                case 1:
-                    return registers.size1;
-                case 2:
-                    if (registers.size1 != "%al") {
-                        out << "movb    " << registers.size1 << ", %al\n";
-                    }
-                    out << "cbtw\n";
-                    if (returnToOriginal) {
-                        out << "movw    %ax, " << registers.size2 << "\n";
-                        return registers.size2;
-                    }
-                    return "%ax";
-                case 4:
-                    if (registers.size1 != "%al") {
-                        out << "movb    " << registers.size1 << ", %al\n";
-                    }
-                    out << "cbtw\n";
-                    out << "cwtl\n";
-                    if (returnToOriginal) {
-                        out << "movl    %eax, " << registers.size4 << "\n";
-                        return registers.size4;
-                    }
-                    return "%eax";
-                case 8:
-                    if (registers.size1 != "%al") {
-                        out << "movb    " << registers.size1 << ", %al\n";
-                    }
-                    out << "cbtw\n";
-                    out << "cwtl\n";
-                    out << "cltq\n";
-                    if (returnToOriginal) {
-                        out << "movq    %rax, " << registers.size8 << "\n";
-                        return registers.size8;
-                    }
-                    return "%rax";
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        case 2:
-            switch(targetSize) {
-                case 1:
-                    return registers.size1;
-                case 2:
-                    return registers.size2;
-                case 4:
-                    if (registers.size2 != "%ax") {
-                        out << "movw    " << registers.size2 << ", %ax\n";
-                    }
-                    out << "cwtl\n";
-                    if (returnToOriginal) {
-                        out << "movl    %eax, " << registers.size4 << "\n";
-                        return registers.size4;
-                    }
-                    return "%eax";
-                case 8:
-                    if (registers.size2 != "%ax") {
-                        out << "movw    " << registers.size2 << ", %ax\n";
-                    }
-                    out << "cwtl\n";
-                    out << "cltq\n";
-                    if (returnToOriginal) {
-                        out << "movq    %rax, " << registers.size8 << "\n";
-                        return registers.size8;
-                    }
-                    return "%rax";
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        case 4:
-            switch(targetSize) {
-                case 1:
-                    return registers.size1;
-                case 2:
-                    return registers.size2;
-                case 4:
-                    return registers.size4;
-                case 8:
-                    if (registers.size4 != "%eax") {
-                        out << "movw    " << registers.size4 << ", %eax\n";
-                    }
-                    out << "cltq\n";
-                    if (returnToOriginal) {
-                        out << "movq    %rax, " << registers.size8 << "\n";
-                        return registers.size8;
-                    }
-                    return "%rax";
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        case 8:
-            switch(targetSize) {
-                case 1:
-                    return registers.size1;
-                case 2:
-                    return registers.size2;
-                case 4:
-                    return registers.size4;
-                case 8:
-                    return registers.size8;
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        default:
-            CodeError("Invalid singleSize for singleSize conversion!");
-    }
-    // will never get here
-    return "";
 }
 
 // converts value from given location on stack to given singleSize and returns it as a any or specified register value if asked
@@ -526,6 +348,27 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 
     // if given node is an actual multi thingy expression
     if (expression.nodeType == ParserValue::Node::operation) {
+        // for now functions are going to be separate
+        if (expression.secondType == ParserValue::Operation::functionCall) {
+            if (valueType.reg) {
+                return GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, *expression.value,
+                                     outputSize, registers);
+            }
+            else if (valueType.sta) {
+                StackVariable var;
+                var.singleSize = outputSize;
+                var.amount = 1;
+                const StackVariable& pushed = variables.push(var);
+                return GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, *expression.value,
+                                     outputSize, pushed.getAddressAsRegisterNames());
+            }
+            else {
+                CodeError("Unsupported function return type!");
+            }
+        }
+
+
+
         uint8_t largestSize = outputSize;
         bool leftLarger = false;
         bool rightLarger = false;
@@ -575,6 +418,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
                 out << "imul" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
             case ParserValue::Operation::division:
+                out << "movq    $0, %rdx\n";
                 out << "idiv" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
             default:
@@ -614,32 +458,24 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 }
 
 void GenerateFunction(const std::string& identifier, std::ofstream& out) {
+    StackVector variables;
+    const ParserFunction* function = &parserFunctions[identifier];
+
+    if (setting::OutputDodoInstructions) {
+        out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "\n";
+    }
+
     if (identifier == "main") {
         out << "_start:\n";
-        if (TargetArchitecture == "X86-64") {
-            out << "pushq   %rbp\n";
-            out << "movq    %rsp, %rbp\n";
-        }
-        else if (TargetArchitecture == "X86-32") {
-            out << "pushd   %ebp\n";
-            out << "movd    %esp, %ebp\n";
-        }
     }
     else {
         out << identifier << ":\n";
-        if (TargetArchitecture == "X86-64") {
-            out << "pushq   %rbp\n";
-            out << "movq    %rsp, %rbp\n";
-        }
-        else if (TargetArchitecture == "X86-32") {
-            out << "pushd   %ebp\n";
-            out << "movd    %esp, %ebp\n";
-        }
     }
-    StackVector variables;
+    if (TargetArchitecture == "X86-64") {
+        out << "pushq   %rbp\n";
+        out << "movq    %rsp, %rbp\n";
+    }
 
-    const ParserFunction* function = &parserFunctions[identifier];
-    // return logic will be changed, probably
     bool didReturn = false;
     for (const auto& current : function->instructions) {
         switch (current.type) {
@@ -647,16 +483,16 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 const DeclarationInstruction &dec = *current.Variant.declarationInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (dec.expression.nodeType == ParserValue::Node::operation) {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
                             << " = expression\n";
                     } else if (dec.expression.nodeType == ParserValue::Node::constant) {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
                             << " = constant\n";
                     } else if (dec.expression.nodeType == ParserValue::Node::variable) {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
                             << " = variable\n";
                     } else {
-                        out << setting::CommentCharacter << " Declaration of: " << dec.typeName << " " << dec.name
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
                             << "\n";
                     }
                 }
@@ -667,44 +503,12 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 var.isMutable = dec.isMutable;
 
                 if (dec.expression.nodeType != ParserValue::Node::empty) {
-                    // TODO: Change this into a dedicated function with all the checks etc
-                    if (var.singleSize > 4) {
-                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
-                                                                 {1, 1, 0, 1});
-                        out << "movq    " << source << ", " << variables.pushAndStr(var) << "\n";
-                    } else if (var.singleSize > 2) {
-                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
-                                                                 {1, 1, 0, 1});
-                        out << "movl    " << source << ", " << variables.pushAndStr(var) << "\n";
-                    } else if (var.singleSize > 1) {
-                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
-                                                                 {1, 1, 0, 1});
-                        out << "movw    " << source << ", " << variables.pushAndStr(var) << "\n";
-                    } else {
-                        std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression,
-                                                                 {1, 1, 0, 1});
-                        out << "movb    " << source << ", " << variables.pushAndStr(var) << "\n";
-                    }
-                } else {
+                    std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression, {1, 1, 0, 1});
+                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", " << variables.pushAndStr(var) << "\n";
+                }
+                else {
                     // declaring with a zero to avoid trash or exploits(?), also for debugging
-                    if (var.singleSize > 4) {
-                        if (var.offset % 8 != 0) {
-                            var.offset = (var.offset / 8 + 1) * 8;
-                        }
-                        out << "movq    $0, " << variables.pushAndStr(var) << "\n";
-                    } else if (var.singleSize > 2) {
-                        if (var.offset % 4 != 0) {
-                            var.offset = (var.offset / 4 + 1) * 4;
-                        }
-                        out << "movl    $0, " << variables.pushAndStr(var) << "\n";
-                    } else if (var.singleSize > 1) {
-                        if (var.offset % 2 != 0) {
-                            var.offset = (var.offset / 2 + 1) * 2;
-                        }
-                        out << "movw    $0, " << variables.pushAndStr(var) << "\n";
-                    } else {
-                        out << "movb    $0, " << variables.pushAndStr(var) << "\n";
-                    }
+                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    $0, " << variables.pushAndStr(var) << "\n";
                 }
                 break;
             }
@@ -734,8 +538,11 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     }
                 } else {
                     if (TargetArchitecture == "X86-64") {
-                        // value here;
-                        out << "movq    $0, %rax\n";
+
+                        std::string source = CalculateExpression(variables, out, 8, ret.expression);
+                        if (source != "%rax") {
+                            out << "movq    " << source << ", %rax\n";
+                        }
                         out << "popq    %rbp\n";
                         out << "ret\n";
                     }
@@ -748,13 +555,13 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 const ValueChangeInstruction &val = *current.Variant.valueChangeInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (val.expression.nodeType == ParserValue::Node::operation) {
-                        out << setting::CommentCharacter << " Value change of: " << val.name << " = expression\n";
+                        out << setting::CommentCharacter << " Value change of variable: " << val.name << " = expression\n";
                     } else if (val.expression.nodeType == ParserValue::Node::constant) {
-                        out << setting::CommentCharacter << " Value change of: " << val.name << " = constant\n";
+                        out << setting::CommentCharacter << " Value change of variable: " << val.name << " = constant\n";
                     } else if (val.expression.nodeType == ParserValue::Node::variable) {
-                        out << setting::CommentCharacter << " Value change of: " << " " << val.name << " = variable\n";
+                        out << setting::CommentCharacter << " Value change of variable: " << " " << val.name << " = variable\n";
                     } else {
-                        out << setting::CommentCharacter << " Value change of: " << " " << val.name << "\n";
+                        out << setting::CommentCharacter << " Value change of variable: " << " " << val.name << "\n";
                     }
                 }
                 StackVariable &var = variables.find(val.name);
@@ -771,6 +578,16 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 } else {
                     CodeError("No expression in value assignment!");
                 }
+                break;
+            }
+            case FunctionInstruction::Type::functionCall:
+            {
+                const FunctionCallInstruction &fun = *current.Variant.functionCallInstruction;
+                if (setting::OutputDodoInstructions) {
+                    out << setting::CommentCharacter << " Function call to: " << fun.functionName << "(...)\n";
+                }
+
+                GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, fun.functionName, 8);
                 break;
             }
         }
@@ -815,8 +632,10 @@ void GenerateCode() {
     out << ".global _start\n";
     // ...
 
-    // TODO: make this a loop for all functions
-    GenerateFunction("main", out);
+    // TODO: add a check to see if given function is used at all
+    for (auto& n : parserFunctions.map) {
+        GenerateFunction(n.second.name, out);
+    }
 }
 
 

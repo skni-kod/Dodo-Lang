@@ -54,7 +54,12 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
         }
 
         if (current->value == "(") {
-            ParserError("Function calls not implemented!");
+            // TODO: add arguments to function calls after lexer comma bug is fixed
+            instruction.Variant.functionCallInstruction = new FunctionCallInstruction();
+            instruction.type = FunctionInstruction::Type::functionCall;
+            instruction.Variant.functionCallInstruction->functionName = firstToken->value;
+            while (generator()->type != LexicalToken::Type::expressionEnd) {}
+            return std::move(instruction);
         }
 
         instruction.Variant.valueChangeInstruction = new ValueChangeInstruction();

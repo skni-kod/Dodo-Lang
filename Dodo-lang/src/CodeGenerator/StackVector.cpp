@@ -5,6 +5,13 @@ std::string StackVariable::getAddress() const {
     return '-' + std::to_string(offset) + "(%rbp)";
 }
 
+RegisterNames StackVariable::getAddressAsRegisterNames() const {
+    return {'-' + std::to_string(offset) + "(%rbp)",
+            '-' + std::to_string(offset) + "(%rbp)",
+            '-' + std::to_string(offset) + "(%rbp)",
+            '-' + std::to_string(offset) + "(%rbp)"};
+}
+
 StackVariable &StackVector::find(const std::string& name) {
     for (auto& n : vec) {
         for (auto& m : n) {
@@ -14,6 +21,8 @@ StackVariable &StackVector::find(const std::string& name) {
         }
     }
     CodeError("Variable: " + name + " not found at this point!");
+    // will not be reached anyway, just to please the compiler
+    return vec.back().back();
 }
 
 StackVariable &StackVector::find(uint64_t offset) {
@@ -25,6 +34,8 @@ StackVariable &StackVector::find(uint64_t offset) {
         }
     }
     CodeError("Variable with offset: " + std::to_string(offset) + " not found at this point!");
+    // will not be reached anyway, just to please the compiler
+    return vec.back().back();
 }
 
 uint64_t StackVector::lastOffset() {

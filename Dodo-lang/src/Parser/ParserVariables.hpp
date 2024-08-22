@@ -79,6 +79,12 @@ struct ReturnInstruction {
     uint8_t subtype = 0;
 };
 
+// no return value catching
+struct FunctionCallInstruction {
+    std::string functionName;
+};
+
+
 struct FunctionInstruction {
     enum Type {
         declaration, returnValue, valueChange, functionCall
@@ -87,6 +93,7 @@ struct FunctionInstruction {
         DeclarationInstruction* declarationInstruction = nullptr;
         ReturnInstruction* returnInstruction;
         ValueChangeInstruction* valueChangeInstruction;
+        FunctionCallInstruction* functionCallInstruction;
     }Variant;
     uint8_t type = 0;
     ~FunctionInstruction();

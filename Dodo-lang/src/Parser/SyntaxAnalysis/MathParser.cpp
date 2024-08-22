@@ -86,9 +86,20 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         }
     }
 
-    // TODO: add function calls here
+    // value returning function call
+    // TODO: add argument parsing
+    if (size > 2 and tokens[range.first]->type == LexicalToken::Type::identifier and
+        tokens[range.first + 1]->value == "(" and tokens[range.second - 1]->value == ")") {
+        ParserValue value;
+        // TODO: think about how to nicely integrate arguments here, probably as a node type
+        // where one side is the next argument and the second one is the expression, gonna be annoying to optimize
+        value.nodeType =   ParserValue::Node::operation;
+        value.secondType = ParserValue::Operation::functionCall;
+        value.value = std::make_unique<std::string>(tokens[range.first]->value);
+        return std::move(value);
+    }
 
-    // complex expression parsing
+    // CoMpLeX expression parsing
 
     // bracket check definitions to avoid repeating most of the code
     uint32_t bracketLevel = 0;

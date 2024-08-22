@@ -36,6 +36,8 @@ add_executable(Dodo_Lang
         Dodo-lang/src/CodeGenerator/StackVector.hpp
         Dodo-lang/src/CodeGenerator/StackVector.cpp
         Dodo-lang/src/CodeGenerator/GeneratorSettings.hpp
+        Dodo-lang/src/CodeGenerator/FunctionCall.cpp
+        Dodo-lang/src/CodeGenerator/ValueConverters.cpp
 )
 
 # uncomment when project works well

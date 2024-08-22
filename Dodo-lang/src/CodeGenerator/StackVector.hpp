@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include "GenerateCode.hpp"
 
 struct StackVariable {
     uint64_t offset = 0;
@@ -12,11 +13,13 @@ struct StackVariable {
     uint32_t amount = 1;
     std::string name;
     std::string typeName;
-    std::string getAddress() const;
+    [[nodiscard]] std::string getAddress() const;
+    [[nodiscard]] RegisterNames getAddressAsRegisterNames() const;
 };
 
 struct StackVector {
     std::vector<std::vector<StackVariable>> vec;
+    uint64_t registerOffset = 0;
     StackVariable& find(const std::string& name);
     StackVariable& find(uint64_t offset);
     uint64_t lastOffset();
