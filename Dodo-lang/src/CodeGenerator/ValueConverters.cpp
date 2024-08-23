@@ -62,7 +62,7 @@ std::string AddRegisterA(uint16_t size) {
 // converts value in given register to given singleSize and if asked returns it to the source register
 // pass registers as in "%reg"
 std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uint8_t targetSize,
-                                   uint8_t outputType, uint8_t inputType, RegisterNames registers, bool returnToOriginal) {
+                                   uint8_t inputType, uint8_t outputType, RegisterNames registers, bool returnToOriginal) {
 
     // first change type of the variable, nothing to do here yet, floats will require stuff
     if (inputType == ParserValue::Value::floatingPoint or outputType == ParserValue::Value::floatingPoint) {
@@ -385,7 +385,14 @@ void CodeError(const std::string message) {
 // converts value from given location on stack to given singleSize and returns it as a any or specified register value if asked
 // pass registers as in "%reg"
 std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, uint64_t offset,
-                                 bool mustBeReg, StackVector* stack, bool mustUseGivenReg, RegisterNames registers) {
+                                 uint8_t inputType, uint8_t outputType, bool mustBeReg, StackVector* stack,
+                                 bool mustUseGivenReg, RegisterNames registers) {
+
+    // first change type of the variable, nothing to do here yet, floats will require stuff
+    if (inputType == ParserValue::Value::floatingPoint or outputType == ParserValue::Value::floatingPoint) {
+        CodeError("Floating point conversions not yet supported!");
+    }
+
     switch (originalSize) {
         case 1:
             switch(targetSize) {
@@ -396,8 +403,13 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return '-' + std::to_string(offset) + "(%rbp)";
                 case 2:
-                    out << "movb    -" << offset << "(%rbp), %al\n";
-                    out << "cbtw\n";
+                    if (outputType == ParserValue::Value::signedInteger) {
+                        out << "cbtw\n";
+                    }
+                    else if (outputType == ParserValue::Value::unsignedInteger) {
+                        out << "movb    -" << offset << "(%rbp), %al\n";
+                        out << "movb    $0, %ah\n";
+                    }
                     if (stack) {
                         StackVariable var;
                         var.singleSize = targetSize;
@@ -414,7 +426,14 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return "%ax";
                 case 4:
-                    out << "movsb   -" << offset << "(%rbp), %eax\n";
+                    if (outputType == ParserValue::Value::signedInteger) {
+                        out << "movsb   -" << offset << "(%rbp), %eax\n";
+                    }
+                    else if (outputType == ParserValue::Value::unsignedInteger) {
+                        out << "movl    $0, %eax\n";
+                        out << "movb    -" << offset << "(%rbp), %al\n";
+                    }
+
                     if (stack) {
                         StackVariable var;
                         var.singleSize = targetSize;
@@ -431,8 +450,14 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return "%eax";
                 case 8:
-                    out << "movsb   -" << offset << "(%rbp), %eax\n";
-                    out << "cltq\n";
+                    if (outputType == ParserValue::Value::signedInteger) {
+                        out << "movsb   -" << offset << "(%rbp), %eax\n";
+                        out << "cltq\n";
+                    }
+                    else if (outputType == ParserValue::Value::unsignedInteger) {
+                        out << "movq    $0, %rax\n";
+                        out << "movb    -" << offset << "(%rbp), %al\n";
+                    }
                     if (stack) {
                         StackVariable var;
                         var.singleSize = targetSize;
@@ -466,7 +491,13 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return '-' + std::to_string(offset) + "(%rbp)";
                 case 4:
-                    out << "movsw   -" << offset << "(%rbp), %eax\n";
+                    if (outputType == ParserValue::Value::signedInteger) {
+                        out << "movsw   -" << offset << "(%rbp), %eax\n";
+                    }
+                    else if (outputType == ParserValue::Value::unsignedInteger) {
+                        out << "movl    $0, %eax\n";
+                        out << "movw    -" << offset << "(%rbp), %ax\n";
+                    }
                     if (stack) {
                         StackVariable var;
                         var.singleSize = targetSize;
@@ -483,8 +514,14 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return "%eax";
                 case 8:
-                    out << "movsw   -" << offset << "(%rbp), %eax\n";
-                    out << "cltq\n";
+                    if (outputType == ParserValue::Value::signedInteger) {
+                        out << "movsw   -" << offset << "(%rbp), %eax\n";
+                        out << "cltq\n";
+                    }
+                    else if (outputType == ParserValue::Value::unsignedInteger) {
+                        out << "movq    $0, %rax\n";
+                        out << "movw    -" << offset << "(%rbp), %ax\n";
+                    }
                     if (stack) {
                         StackVariable var;
                         var.singleSize = targetSize;
@@ -524,8 +561,14 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     }
                     return '-' + std::to_string(offset) + "(%rbp)";
                 case 8:
-                    out << "movl    -" << offset << "(%rbp), %eax\n";
-                    out << "cltq\n";
+                    if (outputType == ParserValue::Value::signedInteger) {
+                        out << "movl    -" << offset << "(%rbp), %eax\n";
+                        out << "cltq\n";
+                    }
+                    else if (outputType == ParserValue::Value::unsignedInteger) {
+                        out << "movq    $0, %rax\n";
+                        out << "movl    -" << offset << "(%rbp), %eax\n";
+                    }
                     if (stack) {
                         StackVariable var;
                         var.singleSize = targetSize;

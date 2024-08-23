@@ -11,12 +11,14 @@ type u32 : UNSIGNED_INTEGER(4);
 type u64 : UNSIGNED_INTEGER(8);
 
 i8 t() {
-    return 6;
+    let u8 y = 42;
+    return y;
 }
 
 i32 main() {
     let i8 wow = 6;
-    mut u64 test = t();
+    let i16 h = t() - 100;
+    mut u32 test = wow;
     test *= wow + 8 / 5;
     return test;
 }

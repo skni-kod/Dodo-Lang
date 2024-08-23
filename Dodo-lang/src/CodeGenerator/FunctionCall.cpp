@@ -33,7 +33,7 @@ std::string GenerateFunctionCall(std::ofstream& out, uint64_t stackOffset, uint6
     if (function.returnValueType != ParserFunction::Subtype::none) {
         const ParserType& type = parserTypes[function.returnType];
 
-        std::string convertedValue = ConvertValueInRegister(out, type.size, outputSize, outputType, type.type);
+        std::string convertedValue = ConvertValueInRegister(out, type.size, outputSize, type.type, outputType);
         // return the register if it's already there
         if (convertedValue == outputLocation.registerBySize(outputSize)) {
             return convertedValue;

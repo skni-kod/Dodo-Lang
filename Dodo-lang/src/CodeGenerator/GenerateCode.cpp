@@ -28,7 +28,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         }
         else if (returnValueLocations.reg) {
             out << "mov"  << AddInstructionPostfix(outputSize) << "    $" << std::to_string(number) << ", " << registers.registerBySize(outputSize) << "\n";
-            return registers.size8;
+            return registers.registerBySize(outputSize);
         }
         else {
             CodeError("Unsupported value return type for node type!");
@@ -41,14 +41,14 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         auto& var = variables.find(*expression.value);
         if (not returnValueLocations.reg) {
             // strictly stack
-            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, false, &variables);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType, false, &variables);
         }
         if (not returnValueLocations.sta) {
             // strictly register
-            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, true, nullptr, true, registers);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType, true, nullptr, true, registers);
         }
         else {
-            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType);
         }
     }
 
@@ -168,7 +168,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     const ParserFunction* function = &parserFunctions[identifier];
 
     if (setting::OutputDodoInstructions) {
-        out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "\n";
+        out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "(...)\n";
     }
 
     if (identifier == "main") {
