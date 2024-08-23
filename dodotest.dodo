@@ -4,16 +4,19 @@ type i16 : SIGNED_INTEGER(2);
 type i32 : SIGNED_INTEGER(4);
 type i64 : SIGNED_INTEGER(8);
 
-i32 func() {
-    mut i32 value = 5 + 2;
-    value += 6;
-    return value;
+// basic signed integers
+type u8 : UNSIGNED_INTEGER(1);
+type u16 : UNSIGNED_INTEGER(2);
+type u32 : UNSIGNED_INTEGER(4);
+type u64 : UNSIGNED_INTEGER(8);
+
+i8 t() {
+    return 6;
 }
 
 i32 main() {
-    let i64 k = 53;
-    let i32 wow = 6;
-    mut i16 test = (5 + wow) + k;
-    test *= k / wow + 2 * 5;
-    return 5 + func() * wow / test - k;
+    let i8 wow = 6;
+    mut u64 test = t();
+    test *= wow + 8 / 5;
+    return test;
 }

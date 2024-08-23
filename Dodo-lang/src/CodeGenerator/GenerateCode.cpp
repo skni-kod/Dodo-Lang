@@ -9,305 +9,11 @@
 
 namespace fs = std::filesystem;
 
-const char *CodeException::what() {
-    return "Code generation failed!";
-}
-
-// converts a string to a value that is the decimal number of binary representation of the number
-uint64_t ConvertValue(const std::string& value, uint16_t bitSize) {
-    // detecting what this value even is, yeah lexer could do that but I want to be sure it works exactly as intended
-    std::string temp = value;
-
-    bool isNegative = false;
-
-    if (temp.front() == '-') {
-        if (temp.size() == 1) {
-            CodeError("A '-' operand passed to numeric conversion!");
-        }
-        temp = temp.substr(1, temp.size() - 1);
-        isNegative = true;
-    }
-
-
-    bool isFloatingPoint = false;
-    for (auto& n : temp) {
-        if (n == '.') {
-            if (isFloatingPoint == false) {
-                isFloatingPoint = true;
-            }
-            else {
-                CodeError("Multi dot floating point number!");
-            }
-        }
-    }
-
-    if (isFloatingPoint) {
-        // TODO: add floats
-        return 0;
-    }
-
-    uint64_t number = std::stoll(temp);
-    if (isNegative) {
-        // shifts the one to the leftmost position of defines singleSize of var
-        uint64_t theOne = 1;
-        theOne <<= (bitSize - 1);
-        uint64_t negativeBase = -1;
-        negativeBase >>= (64 - bitSize + 1);
-        // binary or's the values to always produce the binary representation
-        number = (negativeBase - number + 1) | theOne;
-    }
-
-    return number;
-}
-
-uint64_t ConvertValue(const ParserValue& value, uint16_t bitSize) {
-    // detecting what this value even is, yeah lexer could do that but I want to be sure it works exactly as intended
-
-    if (value.secondType == ParserValue::Value::floating) {
-        // TODO: add floats
-        return 0;
-    }
-
-    if (value.isNegative) {
-        uint64_t number = std::stoll(value.value->substr(1, value.value->size() - 1));
-        // shifts the one to the leftmost position of defines singleSize of var
-        uint64_t theOne = 1;
-        theOne <<= (bitSize - 1);
-        uint64_t negativeBase = -1;
-        negativeBase >>= (64 - bitSize + 1);
-        // binary or's the values to always produce the binary representation
-        number = (negativeBase - number + 1) | theOne;
-        return number;
-    }
-
-    // just an integer
-    return std::stoll(*value.value);
-}
-
-void CodeError(const std::string message) {
-    std::cout << "ERROR! Code generation failed : " << message << "\n";
-    throw CodeException();
-}
-
-// converts value from given location on stack to given singleSize and returns it as a any or specified register value if asked
-// pass registers as in "%reg"
-std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, uint64_t offset,
-                                  bool mustBeReg = false, StackVector* stack = nullptr, bool mustUseGivenReg = false, RegisterNames registers = {}) {
-    switch (originalSize) {
-        case 1:
-            switch(targetSize) {
-                case 1:
-                    if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
-                        return registers.size1;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 2:
-                    out << "movb    -" << offset << "(%rbp), %al\n";
-                    out << "cbtw\n";
-                    if (stack) {
-                        StackVariable var;
-                        var.singleSize = targetSize;
-                        var.amount = 1;
-                        std::string address = stack->pushAndStr(var);
-                        out << "movw    %ax, " << address << "\n";
-                        return address;
-                    }
-                    if (mustUseGivenReg) {
-                        if (registers.size2 != "%ax") {
-                            out << "movw    %ax, " << registers.size2 << "\n";
-                        }
-                        return registers.size2;
-                    }
-                    return "%ax";
-                case 4:
-                    out << "movsb   -" << offset << "(%rbp), %eax\n";
-                    if (stack) {
-                        StackVariable var;
-                        var.singleSize = targetSize;
-                        var.amount = 1;
-                        std::string address = stack->pushAndStr(var);
-                        out << "movl    %eax, " << address << "\n";
-                        return address;
-                    }
-                    if (mustUseGivenReg) {
-                        if (registers.size4 != "%eax") {
-                            out << "movl    %eax, " << registers.size4 << "\n";
-                        }
-                        return registers.size4;
-                    }
-                    return "%eax";
-                case 8:
-                    out << "movsb   -" << offset << "(%rbp), %eax\n";
-                    out << "cltq\n";
-                    if (stack) {
-                        StackVariable var;
-                        var.singleSize = targetSize;
-                        var.amount = 1;
-                        std::string address = stack->pushAndStr(var);
-                        out << "movq    %rax, " << address << "\n";
-                        return address;
-                    }
-                    if (mustUseGivenReg) {
-                        if (registers.size8 != "%rax") {
-                            out << "movq    %rax, " << registers.size8 << "\n";
-                        }
-                        return registers.size8;
-                    }
-                    return "%rax";
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        case 2:
-            switch(targetSize) {
-                case 1:
-                    if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
-                        return registers.size1;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 2:
-                    if (mustBeReg) {
-                        out << "movw    -" << offset << "(%rbp), " << registers.size2 <<"\n";
-                        return registers.size2;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 4:
-                    out << "movsw   -" << offset << "(%rbp), %eax\n";
-                    if (stack) {
-                        StackVariable var;
-                        var.singleSize = targetSize;
-                        var.amount = 1;
-                        std::string address = stack->pushAndStr(var);
-                        out << "movl    %eax, " << address << "\n";
-                        return address;
-                    }
-                    if (mustUseGivenReg) {
-                        if (registers.size4 != "%eax") {
-                            out << "movl    %eax, " << registers.size4 << "\n";
-                        }
-                        return registers.size4;
-                    }
-                    return "%eax";
-                case 8:
-                    out << "movsw   -" << offset << "(%rbp), %eax\n";
-                    out << "cltq\n";
-                    if (stack) {
-                        StackVariable var;
-                        var.singleSize = targetSize;
-                        var.amount = 1;
-                        std::string address = stack->pushAndStr(var);
-                        out << "movq    %rax, " << address << "\n";
-                        return address;
-                    }
-                    if (mustUseGivenReg) {
-                        if (registers.size8 != "%rax") {
-                            out << "movq    %rax, " << registers.size8 << "\n";
-                        }
-                        return registers.size8;
-                    }
-                    return "%rax";
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        case 4:
-            switch(targetSize) {
-                case 1:
-                    if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
-                        return registers.size1;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 2:
-                    if (mustBeReg) {
-                        out << "movw    -" << offset << "(%rbp), " << registers.size2 <<"\n";
-                        return registers.size2;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 4:
-                    if (mustBeReg) {
-                        out << "movl    -" << offset << "(%rbp), " << registers.size4 <<"\n";
-                        return registers.size4;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 8:
-                    out << "movl    -" << offset << "(%rbp), %eax\n";
-                    out << "cltq\n";
-                    if (stack) {
-                        StackVariable var;
-                        var.singleSize = targetSize;
-                        var.amount = 1;
-                        std::string address = stack->pushAndStr(var);
-                        out << "movq    %rax, " << address << "\n";
-                        return address;
-                    }
-                    if (mustUseGivenReg) {
-                        if (registers.size8 != "%rax") {
-                            out << "movq    %rax, " << registers.size8 << "\n";
-                        }
-                        return registers.size8;
-                    }
-                    return "%rax";
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        case 8:
-            switch(targetSize) {
-                case 1:
-                    if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
-                        return registers.size1;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 2:
-                    if (mustBeReg) {
-                        out << "movw    -" << offset << "(%rbp), " << registers.size2 <<"\n";
-                        return registers.size2;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 4:
-                    if (mustBeReg) {
-                        out << "movl    -" << offset << "(%rbp), " << registers.size4 <<"\n";
-                        return registers.size4;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                case 8:
-                    if (mustBeReg) {
-                        out << "movq    -" << offset << "(%rbp), " << registers.size8 <<"\n";
-                        return registers.size8;
-                    }
-                    return '-' + std::to_string(offset) + "(%rbp)";
-                default:
-                    CodeError("Invalid singleSize for singleSize conversion!");
-            }
-        default:
-            CodeError("Invalid singleSize for singleSize conversion!");
-    }
-    // will never get here
-    return "";
-}
-
-uint64_t GetTypeSize(const std::string& typeName) {
-    if (parserTypes.isKey(typeName)) {
-        return parserTypes[typeName].size;
-    }
-    else {
-        CodeError("Variable of non-existent type!");
-    }
-    return 0;
-}
-
-struct ValueType {
-    uint8_t reg:1 = 1;
-    uint8_t val:1 = 1;
-    uint8_t sta:1 = 1;
-    uint8_t hea:1 = 1;
-    ValueType(uint8_t reg, uint8_t val, uint8_t sta, uint8_t hea) : reg(reg), val(val), sta(sta), hea(hea) {}
-};
-
 // takes a mathematical expression and returns the value to put wherever the user wants
+// output type refers to the expected type of value to come out, namely a signed, unsigned or float
 std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint16_t outputSize,
-                                const ParserValue& expression, ValueType valueType = {1, 1, 1, 1}, RegisterNames registers = {}) {
+                                const ParserValue& expression, uint8_t outputType,
+                                ValueType returnValueLocations = {1, 1, 1, 1}, RegisterNames registers = {}) {
 
     if (expression.nodeType == ParserValue::Node::empty) {
         // shouldn't happen afaik
@@ -317,10 +23,10 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
     // if given node is a constant just return it's value
     if (expression.nodeType == ParserValue::constant) {
         uint64_t number = ConvertValue(*expression.value, 64);
-        if (valueType.val) {
+        if (returnValueLocations.val) {
             return "$" + std::to_string(number);
         }
-        else if (valueType.reg) {
+        else if (returnValueLocations.reg) {
             out << "mov"  << AddInstructionPostfix(outputSize) << "    $" << std::to_string(number) << ", " << registers.registerBySize(outputSize) << "\n";
             return registers.size8;
         }
@@ -333,11 +39,11 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
     // if given node is a variable
     if (expression.nodeType == ParserValue::Node::variable) {
         auto& var = variables.find(*expression.value);
-        if (not valueType.reg) {
+        if (not returnValueLocations.reg) {
             // strictly stack
             return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, false, &variables);
         }
-        if (not valueType.sta) {
+        if (not returnValueLocations.sta) {
             // strictly register
             return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, true, nullptr, true, registers);
         }
@@ -349,18 +55,18 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
     // if given node is an actual multi thingy expression
     if (expression.nodeType == ParserValue::Node::operation) {
         // for now functions are going to be separate
-        if (expression.secondType == ParserValue::Operation::functionCall) {
-            if (valueType.reg) {
+        if (expression.operationType == ParserValue::Operation::functionCall) {
+            if (returnValueLocations.reg) {
                 return GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, *expression.value,
-                                     outputSize, registers);
+                                     outputSize,  outputType, registers);
             }
-            else if (valueType.sta) {
+            else if (returnValueLocations.sta) {
                 StackVariable var;
                 var.singleSize = outputSize;
                 var.amount = 1;
                 const StackVariable& pushed = variables.push(var);
                 return GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, *expression.value,
-                                     outputSize, pushed.getAddressAsRegisterNames());
+                                     outputSize, outputType, pushed.getAddressAsRegisterNames());
             }
             else {
                 CodeError("Unsupported function return type!");
@@ -387,13 +93,13 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
             }
         }
 
-        std::string left = CalculateExpression(variables, out, largestSize, *expression.left, {0, 1, 1, 1});
+        std::string left = CalculateExpression(variables, out, largestSize, *expression.left, outputType, {0, 1, 1, 1});
         std::string right;
-        if (expression.secondType == ParserValue::Operation::division) {
-            right = CalculateExpression(variables, out, largestSize, *expression.right, {1, 0, 0, 0}, {"%bl", "%bx", "%ebx", "%rbx"});
+        if (expression.operationType == ParserValue::Operation::division) {
+            right = CalculateExpression(variables, out, largestSize, *expression.right, outputType, {1, 0, 0, 0}, {"%bl", "%bx", "%ebx", "%rbx"});
         }
         else {
-            right = CalculateExpression(variables, out, largestSize, *expression.right, {0, 1, 1, 1});
+            right = CalculateExpression(variables, out, largestSize, *expression.right, outputType, {0, 1, 1, 1});
         }
 
 
@@ -407,7 +113,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         }
 
         // operations really only change this part
-        switch (expression.secondType) {
+        switch (expression.operationType) {
             case ParserValue::Operation::addition:
                 out << "add" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
@@ -434,12 +140,12 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
             variables.free(right);
         }
 
-        std::string reg = ConvertSizeInRegister(out, largestSize, outputSize);
+        std::string reg = ConvertValueInRegister(out, largestSize, outputSize, outputType, outputType);
 
-        if (valueType.reg) {
+        if (returnValueLocations.reg) {
             return reg;
         }
-        else if (valueType.sta) {
+        else if (returnValueLocations.sta) {
             StackVariable var;
             var.singleSize = largestSize;
             var.amount = 1;
@@ -497,13 +203,16 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     }
                 }
                 StackVariable var;
-                var.singleSize = GetTypeSize(dec.typeName);
+                const ParserType& type = parserTypes[dec.typeName];
+                var.singleSize = type.size;
                 var.amount = 1;
                 var.name = dec.name;
+                var.type = type.type;
+                var.typeName = dec.typeName;
                 var.isMutable = dec.isMutable;
 
                 if (dec.expression.nodeType != ParserValue::Node::empty) {
-                    std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression, {1, 1, 0, 1});
+                    std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression, type.type, {1, 1, 0, 1});
                     out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", " << variables.pushAndStr(var) << "\n";
                 }
                 else {
@@ -528,7 +237,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 if (identifier == "main") {
                     if (TargetArchitecture == "X86-64") {
 
-                        std::string source = CalculateExpression(variables, out, 8, ret.expression);
+                        std::string source = CalculateExpression(variables, out, 8, ret.expression, parserTypes[function->returnType].type);
                         out << "movq    " << source << ", %rdi\n";
 
                         // interrupt number
@@ -538,10 +247,11 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     }
                 } else {
                     if (TargetArchitecture == "X86-64") {
+                        ParserType& type = parserTypes[function->returnType];
 
-                        std::string source = CalculateExpression(variables, out, 8, ret.expression);
+                        std::string source = CalculateExpression(variables, out, type.size, ret.expression, type.type);
                         if (source != "%rax") {
-                            out << "movq    " << source << ", %rax\n";
+                            out << "mov" << AddInstructionPostfix(type.size) << "    " << source << ", " << AddRegisterA(type.size) << "\n";
                         }
                         out << "popq    %rbp\n";
                         out << "ret\n";
@@ -565,13 +275,14 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     }
                 }
                 StackVariable &var = variables.find(val.name);
+                const ParserType& type = parserTypes[var.typeName];
                 if (not var.isMutable) {
                     CodeError("Variable: " + var.name + " is immutable!");
                 }
 
                 if (val.expression.nodeType != ParserValue::Node::empty) {
                     // TODO: add memory to memory move, movsq didn't work in visualizer so I didn't risk it
-                    std::string source = CalculateExpression(variables, out, var.singleSize, val.expression,
+                    std::string source = CalculateExpression(variables, out, var.singleSize, val.expression, type.type,
                                                              {1, 1, 0, 1});
                     out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
                         << var.getAddress() << "\n";
@@ -587,7 +298,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     out << setting::CommentCharacter << " Function call to: " << fun.functionName << "(...)\n";
                 }
 
-                GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, fun.functionName, 8);
+                GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, fun.functionName, 8, 0);
                 break;
             }
         }
@@ -602,10 +313,9 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
         }
         else {
-            if (TargetArchitecture == "X86-64") {
-                out << "movq    $0, %rax\n";
-                out << "popq    %rbp\n";
-                out << "ret\n";
+            if (function->returnType != "void" and not function->returnType.empty()) {
+                // TODO: make this smarter
+                CodeError("Value not returned at the end of a function!");
             }
         }
     }

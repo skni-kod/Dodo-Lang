@@ -4,11 +4,14 @@
 #include <vector>
 #include <cstdint>
 #include <string>
-#include "GenerateCode.hpp"
+#include "ParserVariables.hpp"
+
+struct RegisterNames;
 
 struct StackVariable {
     uint64_t offset = 0;
     uint8_t singleSize = 4;
+    uint8_t type = ParserValue::Value::signedInteger;
     bool isMutable = false;
     uint32_t amount = 1;
     std::string name;

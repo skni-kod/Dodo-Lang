@@ -158,7 +158,7 @@ enum tokenType
 	file_begin = 9, //tells that here is the begin of some file
 };
 
-//for now the lexer understands this literar types, numeric is integer, character is char, string_type is string
+//for now the lexer understands this literar types, numeric is signedInteger, character is char, string_type is string
 //this types do not reprezents the actual program types - numeric can means int, long, long long etc
 //this types are only for checking if the number format is correct
 enum literalType

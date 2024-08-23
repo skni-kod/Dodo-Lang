@@ -26,11 +26,11 @@ The project is being developed as a SKNI "KOD" project.
 - variable value assignment after declaration
 - variable mutability/immutability
 - function calls
-- 
+
 ## Short term plans:
 
 - multi file support in lexer
-- splitting integer operations into signed and unsigned
+- splitting signedInteger operations into signed and unsigned
 - floating point values
 - pointers and arrays
 - syscalls

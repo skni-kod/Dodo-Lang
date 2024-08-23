@@ -33,13 +33,13 @@ void CreateType(Generator<const LexicalToken*>& generator) {
     current = generator();
     uint8_t type = 0;
     if (current->value == "SIGNED_INTEGER") {
-        type = ParserType::Type::SIGNED_INTEGER;
+        type = ParserType::Type::signedInteger;
     }
     else if (current->value == "UNSIGNED_INTEGER") {
-        type = ParserType::Type::UNSIGNED_INTEGER;
+        type = ParserType::Type::unsignedInteger;
     }
     else if (current->value == "FLOATING_POINT") {
-        type = ParserType::Type::FLOATING_POINT;
+        type = ParserType::Type::floatingPoint;
     }
     else {
         ParserError("Invalid type of base type!");

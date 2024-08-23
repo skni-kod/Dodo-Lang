@@ -22,7 +22,7 @@ bool IsDeclarable(const std::string& token);
 
 struct ParserType {
     enum Type {
-        SIGNED_INTEGER, UNSIGNED_INTEGER, FLOATING_POINT
+        signedInteger, unsignedInteger, floatingPoint
     };
     uint8_t type:2;                         // allowed values 0-2
     uint8_t size:6;                         // allowed values 1-8 (maybe more in future)
@@ -45,10 +45,11 @@ struct ParserValue {
         addition, subtraction, multiplication, division, functionCall
     };
     enum Value {
-        integer, floating
+        signedInteger, unsignedInteger, floatingPoint
     };
     uint8_t nodeType = 0;
-    uint8_t secondType = 0;
+    uint8_t operationType = 0;
+    uint8_t valueType = 0;
     bool isNegative = false;
     std::unique_ptr<ParserValue> left = nullptr;
     std::unique_ptr<ParserValue> right = nullptr;

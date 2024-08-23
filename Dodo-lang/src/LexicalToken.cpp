@@ -50,7 +50,7 @@ void ProgramLine::add_token(int type, std::string value, bool checkNumeric)
 		return;
 	}
 
-	//checking if it is float or integer
+	//checking if it is float or signedInteger
 	for (int i = 0; i < size; i++)
 	{
 		ch = value[i];
@@ -63,7 +63,7 @@ void ProgramLine::add_token(int type, std::string value, bool checkNumeric)
 			dots++;
 
 	}
-	//0 dots means its integer
+	//0 dots means its signedInteger
 	if (dots == 0)
 	{
 		line.push_back(LexicalToken(7, value, numeric));

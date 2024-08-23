@@ -41,7 +41,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         if (tokens[range.first + 1]->type == LexicalToken::Type::identifier) {
             ParserValue value;
             value.nodeType = ParserValue::Node::operation;
-            value.secondType = ParserValue::Operation::subtraction;
+            value.operationType = ParserValue::Operation::subtraction;
             value.left = std::make_unique<ParserValue>();
             value.left->nodeType = ParserValue::Node::constant;
             value.left->fillValue("0");
@@ -94,7 +94,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         // TODO: think about how to nicely integrate arguments here, probably as a node type
         // where one side is the next argument and the second one is the expression, gonna be annoying to optimize
         value.nodeType =   ParserValue::Node::operation;
-        value.secondType = ParserValue::Operation::functionCall;
+        value.operationType = ParserValue::Operation::functionCall;
         value.value = std::make_unique<std::string>(tokens[range.first]->value);
         return std::move(value);
     }
@@ -132,7 +132,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         if (tokens[n]->value == "+") {
             ParserValue value;
             value.nodeType      = ParserValue::Node     ::operation;
-            value.secondType = ParserValue::Operation::addition ;
+            value.operationType = ParserValue::Operation::addition ;
             value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
             value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);
@@ -147,7 +147,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         if (tokens[n]->value == "-") {
             ParserValue value;
             value.nodeType      = ParserValue::Node     ::operation  ;
-            value.secondType = ParserValue::Operation::subtraction;
+            value.operationType = ParserValue::Operation::subtraction;
             value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
             value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);
@@ -162,7 +162,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         if (tokens[n]->value == "*") {
             ParserValue value;
             value.nodeType      = ParserValue::Node     ::operation     ;
-            value.secondType = ParserValue::Operation::multiplication;
+            value.operationType = ParserValue::Operation::multiplication;
             value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
             value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);
@@ -177,7 +177,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         if (tokens[n]->value == "/") {
             ParserValue value;
             value.nodeType      = ParserValue::Node     ::operation;
-            value.secondType = ParserValue::Operation::division ;
+            value.operationType = ParserValue::Operation::division ;
             value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
             value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);

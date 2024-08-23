@@ -133,5 +133,5 @@ void ParserValue::fillValue(std::string val) {
 
     // at this point val is a valid decimal, so just input it into the pointer
     value = std::make_unique<std::string>(val);
-    secondType = Value::integer;
+    operationType = Value::signedInteger;
 }
