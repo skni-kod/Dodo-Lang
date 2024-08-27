@@ -104,11 +104,8 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 
 
         out << "mov" << AddInstructionPostfix(largestSize) << "    " << left << ", " << AddRegisterA(largestSize) << "\n";
-        if (expression.left->nodeType == ParserValue::Node::operation) {
-            variables.free(left);
-        }
-        if (leftLarger and not (expression.left->nodeType == ParserValue::Node::variable and
-        variables.find(*expression.left->value).singleSize >= largestSize)) {
+        // freeing temp variables
+        if (left[0] == '-' and variables.findByOffset(left).name.empty()) {
             variables.free(left);
         }
 
@@ -121,26 +118,35 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
                 out << "sub" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
                 break;
             case ParserValue::Operation::multiplication:
-                out << "imul" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                if (outputType == ParserValue::Value::unsignedInteger) {
+                    out << "mul" << AddInstructionPostfix(largestSize) << "    " << right << "\n";
+                }
+                else if (outputType == ParserValue::Value::signedInteger) {
+                    out << "imul" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                }
+
                 break;
             case ParserValue::Operation::division:
-                out << "movq    $0, %rdx\n";
-                out << "idiv" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                if (outputType == ParserValue::Value::unsignedInteger) {
+                    out << "movq    $0, %rdx\n";
+                    out << "div" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                }
+                else if (outputType == ParserValue::Value::signedInteger) {
+                    out << "movq    $0, %rdx\n";
+                    out << "idiv" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                }
                 break;
             default:
                 CodeError("Unsupported operation type!");
         }
 
 
-        if (expression.right->nodeType == ParserValue::Node::operation) {
-            variables.free(right);
-        }
-        if (rightLarger and not (expression.right->nodeType == ParserValue::Node::variable and
-                                variables.find(*expression.right->value).singleSize >= largestSize)) {
+        // freeing temp variables
+        if (right[0] == '-' and variables.findByOffset(right).name.empty()) {
             variables.free(right);
         }
 
-        std::string reg = ConvertValueInRegister(out, largestSize, outputSize, outputType, outputType);
+        std::string reg = ConvertValueInRegister(out, largestSize, outputSize, outputType, outputType, registers);
 
         if (returnValueLocations.reg) {
             return reg;

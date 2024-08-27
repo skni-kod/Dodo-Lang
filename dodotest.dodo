@@ -19,6 +19,6 @@ i32 main() {
     let i8 wow = 6;
     let i16 h = t() - 100;
     mut u32 test = wow;
-    test *= wow + 8 / 5;
+    test /= wow + 8 / 5;
     return test;
 }

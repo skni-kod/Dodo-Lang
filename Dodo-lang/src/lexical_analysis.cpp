@@ -230,17 +230,17 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file, std::s
 				case '{':
 					l.add_token(blockBegin, help);
 					words_num++;
-					help = "";
+					help = "{";
 					break;
 				case '}':
 					l.add_token(blockEnd, help);
 					words_num++;
-					help = "";
+					help = "}";
 					break;
 				case ',':
 					l.add_token(comma, help);
 					words_num++;
-					help = "";
+					help = ",";
 					break;
 
 				case '\'':
@@ -261,7 +261,7 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file, std::s
 						help = "";
 					}
 					words_num++;
-					help = "";
+					//help = "";
 					break;
 
 				case '\"':
@@ -282,7 +282,7 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file, std::s
 					}
 
 					words_num++;
-					help = "";
+					//help = "";
 					break;
 				}
 

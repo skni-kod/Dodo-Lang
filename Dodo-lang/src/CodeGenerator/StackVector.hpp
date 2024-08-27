@@ -25,6 +25,7 @@ struct StackVector {
     uint64_t registerOffset = 0;
     StackVariable& find(const std::string& name);
     StackVariable& find(uint64_t offset);
+    StackVariable& findByOffset(const std::string& offset);
     uint64_t lastOffset();
     StackVector();
     // reserves the given amount of space on the stack

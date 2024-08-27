@@ -12,6 +12,20 @@ RegisterNames StackVariable::getAddressAsRegisterNames() const {
             '-' + std::to_string(offset) + "(%rbp)"};
 }
 
+StackVariable &StackVector::findByOffset(const std::string& offset) {
+    uint64_t intOffset = std::stoll(offset.substr(1, offset.size() - 7));
+    for (auto& n : vec) {
+        for (auto& m : n) {
+            if (m.offset == intOffset) {
+                return m;
+            }
+        }
+    }
+    CodeError("Variable at offset: " + std::to_string(intOffset) + " not found at this point!");
+    // will not be reached anyway, just to please the compiler
+    return vec.back().back();
+}
+
 StackVariable &StackVector::find(const std::string& name) {
     for (auto& n : vec) {
         for (auto& m : n) {
