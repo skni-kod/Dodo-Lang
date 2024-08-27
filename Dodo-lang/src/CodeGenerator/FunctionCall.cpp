@@ -2,11 +2,11 @@
 #include "GenerateCode.hpp"
 #include "ParserVariables.hpp"
 
-std::string GenerateFunctionCall(std::ofstream& out, uint64_t stackOffset, uint64_t& stackPointerOffset,
+std::string GenerateFunctionCall(std::ofstream& out, StackVector variables,
                                  const std::string& functionName, uint16_t outputSize, uint8_t outputType, RegisterNames outputLocation) {
 
     const ParserFunction& function = parserFunctions[functionName];
-
+    uint64_t stackOffset = variables.lastOffset();
     if (functionName == "main") {
         CodeError("Illegal call to main!");
     }
@@ -17,13 +17,13 @@ std::string GenerateFunctionCall(std::ofstream& out, uint64_t stackOffset, uint6
     }
 
     // change %rsp to the right value
-    if (stackOffset > stackPointerOffset) {
-        out << "subq    $" << (stackOffset - stackPointerOffset) << ", %rsp\n";
-        stackPointerOffset = stackOffset;
+    if (stackOffset > variables.registerOffset) {
+        out << "subq    $" << (stackOffset - variables.registerOffset) << ", %rsp\n";
+        variables.registerOffset = stackOffset;
     }
-    else if (stackOffset < stackPointerOffset) {
-        out << "addq    $" << (stackPointerOffset - stackOffset) << ", %rsp\n";
-        stackPointerOffset = stackOffset;
+    else if (stackOffset < variables.registerOffset) {
+        out << "addq    $" << (variables.registerOffset - stackOffset) << ", %rsp\n";
+        variables.registerOffset = stackOffset;
     }
 
     // call the function

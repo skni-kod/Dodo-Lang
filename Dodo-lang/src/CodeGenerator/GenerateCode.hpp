@@ -53,7 +53,7 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                                  uint8_t inputType, uint8_t outputType,
                                  bool mustBeReg = false, StackVector* stack = nullptr, bool mustUseGivenReg = false, RegisterNames registers = {});
 
-std::string GenerateFunctionCall(std::ofstream& out, uint64_t stackOffset, uint64_t& stackPointerOffset,
+std::string GenerateFunctionCall(std::ofstream& out, StackVector variables,
                                  const std::string& functionName, uint16_t outputSize, uint8_t outputType, RegisterNames outputLocation = {});
 
 #endif //DODO_LANG_GENERATE_CODE_HPP

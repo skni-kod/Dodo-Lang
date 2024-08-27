@@ -84,6 +84,7 @@ struct ReturnInstruction {
 // no return value catching
 struct FunctionCallInstruction {
     std::string functionName;
+    ParserValue arguments;
 };
 
 

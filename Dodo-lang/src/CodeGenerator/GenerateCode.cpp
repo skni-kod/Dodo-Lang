@@ -57,7 +57,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         // for now functions are going to be separate
         if (expression.operationType == ParserValue::Operation::functionCall) {
             if (returnValueLocations.reg) {
-                return GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, *expression.value,
+                return GenerateFunctionCall(out, variables, *expression.value,
                                      outputSize,  outputType, registers);
             }
             else if (returnValueLocations.sta) {
@@ -65,7 +65,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
                 var.singleSize = outputSize;
                 var.amount = 1;
                 const StackVariable& pushed = variables.push(var);
-                return GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, *expression.value,
+                return GenerateFunctionCall(out, variables, *expression.value,
                                      outputSize, outputType, pushed.getAddressAsRegisterNames());
             }
             else {
@@ -304,7 +304,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     out << setting::CommentCharacter << " Function call to: " << fun.functionName << "(...)\n";
                 }
 
-                GenerateFunctionCall(out, variables.lastOffset(), variables.registerOffset, fun.functionName, 8, 0);
+                GenerateFunctionCall(out, variables, fun.functionName, 8, 0);
                 break;
             }
         }

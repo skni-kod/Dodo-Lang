@@ -17,5 +17,6 @@ u64 function(i32 var1, mut i64 var2) {
 i32 main() {
     let i32 var1 = 5;
     let i64 var2 = 52 + var1;
+    function(var1, var2);
     return function(var1, var2);
 }

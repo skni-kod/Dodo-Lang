@@ -47,7 +47,7 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
     current = generator();
     while (current->type != LexicalToken::Type::operand or current->value != ")") {
         FunctionArgument argument;
-        argument.typeName = current->value;
+
         // ... ( <type name>
         if (current->type == LexicalToken::Type::keyword and current->value == "mut") {
             argument.isMutable = true;
@@ -57,7 +57,7 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
         if (current->type != LexicalToken::Type::identifier) {
             ParserError("Expected an identifier at beginning of argument definition!");
         }
-
+        argument.typeName = current->value;
         // ... ( <type name> <<operand>> <name>
         current = generator();
         if (current->type == LexicalToken::Type::operand) {

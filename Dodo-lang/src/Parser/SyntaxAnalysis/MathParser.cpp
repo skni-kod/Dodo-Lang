@@ -97,8 +97,17 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         // left side is the next node, right is the argument itself
         ParserValue* current = &value;
         uint64_t first = range.first + 2;
+        int64_t bracketLevel = 0;
         for (uint64_t n = range.first + 2; n < range.second; n++) {
-            if (tokens[n]->value == "," or tokens[n]->value == ")") {
+            if (tokens[n]->value == "(") {
+                bracketLevel++;
+                continue;
+            }
+            else if (tokens[n]->value == ")") {
+                bracketLevel--;
+                continue;
+            }
+            if (tokens[n]->value == "," or (tokens[n]->value == ")" and bracketLevel == 0)) {
                 // time to parse whatever was there
                 // this means there was nothing
                 if (n == first) {
@@ -215,7 +224,7 @@ ParserValue ParseMath(Generator<const LexicalToken*> &generator) {
     const LexicalToken* current = generator();
     std::vector <const LexicalToken*> tokens;
     int64_t bracketLevel = 0;
-    while (current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd or bracketLevel != 0) {
+    while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or bracketLevel != 0) {
         if (current->value == "(") {
             bracketLevel++;
         }
@@ -228,13 +237,15 @@ ParserValue ParseMath(Generator<const LexicalToken*> &generator) {
     return std::move(ParseMath(tokens));
 }
 
-ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<const LexicalToken*> front) {
+ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<const LexicalToken*> front, bool addBraces) {
     const LexicalToken* current = generator();
     LexicalToken frontBrace = {LexicalToken::Type::operand, "("};
     LexicalToken backBrace  = {LexicalToken::Type::operand, ")"};
-    front.push_back(&frontBrace);
-    int64_t bracketLevel = 0;
-    while (current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd or bracketLevel != 0) {
+    if (addBraces) {
+        front.push_back(&frontBrace);
+    }
+    int64_t bracketLevel = 1;
+    while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or bracketLevel != 0) {
         if (current->value == "(") {
             bracketLevel++;
         }
@@ -244,7 +255,9 @@ ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<con
         front.push_back(current);
         current = generator();
     }
-    front.push_back(&backBrace);
+    if (addBraces) {
+        front.push_back(&backBrace);
+    }
     return std::move(ParseMath(front));
 }
 
