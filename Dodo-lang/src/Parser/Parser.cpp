@@ -3,6 +3,8 @@
 #include "ParserVariables.hpp"
 #include "SyntaxAnalysis/SyntaxAnalysis.hpp"
 #include "CreateTree/CreateTree.hpp"
+#include "GenerateCode.hpp"
+
 
 uint64_t currentLine = 0;
 const std::string* currentFile = nullptr;
@@ -18,7 +20,12 @@ void ParserError(const std::string& message) {
     else {
         std::cout << "ERROR! " << *currentFile << " at line : " << currentLine + 1 << " : " << message << "\n";
     }
-    throw ParserException();
+    if (not doneParsing) {
+        throw ParserException();
+    }
+    else {
+        throw CodeException();
+    }
 }
 
 Generator <const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>& tokens) {

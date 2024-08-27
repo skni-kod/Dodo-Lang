@@ -136,14 +136,14 @@ public:
 	//list of all keyword of dodo lang
 	//adding new elements REMEBER about changing numer_of_keywords value - this variable is abouve
 	// WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-	//because reasons
+	//because reasons - USE STD::ARRAY<T> PLEASE
 	std::string list_of_keywords[17] =
 	{
 		"return",
 		"while",
-		"dodo",
+		"let",
 		"type",
-		"f",
+		"mut",
 		"for",
 		"else",
 		"if",
@@ -155,7 +155,7 @@ public:
 		"break",
 		"private",
 		"public",
-		"const"
+		"interrupt"
 	};
 
 	//list of all operators in dodo language
@@ -184,11 +184,11 @@ public:
 		"/=",
 		"[",
 		"]",
-        "#",
+        ":",
 		";",
-		":",
-		":",
-        ":"
+		",",
+		"}",
+        "{"
 	};
 
 	//list of operators for commenting

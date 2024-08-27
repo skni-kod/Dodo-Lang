@@ -10,7 +10,7 @@ class ParserException : public std::exception {
 public:
     const char* what();
 };
-
+inline bool doneParsing = false;
 void ParserError(const std::string& message);
 
 ASTTree RunParsing(const std::vector<ProgramPage>& tokens);

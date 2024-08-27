@@ -10,15 +10,12 @@ type u16 : UNSIGNED_INTEGER(2);
 type u32 : UNSIGNED_INTEGER(4);
 type u64 : UNSIGNED_INTEGER(8);
 
-i8 t() {
-    let u8 y = 42;
-    return y;
+u64 function(i32 var1, mut i64 var2) {
+    return var1 + var2;
 }
 
 i32 main() {
-    let i8 wow = 6;
-    let i16 h = t() - 100;
-    mut u32 test = wow;
-    test /= wow + 8 / 5;
-    return test;
+    let i32 var1 = 5;
+    let i64 var2 = 52 + var1;
+    return function(var1, var2);
 }

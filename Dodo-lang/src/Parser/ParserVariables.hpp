@@ -32,7 +32,8 @@ struct ParserType {
 
 struct FunctionArgument {
     INSERT_SUBTYPE_ENUM
-    uint8_t type:2 = Subtype::value;
+    uint8_t type = Subtype::value;
+    bool isMutable = false;
     std::string name;
     std::string typeName;
 };

@@ -105,7 +105,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 
         out << "mov" << AddInstructionPostfix(largestSize) << "    " << left << ", " << AddRegisterA(largestSize) << "\n";
         // freeing temp variables
-        if (left[0] == '-' and variables.findByOffset(left).name.empty()) {
+        if (left[0] != '%' and left[0] != '$' and variables.findByOffset(left).name.empty()) {
             variables.free(left);
         }
 
@@ -142,7 +142,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 
 
         // freeing temp variables
-        if (right[0] == '-' and variables.findByOffset(right).name.empty()) {
+        if (right[0] != '%' and right[0] != '$' and variables.findByOffset(right).name.empty()) {
             variables.free(right);
         }
 
@@ -328,6 +328,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
 }
 
 void GenerateCode() {
+    doneParsing = true;
     std::ofstream out;
     if (!fs::is_directory("build")) {
         fs::create_directory("build");

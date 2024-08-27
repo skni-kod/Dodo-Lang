@@ -7,6 +7,28 @@
 #include "Parser/Parser.hpp"
 #include "CodeGenerator/GenerateCode.hpp"
 
+// to fix any simple issues without delving into the lexer itself
+void FixLexerOutput(std::vector<ProgramPage>& tokens) {
+    for (auto& m : tokens) {
+        for (auto& m2 : m.page) {
+            for (auto& n : m2.line) {
+                if (n.value == ",") {
+                    n.type = LexicalToken::Type::comma;
+                }
+                else if (n.value == ";") {
+                    n.type = LexicalToken::Type::expressionEnd;
+                }
+                else if (n.value == "{") {
+                    n.type = LexicalToken::Type::blockBegin;
+                }
+                else if (n.value == "}") {
+                    n.type = LexicalToken::Type::blockEnd;
+                }
+            }
+        }
+    }
+}
+
 int main(int argc, char* argv[])
 {
 	//Compiling process:
@@ -70,6 +92,8 @@ int main(int argc, char* argv[])
 	//lt->f_token_list[0][0].l_size; //-number of tokens inside first line in first file
 
 	plik.close();
+
+    FixLexerOutput(lt->f_token_list);
 
 	std::cout << "INFO L1: Lexing done!\nINFO L1: Parsing:\n";
     try {

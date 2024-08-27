@@ -222,26 +222,6 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file, std::s
 				//checs if it's structural operand
 				switch (ch)
 				{
-				case ';':
-					l.add_token(endline, help);
-					words_num++;
-					help = "";
-					break;
-				case '{':
-					l.add_token(blockBegin, help);
-					words_num++;
-					help = "{";
-					break;
-				case '}':
-					l.add_token(blockEnd, help);
-					words_num++;
-					help = "}";
-					break;
-				case ',':
-					l.add_token(comma, help);
-					words_num++;
-					help = ",";
-					break;
 
 				case '\'':
 					index2 = 0;
@@ -298,7 +278,12 @@ std::vector<ProgramLine> list_of_tokens::analize_file(std::fstream& file, std::s
 				//if it is the last character in line add it
 				if (probably_operand && i == size - 1)
 				{
-					l.add_token(1, operand);
+                    if (operand == ",") {
+                        l.add_token(3, ",");
+                    }
+                    else {
+                        l.add_token(1, operand);
+                    }
 					words_num++;
 				}
 

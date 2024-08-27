@@ -21,6 +21,7 @@ struct StackVariable {
 };
 
 struct StackVector {
+    
     std::vector<std::vector<StackVariable>> vec;
     uint64_t registerOffset = 0;
     StackVariable& find(const std::string& name);
