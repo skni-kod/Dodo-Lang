@@ -384,7 +384,7 @@ void CodeError(const std::string message) {
 
 // converts value from given location on stack to given singleSize and returns it as a any or specified register value if asked
 // pass registers as in "%reg"
-std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, uint64_t offset,
+std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, int64_t offset,
                                  uint8_t inputType, uint8_t outputType, bool mustBeReg, StackVector* stack,
                                  bool mustUseGivenReg, RegisterNames registers) {
 
@@ -398,16 +398,16 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
             switch(targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
                         return registers.size1;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 2:
                     if (outputType == ParserValue::Value::signedInteger) {
                         out << "cbtw\n";
                     }
                     else if (outputType == ParserValue::Value::unsignedInteger) {
-                        out << "movb    -" << offset << "(%rbp), %al\n";
+                        out << "movb    " << offset << "(%rbp), %al\n";
                         out << "movb    $0, %ah\n";
                     }
                     if (stack) {
@@ -427,11 +427,11 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     return "%ax";
                 case 4:
                     if (outputType == ParserValue::Value::signedInteger) {
-                        out << "movsb   -" << offset << "(%rbp), %eax\n";
+                        out << "movsb   " << offset << "(%rbp), %eax\n";
                     }
                     else if (outputType == ParserValue::Value::unsignedInteger) {
                         out << "movl    $0, %eax\n";
-                        out << "movb    -" << offset << "(%rbp), %al\n";
+                        out << "movb    " << offset << "(%rbp), %al\n";
                     }
 
                     if (stack) {
@@ -451,12 +451,12 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     return "%eax";
                 case 8:
                     if (outputType == ParserValue::Value::signedInteger) {
-                        out << "movsb   -" << offset << "(%rbp), %eax\n";
+                        out << "movsb   " << offset << "(%rbp), %eax\n";
                         out << "cltq\n";
                     }
                     else if (outputType == ParserValue::Value::unsignedInteger) {
                         out << "movq    $0, %rax\n";
-                        out << "movb    -" << offset << "(%rbp), %al\n";
+                        out << "movb    " << offset << "(%rbp), %al\n";
                     }
                     if (stack) {
                         StackVariable var;
@@ -480,23 +480,23 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
             switch(targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
                         return registers.size1;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 2:
                     if (mustBeReg) {
-                        out << "movw    -" << offset << "(%rbp), " << registers.size2 <<"\n";
+                        out << "movw    " << offset << "(%rbp), " << registers.size2 <<"\n";
                         return registers.size2;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 4:
                     if (outputType == ParserValue::Value::signedInteger) {
-                        out << "movsw   -" << offset << "(%rbp), %eax\n";
+                        out << "movsw   " << offset << "(%rbp), %eax\n";
                     }
                     else if (outputType == ParserValue::Value::unsignedInteger) {
                         out << "movl    $0, %eax\n";
-                        out << "movw    -" << offset << "(%rbp), %ax\n";
+                        out << "movw    " << offset << "(%rbp), %ax\n";
                     }
                     if (stack) {
                         StackVariable var;
@@ -515,12 +515,12 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     return "%eax";
                 case 8:
                     if (outputType == ParserValue::Value::signedInteger) {
-                        out << "movsw   -" << offset << "(%rbp), %eax\n";
+                        out << "movsw   " << offset << "(%rbp), %eax\n";
                         out << "cltq\n";
                     }
                     else if (outputType == ParserValue::Value::unsignedInteger) {
                         out << "movq    $0, %rax\n";
-                        out << "movw    -" << offset << "(%rbp), %ax\n";
+                        out << "movw    " << offset << "(%rbp), %ax\n";
                     }
                     if (stack) {
                         StackVariable var;
@@ -544,30 +544,30 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
             switch(targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
                         return registers.size1;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 2:
                     if (mustBeReg) {
-                        out << "movw    -" << offset << "(%rbp), " << registers.size2 <<"\n";
+                        out << "movw    " << offset << "(%rbp), " << registers.size2 <<"\n";
                         return registers.size2;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 4:
                     if (mustBeReg) {
-                        out << "movl    -" << offset << "(%rbp), " << registers.size4 <<"\n";
+                        out << "movl    " << offset << "(%rbp), " << registers.size4 <<"\n";
                         return registers.size4;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 8:
                     if (outputType == ParserValue::Value::signedInteger) {
-                        out << "movl    -" << offset << "(%rbp), %eax\n";
+                        out << "movl    " << offset << "(%rbp), %eax\n";
                         out << "cltq\n";
                     }
                     else if (outputType == ParserValue::Value::unsignedInteger) {
                         out << "movq    $0, %rax\n";
-                        out << "movl    -" << offset << "(%rbp), %eax\n";
+                        out << "movl    " << offset << "(%rbp), %eax\n";
                     }
                     if (stack) {
                         StackVariable var;
@@ -591,28 +591,28 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
             switch(targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    -" << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
                         return registers.size1;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 2:
                     if (mustBeReg) {
-                        out << "movw    -" << offset << "(%rbp), " << registers.size2 <<"\n";
+                        out << "movw    " << offset << "(%rbp), " << registers.size2 <<"\n";
                         return registers.size2;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 4:
                     if (mustBeReg) {
-                        out << "movl    -" << offset << "(%rbp), " << registers.size4 <<"\n";
+                        out << "movl    " << offset << "(%rbp), " << registers.size4 <<"\n";
                         return registers.size4;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 case 8:
                     if (mustBeReg) {
-                        out << "movq    -" << offset << "(%rbp), " << registers.size8 <<"\n";
+                        out << "movq    " << offset << "(%rbp), " << registers.size8 <<"\n";
                         return registers.size8;
                     }
-                    return '-' + std::to_string(offset) + "(%rbp)";
+                    return std::to_string(offset) + "(%rbp)";
                 default:
                     CodeError("Invalid singleSize for singleSize conversion!");
             }

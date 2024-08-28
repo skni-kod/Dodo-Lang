@@ -49,7 +49,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
                                    uint8_t inputType, uint8_t outputType,
                                    RegisterNames registers = {}, bool returnToOriginal = false);
 
-std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, uint64_t offset,
+std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8_t targetSize, int64_t offset,
                                  uint8_t inputType, uint8_t outputType,
                                  bool mustBeReg = false, StackVector* stack = nullptr, bool mustUseGivenReg = false, RegisterNames registers = {});
 

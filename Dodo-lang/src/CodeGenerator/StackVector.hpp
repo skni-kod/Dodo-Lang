@@ -9,12 +9,12 @@
 struct RegisterNames;
 
 struct StackVariable {
-    uint64_t offset = 0;
+    int64_t offset = 0;
     uint8_t singleSize = 4;
     uint8_t type = ParserValue::Value::signedInteger;
     bool isMutable = false;
     bool isArgument = false;
-    uint32_t amount = 1;
+    uint64_t amount = 1;
     std::string name;
     std::string typeName;
     [[nodiscard]] std::string getAddress() const;
@@ -27,9 +27,9 @@ struct StackVector {
     std::vector<std::vector<StackVariable>> vec;
     int64_t registerOffset = 0;
     StackVariable& find(const std::string& name);
-    StackVariable& find(uint64_t offset);
+    StackVariable& find(int64_t offset);
     StackVariable& findByOffset(const std::string& offset);
-    uint64_t lastOffset();
+    int64_t lastOffset();
     StackVector();
     // reserves the given amount of space on the stack
     const StackVariable& push(StackVariable var);
@@ -37,8 +37,8 @@ struct StackVector {
     // frees the last element from the stack
     void free_back();
     // frees the element at given offset
-    void free(uint64_t offset);
-    void free(std::string result);
+    void free(int64_t offset);
+    void free(std::string address);
     void addLevel();
     void popLevel();
     // aligns last level to start at offset divisible by 16

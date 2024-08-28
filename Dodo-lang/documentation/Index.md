@@ -4,6 +4,13 @@ Dodo-Lang is a programming language developed for the purposes of learning withi
 
 The conception of the language is for it to treat all it's types as complex objects, allowing the programmer for full freedom in choosing the way it's elements interact with each other. There is no need for a given order of defining structures and header files. The plan is for the compiler to be able to output for x86 and ARM for Linux and Windows.
 
-### Pages:
+## Pages:
 
-#### - [Value conversion rules](./ValueConversions.md)
+### - [Function Definitions](./FunctionDefinitions.md)
+### - [Function Calls](./FunctionCalls.md)
+### - [Type Definitons](./TypeDefinitions.md)
+### - [Value conversion rules](./ValueConversions.md)
+### - [Mathematical Expressions](./MathematicalExpressions.md)
+
+<br></br>
+### - [Return to README](../../README.md)

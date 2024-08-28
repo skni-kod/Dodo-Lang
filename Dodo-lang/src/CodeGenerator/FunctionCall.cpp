@@ -37,7 +37,7 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
     }
 
     // calculating final stack offset
-    uint64_t stackOffset = variables.lastOffset();
+    int64_t stackOffset = variables.lastOffset();
     if (functionName == "main") {
         CodeError("Illegal call to main!");
     }
@@ -49,11 +49,11 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
 
     // change %rsp to the right value
     if (stackOffset > variables.registerOffset) {
-        out << "subq    $" << (stackOffset - variables.registerOffset) << ", %rsp\n";
+        out << "addq    $" << (stackOffset - variables.registerOffset) << ", %rsp\n";
         variables.registerOffset = stackOffset;
     }
     else if (stackOffset < variables.registerOffset) {
-        out << "addq    $" << (variables.registerOffset - stackOffset) << ", %rsp\n";
+        out << "subq    $" << (variables.registerOffset - stackOffset) << ", %rsp\n";
         variables.registerOffset = stackOffset;
     }
     variables.registerOffset = stackOffset;

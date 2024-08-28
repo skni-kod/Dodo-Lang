@@ -2,28 +2,27 @@
 #include "GenerateCode.hpp"
 
 std::string StackVariable::getAddress() const {
-    if (isArgument) {
-        return std::to_string(offset) + "(%rbp)";
-    }
-    return '-' + std::to_string(offset) + "(%rbp)";
+    return std::to_string(offset) + "(%rbp)";
 }
 
 RegisterNames StackVariable::getAddressAsRegisterNames() const {
-    if (isArgument) {
-        return {std::to_string(offset) + "(%rbp)",
-                std::to_string(offset) + "(%rbp)",
-                std::to_string(offset) + "(%rbp)",
-                std::to_string(offset) + "(%rbp)"};
-    }
-    return {'-' + std::to_string(offset) + "(%rbp)",
-            '-' + std::to_string(offset) + "(%rbp)",
-            '-' + std::to_string(offset) + "(%rbp)",
-            '-' + std::to_string(offset) + "(%rbp)"};
+    return {std::to_string(offset) + "(%rbp)",
+            std::to_string(offset) + "(%rbp)",
+            std::to_string(offset) + "(%rbp)",
+            std::to_string(offset) + "(%rbp)"};
 }
 
 StackVariable &StackVector::findByOffset(const std::string& offset) {
-    if (offset[0] == '-') {
-        uint64_t intOffset = std::stoll(offset.substr(1, offset.size() - 7));
+
+    int64_t intOffset = std::stoll(offset.substr(0, offset.size() - 6));
+    if (intOffset > 0) {
+        for (auto& n : arguments) {
+            if (n.offset == intOffset) {
+                return n;
+            }
+        }
+    }
+    else {
         for (auto& n : vec) {
             for (auto& m : n) {
                 if (m.offset == intOffset) {
@@ -31,22 +30,10 @@ StackVariable &StackVector::findByOffset(const std::string& offset) {
                 }
             }
         }
-        CodeError("Variable at offset: " + std::to_string(intOffset) + " not found at this point!");
-        // will not be reached anyway, just to please the compiler
-        return vec.back().back();
     }
-    else {
-        uint64_t intOffset = std::stoll(offset.substr(0, offset.size() - 6));
-        for (auto& n : arguments) {
-            if (n.offset == intOffset) {
-                return n;
-            }
-        }
-        CodeError("Variable at offset: " + std::to_string(intOffset) + " not found at this point!");
-        // will not be reached anyway, just to please the compiler
-        return vec.back().back();
-    }
-
+    CodeError("Variable at offset: " + std::to_string(intOffset) + " not found at this point!");
+    // will not be reached anyway, just to please the compiler
+    return vec.back().back();
 }
 
 StackVariable &StackVector::find(const std::string& name) {
@@ -67,8 +54,13 @@ StackVariable &StackVector::find(const std::string& name) {
     return vec.back().back();
 }
 
-// will not support arguments for now due to massive changes needed with offset signed-ness
-StackVariable &StackVector::find(uint64_t offset) {
+
+StackVariable &StackVector::find(int64_t offset) {
+    for (auto& n : arguments) {
+        if (n.offset == offset) {
+            return n;
+        }
+    }
     for (auto& n : vec) {
         for (auto& m : n) {
             if (m.offset == offset) {
@@ -81,7 +73,7 @@ StackVariable &StackVector::find(uint64_t offset) {
     return vec.back().back();
 }
 
-uint64_t StackVector::lastOffset() {
+int64_t StackVector::lastOffset() {
     if (not vec.empty() and not vec.back().empty()) {
         return vec.back().back().offset;
     }
@@ -99,21 +91,21 @@ const StackVariable &StackVector::push(StackVariable var) {
         // if there is enough space at the front to fit the variable
         // TODO: add squeezing variables between levels
         if (vec.back().size() == 1 and vec.size() == 1) {
-            uint64_t next = vec.back().front().offset - (vec.back().front().singleSize * vec.back().front().amount);
-            if (next >= var.singleSize * var.amount) {
-                var.offset = var.singleSize * var.amount;
+            int64_t next = vec.back().front().offset + (vec.back().front().singleSize * vec.back().front().amount);
+            if (-next >= var.singleSize * var.amount) {
+                var.offset = -var.singleSize * var.amount;
                 vec.back().insert(vec.back().begin(), var);
                 return vec.back().front();
             }
         }
         for (uint64_t n = 0; n < vec.back().size() - 1; n++) {
             // get the end of free space
-            uint64_t next = vec.back()[n + 1].offset - (vec.back()[n + 1].singleSize * vec.back()[n + 1].amount);
-            uint64_t previous = vec.back()[n].offset;
-            if (next - previous >= var.singleSize * var.amount) {
+            int64_t next = vec.back()[n + 1].offset + (vec.back()[n + 1].singleSize * vec.back()[n + 1].amount);
+            int64_t previous = vec.back()[n].offset;
+            if (previous - next >= var.singleSize * var.amount) {
                 if (next % var.singleSize != 0) {
-                    next = (next / var.singleSize - 1) * var.singleSize;
-                    if (next - previous < var.singleSize * var.amount) {
+                    next = (next / var.singleSize + 1) * var.singleSize;
+                    if (previous - next < var.singleSize * var.amount) {
                         // not enough space after alignment
                         continue;
                     }
@@ -130,24 +122,24 @@ const StackVariable &StackVector::push(StackVariable var) {
     for (int64_t n = vec.size() - 1; n >= 0; n--) {
         if (!vec[n].empty()) {
             found = true;
-            var.offset = vec[n].back().offset + var.singleSize * var.amount;
+            var.offset = vec[n].back().offset - var.singleSize * var.amount;
             break;
         }
     }
     if (not found) {
-        var.offset = var.singleSize * var.amount;
+        var.offset = -var.singleSize * var.amount;
     }
 
     // aligning the variables
     if (var.offset % var.singleSize != 0) {
-        var.offset = (var.offset / var.singleSize + 1) * var.singleSize;
+        var.offset = (var.offset / var.singleSize - 1) * var.singleSize;
     }
     vec.back().push_back(var);
     return vec.back().back();
 }
 
 std::string StackVector::pushAndStr(StackVariable var) {
-    return '-' + std::to_string(push(var).offset) + "(%rbp)";
+    return std::to_string(push(var).offset) + "(%rbp)";
 }
 
 void StackVector::free_back() {
@@ -157,7 +149,7 @@ void StackVector::free_back() {
     vec.back().pop_back();
 }
 
-void StackVector::free(uint64_t offset) {
+void StackVector::free(int64_t offset) {
     if (vec.back().empty()) {
         CodeError("Cannot free from an empty stack!");
     }
@@ -173,12 +165,11 @@ void StackVector::free(uint64_t offset) {
     CodeError("Element with given offset does not exist!");
 }
 
-void StackVector::free(std::string result) {
-    if (result.size() < 8) {
+void StackVector::free(std::string address) {
+    if (address.size() < 7) {
         CodeError("Invalid result passed to free!");
     }
-    uint64_t offset = std::stoll(result.substr(1, result.size() - 7));
-    free(offset);
+    free(std::stoll(address.substr(0, address.size() - 6)));
 }
 
 void StackVector::addLevel() {
@@ -196,16 +187,16 @@ void StackVector::alignTo16() {
     }
 
     // move the first element to be in a new 16 if it's not alone already
-    if (vec.back().front().offset - (vec.back().front().singleSize * vec.back().front().amount) % 16 != 0) {
-        vec.back().front().offset = (vec.back().front().offset / 16 + 1) * 16;
-        vec.back().front().offset += vec.back().front().singleSize * vec.back().front().amount;
+    if (vec.back().front().offset + (vec.back().front().singleSize * vec.back().front().amount) % 16 != 0) {
+        vec.back().front().offset = (vec.back().front().offset / 16 - 1) * 16;
+        vec.back().front().offset -= vec.back().front().singleSize * vec.back().front().amount;
     }
 
     // align every element with the last one
     for (uint64_t n = 1; n < vec.back().size(); n++) {
-        vec.back()[n].offset = vec.back()[n - 1].offset + vec.back()[n].singleSize * vec.back()[n].amount;
+        vec.back()[n].offset = vec.back()[n - 1].offset - vec.back()[n].singleSize * vec.back()[n].amount;
         if (vec.back()[n].offset % vec.back()[n].singleSize != 0) {
-            vec.back()[n].offset = (vec.back()[n].offset / vec.back()[n].singleSize + 1) * vec.back()[n].singleSize;
+            vec.back()[n].offset = (vec.back()[n].offset / vec.back()[n].singleSize - 1) * vec.back()[n].singleSize;
         }
     }
 }
@@ -217,7 +208,7 @@ void StackVector::addArguments(const ParserFunction &function) {
     }
 
     // calculating normal offset
-    uint64_t size = 0;
+    int64_t size = 0;
     for (const auto& n : function.arguments) {
         StackVariable var;
         const auto& type = parserTypes[n.typeName];
