@@ -13,6 +13,7 @@ struct StackVariable {
     uint8_t singleSize = 4;
     uint8_t type = ParserValue::Value::signedInteger;
     bool isMutable = false;
+    bool isArgument = false;
     uint32_t amount = 1;
     std::string name;
     std::string typeName;
@@ -21,9 +22,10 @@ struct StackVariable {
 };
 
 struct StackVector {
-    
+    std::vector<StackVariable> arguments;
+    void addArguments(const ParserFunction& function);
     std::vector<std::vector<StackVariable>> vec;
-    uint64_t registerOffset = 0;
+    int64_t registerOffset = 0;
     StackVariable& find(const std::string& name);
     StackVariable& find(uint64_t offset);
     StackVariable& findByOffset(const std::string& offset);
@@ -37,6 +39,10 @@ struct StackVector {
     // frees the element at given offset
     void free(uint64_t offset);
     void free(std::string result);
+    void addLevel();
+    void popLevel();
+    // aligns last level to start at offset divisible by 16
+    void alignTo16();
 };
 
 #endif //DODO_LANG_STACK_VECTOR_HPP

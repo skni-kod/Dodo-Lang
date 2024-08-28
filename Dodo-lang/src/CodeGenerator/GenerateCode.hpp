@@ -53,7 +53,11 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                                  uint8_t inputType, uint8_t outputType,
                                  bool mustBeReg = false, StackVector* stack = nullptr, bool mustUseGivenReg = false, RegisterNames registers = {});
 
-std::string GenerateFunctionCall(std::ofstream& out, StackVector variables,
-                                 const std::string& functionName, uint16_t outputSize, uint8_t outputType, RegisterNames outputLocation = {});
+std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
+                                 const std::string& functionName, uint16_t outputSize, uint8_t outputType, const ParserValue* arguments = nullptr, RegisterNames outputLocation = {});
+
+std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint16_t outputSize,
+                                const ParserValue& expression, uint8_t outputType,
+                                ValueType returnValueLocations = {1, 1, 1, 1}, RegisterNames registers = {});
 
 #endif //DODO_LANG_GENERATE_CODE_HPP

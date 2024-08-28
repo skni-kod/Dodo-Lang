@@ -2,10 +2,19 @@
 #include "GenerateCode.hpp"
 
 std::string StackVariable::getAddress() const {
+    if (isArgument) {
+        return std::to_string(offset) + "(%rbp)";
+    }
     return '-' + std::to_string(offset) + "(%rbp)";
 }
 
 RegisterNames StackVariable::getAddressAsRegisterNames() const {
+    if (isArgument) {
+        return {std::to_string(offset) + "(%rbp)",
+                std::to_string(offset) + "(%rbp)",
+                std::to_string(offset) + "(%rbp)",
+                std::to_string(offset) + "(%rbp)"};
+    }
     return {'-' + std::to_string(offset) + "(%rbp)",
             '-' + std::to_string(offset) + "(%rbp)",
             '-' + std::to_string(offset) + "(%rbp)",
@@ -13,20 +22,39 @@ RegisterNames StackVariable::getAddressAsRegisterNames() const {
 }
 
 StackVariable &StackVector::findByOffset(const std::string& offset) {
-    uint64_t intOffset = std::stoll(offset.substr(1, offset.size() - 7));
-    for (auto& n : vec) {
-        for (auto& m : n) {
-            if (m.offset == intOffset) {
-                return m;
+    if (offset[0] == '-') {
+        uint64_t intOffset = std::stoll(offset.substr(1, offset.size() - 7));
+        for (auto& n : vec) {
+            for (auto& m : n) {
+                if (m.offset == intOffset) {
+                    return m;
+                }
             }
         }
+        CodeError("Variable at offset: " + std::to_string(intOffset) + " not found at this point!");
+        // will not be reached anyway, just to please the compiler
+        return vec.back().back();
     }
-    CodeError("Variable at offset: " + std::to_string(intOffset) + " not found at this point!");
-    // will not be reached anyway, just to please the compiler
-    return vec.back().back();
+    else {
+        uint64_t intOffset = std::stoll(offset.substr(0, offset.size() - 6));
+        for (auto& n : arguments) {
+            if (n.offset == intOffset) {
+                return n;
+            }
+        }
+        CodeError("Variable at offset: " + std::to_string(intOffset) + " not found at this point!");
+        // will not be reached anyway, just to please the compiler
+        return vec.back().back();
+    }
+
 }
 
 StackVariable &StackVector::find(const std::string& name) {
+    for (auto& n : arguments) {
+        if (n.name == name) {
+            return n;
+        }
+    }
     for (auto& n : vec) {
         for (auto& m : n) {
             if (m.name == name) {
@@ -39,6 +67,7 @@ StackVariable &StackVector::find(const std::string& name) {
     return vec.back().back();
 }
 
+// will not support arguments for now due to massive changes needed with offset signed-ness
 StackVariable &StackVector::find(uint64_t offset) {
     for (auto& n : vec) {
         for (auto& m : n) {
@@ -68,7 +97,8 @@ const StackVariable &StackVector::push(StackVariable var) {
     // searching for a place the variable can possibly fit that is not the back of the stack
     if (not vec.back().empty()) {
         // if there is enough space at the front to fit the variable
-        if (vec.back().size() == 1) {
+        // TODO: add squeezing variables between levels
+        if (vec.back().size() == 1 and vec.size() == 1) {
             uint64_t next = vec.back().front().offset - (vec.back().front().singleSize * vec.back().front().amount);
             if (next >= var.singleSize * var.amount) {
                 var.offset = var.singleSize * var.amount;
@@ -149,4 +179,72 @@ void StackVector::free(std::string result) {
     }
     uint64_t offset = std::stoll(result.substr(1, result.size() - 7));
     free(offset);
+}
+
+void StackVector::addLevel() {
+    vec.emplace_back();
+}
+
+void StackVector::popLevel() {
+    vec.pop_back();
+}
+
+void StackVector::alignTo16() {
+    // do nothing if empty
+    if (vec.back().empty()) {
+        return;
+    }
+
+    // move the first element to be in a new 16 if it's not alone already
+    if (vec.back().front().offset - (vec.back().front().singleSize * vec.back().front().amount) % 16 != 0) {
+        vec.back().front().offset = (vec.back().front().offset / 16 + 1) * 16;
+        vec.back().front().offset += vec.back().front().singleSize * vec.back().front().amount;
+    }
+
+    // align every element with the last one
+    for (uint64_t n = 1; n < vec.back().size(); n++) {
+        vec.back()[n].offset = vec.back()[n - 1].offset + vec.back()[n].singleSize * vec.back()[n].amount;
+        if (vec.back()[n].offset % vec.back()[n].singleSize != 0) {
+            vec.back()[n].offset = (vec.back()[n].offset / vec.back()[n].singleSize + 1) * vec.back()[n].singleSize;
+        }
+    }
+}
+
+void StackVector::addArguments(const ParserFunction &function) {
+    // check if it has any arguments
+    if (function.arguments.empty()) {
+        return;
+    }
+
+    // calculating normal offset
+    uint64_t size = 0;
+    for (const auto& n : function.arguments) {
+        StackVariable var;
+        const auto& type = parserTypes[n.typeName];
+        var.singleSize = type.size;
+        var.amount = 1;
+        var.isMutable = n.isMutable;
+        var.name = n.name;
+        var.isArgument = true;
+        var.type = type.type;
+        var.offset = size + var.singleSize * var.amount;
+        if (var.offset % var.singleSize != 0) {
+            var.offset = (var.offset / var.singleSize + 1) * var.singleSize;
+        }
+        size = var.offset;
+        arguments.emplace_back(var);
+    }
+
+    // calculating the distance of the furthest variable
+    if (size % 16 != 0) {
+        size = (size / 16 + 1) * 16;
+    }
+    size += 16;
+
+    // calculating variable offset from function base
+    for (auto& n : arguments) {
+        n.offset = size - n.offset;
+    }
+
+    // that's it!
 }

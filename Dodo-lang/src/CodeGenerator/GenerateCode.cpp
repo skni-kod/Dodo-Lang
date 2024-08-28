@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
 // output type refers to the expected type of value to come out, namely a signed, unsigned or float
 std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint16_t outputSize,
                                 const ParserValue& expression, uint8_t outputType,
-                                ValueType returnValueLocations = {1, 1, 1, 1}, RegisterNames registers = {}) {
+                                ValueType returnValueLocations, RegisterNames registers) {
 
     if (expression.nodeType == ParserValue::Node::empty) {
         // shouldn't happen afaik
@@ -58,7 +58,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         if (expression.operationType == ParserValue::Operation::functionCall) {
             if (returnValueLocations.reg) {
                 return GenerateFunctionCall(out, variables, *expression.value,
-                                     outputSize,  outputType, registers);
+                                     outputSize,  outputType, &expression, registers);
             }
             else if (returnValueLocations.sta) {
                 StackVariable var;
@@ -66,7 +66,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
                 var.amount = 1;
                 const StackVariable& pushed = variables.push(var);
                 return GenerateFunctionCall(out, variables, *expression.value,
-                                     outputSize, outputType, pushed.getAddressAsRegisterNames());
+                                     outputSize, outputType, &expression, pushed.getAddressAsRegisterNames());
             }
             else {
                 CodeError("Unsupported function return type!");
@@ -172,6 +172,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
 void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     StackVector variables;
     const ParserFunction* function = &parserFunctions[identifier];
+    variables.addArguments(*function);
 
     if (setting::OutputDodoInstructions) {
         out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "(...)\n";
@@ -304,7 +305,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     out << setting::CommentCharacter << " Function call to: " << fun.functionName << "(...)\n";
                 }
 
-                GenerateFunctionCall(out, variables, fun.functionName, 8, 0);
+                GenerateFunctionCall(out, variables, fun.functionName, 8, 0, &fun.arguments);
                 break;
             }
         }

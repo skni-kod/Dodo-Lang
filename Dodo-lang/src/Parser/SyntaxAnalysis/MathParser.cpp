@@ -21,13 +21,13 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
             ParserValue value;
             value.nodeType = ParserValue::Node::variable;
             value.fillValue(tokens[range.first]->value);
-            return std::move(value);
+            return value;
         }
         else  if (tokens[range.first]->type == LexicalToken::Type::literal) {
             ParserValue value;
             value.nodeType = ParserValue::Node::constant;
             value.fillValue(tokens[range.first]->value);
-            return std::move(value);
+            return value;
         }
         ParserError("Unexpected token when attempting to extract value!");
     }
@@ -98,14 +98,13 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         ParserValue* current = &value;
         uint64_t first = range.first + 2;
         int64_t bracketLevel = 0;
-        for (uint64_t n = range.first + 2; n < range.second; n++) {
+        for (uint64_t n = range.first + 1; n < range.second; n++) {
             if (tokens[n]->value == "(") {
                 bracketLevel++;
                 continue;
             }
             else if (tokens[n]->value == ")") {
                 bracketLevel--;
-                continue;
             }
             if (tokens[n]->value == "," or (tokens[n]->value == ")" and bracketLevel == 0)) {
                 // time to parse whatever was there
@@ -115,6 +114,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
                     continue;
                 }
                 current->right = std::make_unique<ParserValue>(ParseMathInternal(tokens, {first, n}));
+                first = n + 1;
                 // if not the last found argument add another
                 if (tokens[n]->value == ",") {
                     current->left = std::make_unique<ParserValue>();

@@ -2,10 +2,41 @@
 #include "GenerateCode.hpp"
 #include "ParserVariables.hpp"
 
-std::string GenerateFunctionCall(std::ofstream& out, StackVector variables,
-                                 const std::string& functionName, uint16_t outputSize, uint8_t outputType, RegisterNames outputLocation) {
+std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
+                                 const std::string& functionName, uint16_t outputSize, uint8_t outputType, const ParserValue* arguments, RegisterNames outputLocation) {
 
     const ParserFunction& function = parserFunctions[functionName];
+
+
+    // pushing arguments onto stack
+    variables.addLevel();
+    if (not function.arguments.empty()) {
+        for (uint64_t n = 0; n < function.arguments.size(); n++) {
+            if (arguments == nullptr) {
+                CodeError("Function argument mismatch!");
+            }
+            if (arguments->right.get() == nullptr) {
+                CodeError("Invalid argument value!");
+            }
+            const auto& target = parserTypes[function.arguments[n].typeName];
+            std::string sourceRegister = CalculateExpression(variables, out, target.size, *arguments->right, target.type, {1, 0, 0, 0});
+            StackVariable var;
+            var.typeName = function.arguments[n].typeName;
+            var.singleSize = target.size;
+            var.type = target.type;
+            var.amount = 1;
+            var.isMutable = function.arguments[n].isMutable;
+            variables.push(var);
+            if (n == 0) {
+                variables.alignTo16();
+            }
+            out << "mov" << AddInstructionPostfix(target.size) << "    " << sourceRegister << ", " << variables.vec.back().back().getAddress() << "\n";
+            // get the next argument
+            arguments = arguments->left.get();
+        }
+    }
+
+    // calculating final stack offset
     uint64_t stackOffset = variables.lastOffset();
     if (functionName == "main") {
         CodeError("Illegal call to main!");
@@ -25,6 +56,9 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector variables,
         out << "addq    $" << (variables.registerOffset - stackOffset) << ", %rsp\n";
         variables.registerOffset = stackOffset;
     }
+    variables.registerOffset = stackOffset;
+    // get rid of the level for arguments
+    variables.popLevel();
 
     // call the function
     out << "call    " << functionName << "\n";
