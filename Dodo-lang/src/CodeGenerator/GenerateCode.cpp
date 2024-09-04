@@ -6,8 +6,49 @@
 #include <iostream>
 #include <filesystem>
 #include <utility>
+#include <stack>
 
 namespace fs = std::filesystem;
+
+uint16_t GetValueByteSize(const ParserValue& value, StackVector& variables) {
+    if (value.nodeType == ParserValue::Node::constant) {
+        // simple, just check how large the number is, yeah no support for non numeric here
+        uint64_t val;
+        if (value.isNegative) {
+            val = -std::stoll(*value.value) * 2ll;
+        }
+        else {
+            val = std::stoll(*value.value);
+        }
+        if (val < 256) {
+            return 1;
+        }
+        if (val < 65536) {
+            return 2;
+        }
+        if (val < 4294967296) {
+            return 4;
+        }
+        return 8;
+    }
+    else if (value.nodeType == ParserValue::Node::variable) {
+        return parserTypes[variables.find(*value.value).typeName].size;
+    }
+    else if (value.nodeType == ParserValue::Node::operation) {
+        if (value.operationType == ParserValue::Operation::functionCall) {
+            return parserTypes[parserFunctions[*value.value].returnType].size;
+        }
+
+        uint16_t left =   GetValueByteSize(*value.left, variables);
+        uint16_t right  = GetValueByteSize(*value.right, variables);
+        if (left > right) {
+            return left;
+        }
+        return right;
+    }
+    CodeError("Unexpected value in size calculation!");
+    return 1;
+}
 
 // takes a mathematical expression and returns the value to put wherever the user wants
 // output type refers to the expected type of value to come out, namely a signed, unsigned or float
@@ -174,6 +215,10 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     const ParserFunction* function = &parserFunctions[identifier];
     variables.addArguments(*function);
 
+    // for internal leveling
+    uint64_t returnLabelCounter = 0;
+    std::stack<uint64_t> returnLabels;
+
     if (setting::OutputDodoInstructions) {
         out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "(...)\n";
     }
@@ -190,10 +235,67 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     }
 
     bool didReturn = false;
-    for (const auto& current : function->instructions) {
-        switch (current.type) {
+    for (uint64_t current = 0; current < function->instructions.size(); current++) {
+        switch (function->instructions[current].type) {
+            case FunctionInstruction::Type::beginScope:
+                returnLabels.push(returnLabelCounter++);
+                break;
+
+            case FunctionInstruction::Type::endScope:
+                if (current == function->instructions.size() - 1 or function->instructions[current + 1].type != FunctionInstruction::Type::elseStatement) {
+                    out << ".L" << returnLabels.top() << "." << function->name << ":\n";
+                    returnLabels.pop();
+                }
+                break;
+
+            case FunctionInstruction::Type::elseStatement:
+                out << "jmp     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                out << ".L" << returnLabels.top() << "." << function->name << ":\n";
+                returnLabels.pop();
+                break;
+
+            case FunctionInstruction::Type::ifStatement: {
+                const IfInstruction &ifi = *function->instructions[current].Variant.ifInstruction;
+                if (setting::OutputDodoInstructions) {
+                    out << setting::CommentCharacter << " If statement\n";
+                }
+
+                // take both types and find the larger one
+                uint16_t larger;
+                {
+                    auto left = GetValueByteSize(ifi.condition.left, variables);
+                    auto right = GetValueByteSize(ifi.condition.right, variables);
+                    larger = (left > right ? left : right);
+                }
+
+                // get the registers ready
+                // TODO: add type check here
+                std::string right = CalculateExpression(variables, out, larger, ifi.condition.left, 0, {0, 0, 1, 0});
+                std::string left = CalculateExpression(variables, out, larger, ifi.condition.right, 0, {1, 1, 0 ,0});
+                out << "cmp" << AddInstructionPostfix(larger) << "    " << left << ", " << right << "\n";
+                if (ifi.condition.type == ParserCondition::Type::greater) {
+                    out << "jbe     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (ifi.condition.type == ParserCondition::Type::greaterEqual) {
+                    out << "jb      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (ifi.condition.type == ParserCondition::Type::lesser) {
+                    out << "jge     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (ifi.condition.type == ParserCondition::Type::lesserEqual) {
+                    out << "jg      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (ifi.condition.type == ParserCondition::Type::equals) {
+                    out << "jne     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (ifi.condition.type == ParserCondition::Type::notEquals) {
+                    out << "je      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                break;
+            }
+
             case FunctionInstruction::Type::declaration: {
-                const DeclarationInstruction &dec = *current.Variant.declarationInstruction;
+                const DeclarationInstruction &dec = *function->instructions[current].Variant.declarationInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (dec.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
@@ -229,7 +331,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 break;
             }
             case FunctionInstruction::Type::returnValue: {
-                const ReturnInstruction &ret = *current.Variant.returnInstruction;
+                const ReturnInstruction &ret = *function->instructions[current].Variant.returnInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (ret.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Expression return\n";
@@ -269,7 +371,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
             case FunctionInstruction::Type::valueChange:
             {
-                const ValueChangeInstruction &val = *current.Variant.valueChangeInstruction;
+                const ValueChangeInstruction &val = *function->instructions[current].Variant.valueChangeInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (val.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Value change of variable: " << val.name << " = expression\n";
@@ -300,7 +402,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
             case FunctionInstruction::Type::functionCall:
             {
-                const FunctionCallInstruction &fun = *current.Variant.functionCallInstruction;
+                const FunctionCallInstruction &fun = *function->instructions[current].Variant.functionCallInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " Function call to: " << fun.functionName << "(...)\n";
                 }

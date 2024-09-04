@@ -20,7 +20,7 @@ Function1();
 Function2(3, var4, var5 + 6);
 
 // Value from function can be returned either as a part of an expression or by itself
-let mut i32 var7 = Function8();
+mut i32 var7 = Function8();
 var7 += Function9(10 * 11, 12) / 13;
 ```
 

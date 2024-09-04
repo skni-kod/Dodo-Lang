@@ -40,7 +40,7 @@ i32 Function1() {
     var2 += 5; <--- nope
 
     // to make a variable mutable add mut keyword after let
-    let mut i32 var3 = 5;
+    mut i32 var3 = 5;
     var3 += 5; <--- dope
 
     // function calls can be performed without catching

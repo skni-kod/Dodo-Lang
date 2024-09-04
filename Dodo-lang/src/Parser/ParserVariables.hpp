@@ -87,16 +87,29 @@ struct FunctionCallInstruction {
     ParserValue arguments;
 };
 
+struct ParserCondition {
+    enum Type {
+        equals, notEquals, greater, greaterEqual, lesser, lesserEqual
+    };
+    uint8_t type = 0;
+    ParserValue left, right;
+    void SetOperand(const std::string& value);
+};
+
+struct IfInstruction {
+    ParserCondition condition;
+};
 
 struct FunctionInstruction {
     enum Type {
-        declaration, returnValue, valueChange, functionCall
+        declaration, returnValue, valueChange, functionCall, ifStatement, elseStatement, beginScope, endScope
     };
     union Variant {
         DeclarationInstruction* declarationInstruction = nullptr;
         ReturnInstruction* returnInstruction;
         ValueChangeInstruction* valueChangeInstruction;
         FunctionCallInstruction* functionCallInstruction;
+        IfInstruction* ifInstruction;
     }Variant;
     uint8_t type = 0;
     ~FunctionInstruction();

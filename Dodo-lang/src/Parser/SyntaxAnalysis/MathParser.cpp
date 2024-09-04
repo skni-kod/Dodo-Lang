@@ -237,14 +237,13 @@ ParserValue ParseMath(Generator<const LexicalToken*> &generator) {
     return std::move(ParseMath(tokens));
 }
 
-ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<const LexicalToken*> front, bool addBraces) {
+ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<const LexicalToken*> front, bool addBraces, uint64_t bracketLevel) {
     const LexicalToken* current = generator();
     LexicalToken frontBrace = {LexicalToken::Type::operand, "("};
     LexicalToken backBrace  = {LexicalToken::Type::operand, ")"};
     if (addBraces) {
         front.push_back(&frontBrace);
     }
-    int64_t bracketLevel = 1;
     while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or bracketLevel != 0) {
         if (current->value == "(") {
             bracketLevel++;

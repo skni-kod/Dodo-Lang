@@ -30,6 +30,10 @@ FunctionInstruction::~FunctionInstruction() {
             delete Variant.functionCallInstruction;
             Variant.functionCallInstruction = nullptr;
             break;
+        case Type::ifStatement:
+            delete Variant.ifInstruction;
+            Variant.ifInstruction = nullptr;
+            break;
     }
 }
 
@@ -48,9 +52,10 @@ FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
         case Type::functionCall:
             Variant.functionCallInstruction = F.Variant.functionCallInstruction;
             break;
+        case Type::ifStatement:
+            Variant.ifInstruction = F.Variant.ifInstruction;
+            break;
     }
-    // bypassing these damned copy operators, this thing does not copy anywhere and it's a big pain to write all this
-    // TODO: replace with reinterpret cast and getters or something
 }
 
 FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
@@ -72,6 +77,10 @@ FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
             Variant.functionCallInstruction = F.Variant.functionCallInstruction;
             F.Variant.functionCallInstruction = nullptr;
             break;
+        case Type::ifStatement:
+            Variant.ifInstruction = F.Variant.ifInstruction;
+            F.Variant.ifInstruction = nullptr;
+            break;
     }
 }
 
@@ -88,6 +97,9 @@ void FunctionInstruction::DeleteAfterCopy() {
             break;
         case Type::functionCall:
             Variant.functionCallInstruction = nullptr;
+            break;
+        case Type::ifStatement:
+            Variant.ifInstruction = nullptr;
             break;
     }
 }
@@ -134,4 +146,32 @@ void ParserValue::fillValue(std::string val) {
     // at this point val is a valid decimal, so just input it into the pointer
     value = std::make_unique<std::string>(val);
     operationType = Value::signedInteger;
+}
+
+void ParserCondition::SetOperand(const std::string &value) {
+    if (value == "==") {
+        type = Type::equals;
+        return;
+    }
+    if (value == "!=") {
+        type = Type::notEquals;
+        return;
+    }
+    if (value == ">") {
+        type = Type::greater;
+        return;
+    }
+    if (value == "<") {
+        type = Type::lesser;
+        return;
+    }
+    if (value == ">=") {
+        type = Type::greaterEqual;
+        return;
+    }
+    if (value == "<=") {
+        type = Type::lesserEqual;
+        return;
+    }
+    ParserError("Invalid comparison operator!");
 }

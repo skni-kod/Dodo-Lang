@@ -97,7 +97,14 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
 
     // ... ( ... ) { ... }
     current = generator();
-    while (current->type != LexicalToken::Type::blockEnd) {
+    uint64_t bracketLevel = 0;
+    while (current->type != LexicalToken::Type::blockEnd or bracketLevel > 0) {
+        if (current->type == LexicalToken::Type::blockBegin) {
+            bracketLevel++;
+        }
+        else if (current->type == LexicalToken::Type::blockEnd) {
+            bracketLevel--;
+        }
 
         // FUNCTION INSTRUCTIONS
         function.instructions.emplace_back(CreateInstruction(generator, current));
