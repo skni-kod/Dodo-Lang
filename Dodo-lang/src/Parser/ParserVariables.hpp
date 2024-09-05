@@ -100,9 +100,22 @@ struct IfInstruction {
     ParserCondition condition;
 };
 
+struct WhileInstruction {
+    ParserCondition condition;
+};
+
+struct DoWhileInstruction {
+    ParserCondition condition;
+};
+
+struct ForInstruction {
+    ParserCondition condition;
+};
+
 struct FunctionInstruction {
     enum Type {
-        declaration, returnValue, valueChange, functionCall, ifStatement, elseStatement, beginScope, endScope
+        declaration, returnValue, valueChange, functionCall, ifStatement, whileStatement, doWhileStatement,
+        forStatement, elseStatement, beginScope, endScope
     };
     union Variant {
         DeclarationInstruction* declarationInstruction = nullptr;
@@ -110,6 +123,9 @@ struct FunctionInstruction {
         ValueChangeInstruction* valueChangeInstruction;
         FunctionCallInstruction* functionCallInstruction;
         IfInstruction* ifInstruction;
+        WhileInstruction* whileInstruction;
+        DoWhileInstruction* doWhileInstruction;
+        ForInstruction* forInstruction;
     }Variant;
     uint8_t type = 0;
     ~FunctionInstruction();

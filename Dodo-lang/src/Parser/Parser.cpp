@@ -54,7 +54,7 @@ ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
 
     // Step 2: checking basic types (might not be required)
 
-    if (flags::informationLevel > flags::informationLevel::minimal) {
+    if (flags::informationLevel > flags::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with : " << parserTypes.size() << " type definition(s)\n";
     }
 
@@ -64,7 +64,7 @@ ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
 
     // Step 4: checking functions and if main exists
 
-    if (flags::informationLevel > flags::informationLevel::minimal) {
+    if (flags::informationLevel > flags::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with : " << parserFunctions.size() << " function definition(s)\n";
     }
 

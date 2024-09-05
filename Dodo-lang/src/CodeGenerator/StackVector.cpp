@@ -218,6 +218,7 @@ void StackVector::addArguments(const ParserFunction &function) {
         var.name = n.name;
         var.isArgument = true;
         var.type = type.type;
+        var.typeName = n.typeName;
         var.offset = size + var.singleSize * var.amount;
         if (var.offset % var.singleSize != 0) {
             var.offset = (var.offset / var.singleSize + 1) * var.singleSize;

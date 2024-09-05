@@ -218,6 +218,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     // for internal leveling
     uint64_t returnLabelCounter = 0;
     std::stack<uint64_t> returnLabels;
+    std::stack<uint64_t> whileLevels;
 
     if (setting::OutputDodoInstructions) {
         out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "(...)\n";
@@ -243,13 +244,17 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
 
             case FunctionInstruction::Type::endScope:
                 if (current == function->instructions.size() - 1 or function->instructions[current + 1].type != FunctionInstruction::Type::elseStatement) {
+                    if (whileLevels.top() == returnLabels.size()) {
+                        out << "jmp     .L" << returnLabels.top() - 1 << "." << function->name << "\n";
+                        whileLevels.pop();
+                    }
                     out << ".L" << returnLabels.top() << "." << function->name << ":\n";
                     returnLabels.pop();
                 }
                 break;
 
             case FunctionInstruction::Type::elseStatement:
-                out << "jmp     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                out << "jmp     .L" << returnLabelCounter << "." << function->name << "\n";
                 out << ".L" << returnLabels.top() << "." << function->name << ":\n";
                 returnLabels.pop();
                 break;
@@ -289,6 +294,48 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                     out << "jne     " << ".L" << returnLabelCounter << "." << function->name << "\n";
                 }
                 else if (ifi.condition.type == ParserCondition::Type::notEquals) {
+                    out << "je      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                break;
+            }
+
+            case FunctionInstruction::Type::whileStatement: {
+                const WhileInstruction &whi = *function->instructions[current].Variant.whileInstruction;
+                if (setting::OutputDodoInstructions) {
+                    out << setting::CommentCharacter << " While statement\n";
+                }
+
+                // take both types and find the larger one
+                uint16_t larger;
+                {
+                    auto left = GetValueByteSize(whi.condition.left, variables);
+                    auto right = GetValueByteSize(whi.condition.right, variables);
+                    larger = (left > right ? left : right);
+                }
+
+                // get the registers ready
+                // TODO: add type check here
+                out << ".L" << returnLabelCounter++ << "." << function->name << ":\n";
+                std::string right = CalculateExpression(variables, out, larger, whi.condition.left, 0, {0, 0, 1, 0});
+                std::string left = CalculateExpression(variables, out, larger, whi.condition.right, 0, {1, 1, 0, 0});
+                whileLevels.push(returnLabels.size() + 1);
+                out << "cmp" << AddInstructionPostfix(larger) << "    " << left << ", " << right << "\n";
+                if (whi.condition.type == ParserCondition::Type::greater) {
+                    out << "jbe     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (whi.condition.type == ParserCondition::Type::greaterEqual) {
+                    out << "jb      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (whi.condition.type == ParserCondition::Type::lesser) {
+                    out << "jge     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (whi.condition.type == ParserCondition::Type::lesserEqual) {
+                    out << "jg      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (whi.condition.type == ParserCondition::Type::equals) {
+                    out << "jne     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (whi.condition.type == ParserCondition::Type::notEquals) {
                     out << "je      " << ".L" << returnLabelCounter << "." << function->name << "\n";
                 }
                 break;

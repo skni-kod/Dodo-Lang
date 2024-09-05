@@ -167,6 +167,41 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
             instruction.Variant.ifInstruction->condition.right = ParseMath(tokens);
             return instruction;
         }
+        // if statement
+        if (firstToken->value == "while") {
+            const LexicalToken* current = generator();
+            if (current->type != LexicalToken::Type::operand or current->value != "(") {
+                ParserError("Expected a bracket opening after keyword while!");
+            }
+            // left side
+            current = generator();
+            std::vector <const LexicalToken*> tokens;
+            while (not IsComparisonOperand(current->value)) {
+                tokens.push_back(current);
+                current = generator();
+            }
+            instruction.type = FunctionInstruction::Type::whileStatement;
+            instruction.Variant.whileInstruction = new WhileInstruction();
+            instruction.Variant.whileInstruction->condition.left = ParseMath(tokens);
+            instruction.Variant.whileInstruction->condition.type = GetComparisonOperandType(current->value);
+
+            // right side
+            current = generator();
+            tokens.clear();
+            uint64_t bracketLevel = 0;
+            while (bracketLevel != 0 or current->value != ")") {
+                if (current->value == "(") {
+                    bracketLevel++;
+                }
+                else if (current->value == ")") {
+                    bracketLevel--;
+                }
+                tokens.push_back(current);
+                current = generator();
+            }
+            instruction.Variant.whileInstruction->condition.right = ParseMath(tokens);
+            return instruction;
+        }
         else {
             ParserError("Other keyword starting instructions net yet introduced!");
         }

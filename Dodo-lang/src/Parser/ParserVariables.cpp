@@ -34,6 +34,18 @@ FunctionInstruction::~FunctionInstruction() {
             delete Variant.ifInstruction;
             Variant.ifInstruction = nullptr;
             break;
+        case Type::whileStatement:
+            delete Variant.whileInstruction;
+            Variant.whileInstruction = nullptr;
+            break;
+        case Type::doWhileStatement:
+            delete Variant.doWhileInstruction;
+            Variant.doWhileInstruction = nullptr;
+            break;
+        case Type::forStatement:
+            delete Variant.forInstruction;
+            Variant.forInstruction = nullptr;
+            break;
     }
 }
 
@@ -54,6 +66,15 @@ FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
             break;
         case Type::ifStatement:
             Variant.ifInstruction = F.Variant.ifInstruction;
+            break;
+        case Type::whileStatement:
+            Variant.whileInstruction = F.Variant.whileInstruction;
+            break;
+        case Type::doWhileStatement:
+            Variant.doWhileInstruction = F.Variant.doWhileInstruction;
+            break;
+        case Type::forStatement:
+            Variant.forInstruction = F.Variant.forInstruction;
             break;
     }
 }
@@ -81,6 +102,18 @@ FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
             Variant.ifInstruction = F.Variant.ifInstruction;
             F.Variant.ifInstruction = nullptr;
             break;
+        case Type::whileStatement:
+            Variant.whileInstruction = F.Variant.whileInstruction;
+            F.Variant.whileInstruction = nullptr;
+            break;
+        case Type::doWhileStatement:
+            Variant.doWhileInstruction = F.Variant.doWhileInstruction;
+            F.Variant.doWhileInstruction = nullptr;
+            break;
+        case Type::forStatement:
+            Variant.forInstruction = F.Variant.forInstruction;
+            F.Variant.forInstruction = nullptr;
+            break;
     }
 }
 
@@ -100,6 +133,15 @@ void FunctionInstruction::DeleteAfterCopy() {
             break;
         case Type::ifStatement:
             Variant.ifInstruction = nullptr;
+            break;
+        case Type::whileStatement:
+            Variant.whileInstruction = nullptr;
+            break;
+        case Type::doWhileStatement:
+            Variant.doWhileInstruction = nullptr;
+            break;
+        case Type::forStatement:
+            Variant.forInstruction = nullptr;
             break;
     }
 }

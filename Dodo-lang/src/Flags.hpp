@@ -5,7 +5,7 @@
 
 namespace flags {
     // default values inside
-    enum informationLevel {
+    enum InformationLevel {
         // only general stages, time
         minimal,
         // stages, amounts of files, types, time
@@ -13,7 +13,7 @@ namespace flags {
         // full information about the compilation process
         full
     };
-    inline uint8_t informationLevel = full;
+    inline uint8_t informationLevel = InformationLevel::full;
 }
 
 #endif //DODO_LANG_FLAGS_HPP
