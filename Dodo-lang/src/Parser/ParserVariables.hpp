@@ -109,7 +109,11 @@ struct DoWhileInstruction {
 };
 
 struct ForInstruction {
+    std::string typeName;
+    std::string variableName;
+    ParserValue variableValue;
     ParserCondition condition;
+    ParserValue endExpression;
 };
 
 struct FunctionInstruction {
@@ -126,7 +130,7 @@ struct FunctionInstruction {
         WhileInstruction* whileInstruction;
         DoWhileInstruction* doWhileInstruction;
         ForInstruction* forInstruction;
-    }Variant;
+    }variant;
     uint8_t type = 0;
     ~FunctionInstruction();
     FunctionInstruction() = default;

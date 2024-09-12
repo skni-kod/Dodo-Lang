@@ -2,7 +2,6 @@
 #include "Generator.tpp"
 #include "ParserVariables.hpp"
 #include "SyntaxAnalysis/SyntaxAnalysis.hpp"
-#include "CreateTree/CreateTree.hpp"
 #include "GenerateCode.hpp"
 
 
@@ -42,7 +41,7 @@ Generator <const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>
     }
 }
 
-ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
+void RunParsing(const std::vector<ProgramPage>& tokens) {
 
     // Step 1: syntax analysis and creating initial structures
     {
@@ -63,14 +62,11 @@ ASTTree RunParsing(const std::vector<ProgramPage>& tokens) {
     // ...
 
     // Step 4: checking functions and if main exists
+    if (not parserFunctions.isKey("main")) {
+        ParserError("No main function found!");
+    }
 
     if (flags::informationLevel > flags::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with : " << parserFunctions.size() << " function definition(s)\n";
     }
-
-    // Step 5: creating tree from ready structures
-
-    // ...
-
-    return CreateTree();
 }

@@ -28,8 +28,6 @@ add_executable(Dodo_Lang
         Dodo-lang/src/Parser/SyntaxAnalysis/CreateType.cpp
         Dodo-lang/src/Parser/SyntaxAnalysis/CreateFunction.cpp
         Dodo-lang/src/Parser/SyntaxAnalysis/CreateInstruction.cpp
-        Dodo-lang/src/Parser/CreateTree/CreateTree.cpp
-        Dodo-lang/src/Parser/CreateTree/CreateTree.hpp
         Dodo-lang/src/CodeGenerator/GenerateCode.hpp
         Dodo-lang/src/CodeGenerator/GenerateCode.cpp
         Dodo-lang/src/Parser/SyntaxAnalysis/MathParser.cpp

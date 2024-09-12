@@ -244,7 +244,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
 
             case FunctionInstruction::Type::endScope:
                 if (current == function->instructions.size() - 1 or function->instructions[current + 1].type != FunctionInstruction::Type::elseStatement) {
-                    if (whileLevels.top() == returnLabels.size()) {
+                    if (not whileLevels.empty() and whileLevels.top() == returnLabels.size()) {
                         out << "jmp     .L" << returnLabels.top() - 1 << "." << function->name << "\n";
                         whileLevels.pop();
                     }
@@ -260,7 +260,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 break;
 
             case FunctionInstruction::Type::ifStatement: {
-                const IfInstruction &ifi = *function->instructions[current].Variant.ifInstruction;
+                const IfInstruction &ifi = *function->instructions[current].variant.ifInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " If statement\n";
                 }
@@ -296,11 +296,16 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 else if (ifi.condition.type == ParserCondition::Type::notEquals) {
                     out << "je      " << ".L" << returnLabelCounter << "." << function->name << "\n";
                 }
+
+                // freeing temp variables
+                if (right[0] != '%' and right[0] != '$' and variables.findByOffset(right).name.empty()) {
+                    variables.free(right);
+                }
                 break;
             }
 
             case FunctionInstruction::Type::whileStatement: {
-                const WhileInstruction &whi = *function->instructions[current].Variant.whileInstruction;
+                const WhileInstruction &whi = *function->instructions[current].variant.whileInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " While statement\n";
                 }
@@ -338,11 +343,15 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 else if (whi.condition.type == ParserCondition::Type::notEquals) {
                     out << "je      " << ".L" << returnLabelCounter << "." << function->name << "\n";
                 }
+                // freeing temp variables
+                if (right[0] != '%' and right[0] != '$' and variables.findByOffset(right).name.empty()) {
+                    variables.free(right);
+                }
                 break;
             }
 
             case FunctionInstruction::Type::declaration: {
-                const DeclarationInstruction &dec = *function->instructions[current].Variant.declarationInstruction;
+                const DeclarationInstruction &dec = *function->instructions[current].variant.declarationInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (dec.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
@@ -378,7 +387,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 break;
             }
             case FunctionInstruction::Type::returnValue: {
-                const ReturnInstruction &ret = *function->instructions[current].Variant.returnInstruction;
+                const ReturnInstruction &ret = *function->instructions[current].variant.returnInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (ret.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Expression return\n";
@@ -418,7 +427,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
             case FunctionInstruction::Type::valueChange:
             {
-                const ValueChangeInstruction &val = *function->instructions[current].Variant.valueChangeInstruction;
+                const ValueChangeInstruction &val = *function->instructions[current].variant.valueChangeInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (val.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Value change of variable: " << val.name << " = expression\n";
@@ -449,7 +458,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
             case FunctionInstruction::Type::functionCall:
             {
-                const FunctionCallInstruction &fun = *function->instructions[current].Variant.functionCallInstruction;
+                const FunctionCallInstruction &fun = *function->instructions[current].variant.functionCallInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " Function call to: " << fun.functionName << "(...)\n";
                 }

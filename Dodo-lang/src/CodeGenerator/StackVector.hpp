@@ -25,7 +25,6 @@ struct StackVector {
     std::vector<StackVariable> arguments;
     void addArguments(const ParserFunction& function);
     std::vector<std::vector<StackVariable>> vec;
-    int64_t registerOffset = 0;
     StackVariable& find(const std::string& name);
     StackVariable& find(int64_t offset);
     StackVariable& findByOffset(const std::string& offset);

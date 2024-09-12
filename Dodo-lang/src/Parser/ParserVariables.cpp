@@ -15,36 +15,36 @@ ParserType::ParserType(uint8_t type, uint8_t size)  {
 FunctionInstruction::~FunctionInstruction() {
     switch (type) {
         case Type::declaration:
-            delete Variant.declarationInstruction;
-            Variant.declarationInstruction = nullptr;
+            delete variant.declarationInstruction;
+            variant.declarationInstruction = nullptr;
             break;
         case Type::returnValue:
-            delete Variant.returnInstruction;
-            Variant.returnInstruction = nullptr;
+            delete variant.returnInstruction;
+            variant.returnInstruction = nullptr;
             break;
         case Type::valueChange:
-            delete Variant.valueChangeInstruction;
-            Variant.valueChangeInstruction = nullptr;
+            delete variant.valueChangeInstruction;
+            variant.valueChangeInstruction = nullptr;
             break;
         case Type::functionCall:
-            delete Variant.functionCallInstruction;
-            Variant.functionCallInstruction = nullptr;
+            delete variant.functionCallInstruction;
+            variant.functionCallInstruction = nullptr;
             break;
         case Type::ifStatement:
-            delete Variant.ifInstruction;
-            Variant.ifInstruction = nullptr;
+            delete variant.ifInstruction;
+            variant.ifInstruction = nullptr;
             break;
         case Type::whileStatement:
-            delete Variant.whileInstruction;
-            Variant.whileInstruction = nullptr;
+            delete variant.whileInstruction;
+            variant.whileInstruction = nullptr;
             break;
         case Type::doWhileStatement:
-            delete Variant.doWhileInstruction;
-            Variant.doWhileInstruction = nullptr;
+            delete variant.doWhileInstruction;
+            variant.doWhileInstruction = nullptr;
             break;
         case Type::forStatement:
-            delete Variant.forInstruction;
-            Variant.forInstruction = nullptr;
+            delete variant.forInstruction;
+            variant.forInstruction = nullptr;
             break;
     }
 }
@@ -53,28 +53,28 @@ FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
     type = F.type;
     switch (type) {
         case Type::declaration:
-            Variant.declarationInstruction = F.Variant.declarationInstruction;
+            variant.declarationInstruction = F.variant.declarationInstruction;
             break;
         case Type::returnValue:
-            Variant.returnInstruction = F.Variant.returnInstruction;
+            variant.returnInstruction = F.variant.returnInstruction;
             break;
         case Type::valueChange:
-            Variant.valueChangeInstruction = F.Variant.valueChangeInstruction;
+            variant.valueChangeInstruction = F.variant.valueChangeInstruction;
             break;
         case Type::functionCall:
-            Variant.functionCallInstruction = F.Variant.functionCallInstruction;
+            variant.functionCallInstruction = F.variant.functionCallInstruction;
             break;
         case Type::ifStatement:
-            Variant.ifInstruction = F.Variant.ifInstruction;
+            variant.ifInstruction = F.variant.ifInstruction;
             break;
         case Type::whileStatement:
-            Variant.whileInstruction = F.Variant.whileInstruction;
+            variant.whileInstruction = F.variant.whileInstruction;
             break;
         case Type::doWhileStatement:
-            Variant.doWhileInstruction = F.Variant.doWhileInstruction;
+            variant.doWhileInstruction = F.variant.doWhileInstruction;
             break;
         case Type::forStatement:
-            Variant.forInstruction = F.Variant.forInstruction;
+            variant.forInstruction = F.variant.forInstruction;
             break;
     }
 }
@@ -83,36 +83,36 @@ FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
     type = F.type;
     switch (type) {
         case Type::declaration:
-            Variant.declarationInstruction = F.Variant.declarationInstruction;
-            F.Variant.declarationInstruction = nullptr;
+            variant.declarationInstruction = F.variant.declarationInstruction;
+            F.variant.declarationInstruction = nullptr;
             break;
         case Type::returnValue:
-            Variant.returnInstruction = F.Variant.returnInstruction;
-            F.Variant.returnInstruction = nullptr;
+            variant.returnInstruction = F.variant.returnInstruction;
+            F.variant.returnInstruction = nullptr;
             break;
         case Type::valueChange:
-            Variant.valueChangeInstruction = F.Variant.valueChangeInstruction;
-            F.Variant.valueChangeInstruction = nullptr;
+            variant.valueChangeInstruction = F.variant.valueChangeInstruction;
+            F.variant.valueChangeInstruction = nullptr;
             break;
         case Type::functionCall:
-            Variant.functionCallInstruction = F.Variant.functionCallInstruction;
-            F.Variant.functionCallInstruction = nullptr;
+            variant.functionCallInstruction = F.variant.functionCallInstruction;
+            F.variant.functionCallInstruction = nullptr;
             break;
         case Type::ifStatement:
-            Variant.ifInstruction = F.Variant.ifInstruction;
-            F.Variant.ifInstruction = nullptr;
+            variant.ifInstruction = F.variant.ifInstruction;
+            F.variant.ifInstruction = nullptr;
             break;
         case Type::whileStatement:
-            Variant.whileInstruction = F.Variant.whileInstruction;
-            F.Variant.whileInstruction = nullptr;
+            variant.whileInstruction = F.variant.whileInstruction;
+            F.variant.whileInstruction = nullptr;
             break;
         case Type::doWhileStatement:
-            Variant.doWhileInstruction = F.Variant.doWhileInstruction;
-            F.Variant.doWhileInstruction = nullptr;
+            variant.doWhileInstruction = F.variant.doWhileInstruction;
+            F.variant.doWhileInstruction = nullptr;
             break;
         case Type::forStatement:
-            Variant.forInstruction = F.Variant.forInstruction;
-            F.Variant.forInstruction = nullptr;
+            variant.forInstruction = F.variant.forInstruction;
+            F.variant.forInstruction = nullptr;
             break;
     }
 }
@@ -120,28 +120,28 @@ FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
 void FunctionInstruction::DeleteAfterCopy() {
     switch (type) {
         case Type::declaration:
-            Variant.declarationInstruction = nullptr;
+            variant.declarationInstruction = nullptr;
             break;
         case Type::returnValue:
-            Variant.returnInstruction = nullptr;
+            variant.returnInstruction = nullptr;
             break;
         case Type::valueChange:
-            Variant.valueChangeInstruction = nullptr;
+            variant.valueChangeInstruction = nullptr;
             break;
         case Type::functionCall:
-            Variant.functionCallInstruction = nullptr;
+            variant.functionCallInstruction = nullptr;
             break;
         case Type::ifStatement:
-            Variant.ifInstruction = nullptr;
+            variant.ifInstruction = nullptr;
             break;
         case Type::whileStatement:
-            Variant.whileInstruction = nullptr;
+            variant.whileInstruction = nullptr;
             break;
         case Type::doWhileStatement:
-            Variant.doWhileInstruction = nullptr;
+            variant.doWhileInstruction = nullptr;
             break;
         case Type::forStatement:
-            Variant.forInstruction = nullptr;
+            variant.forInstruction = nullptr;
             break;
     }
 }

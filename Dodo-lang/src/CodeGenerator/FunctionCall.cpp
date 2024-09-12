@@ -37,7 +37,7 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
     }
 
     // calculating final stack offset
-    int64_t stackOffset = variables.lastOffset();
+    int64_t stackOffset = -variables.lastOffset();
     if (functionName == "main") {
         CodeError("Illegal call to main!");
     }
@@ -48,20 +48,18 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
     }
 
     // change %rsp to the right value
-    if (stackOffset > variables.registerOffset) {
-        out << "subq    $" << (stackOffset - variables.registerOffset) << ", %rsp\n";
-        variables.registerOffset = stackOffset;
+    if (stackOffset > 0) {
+        out << "subq    $" << stackOffset << ", %rsp\n";
     }
-    else if (stackOffset < variables.registerOffset) {
-        out << "addq    $" << (variables.registerOffset - stackOffset) << ", %rsp\n";
-        variables.registerOffset = stackOffset;
-    }
-    variables.registerOffset = stackOffset;
     // get rid of the level for arguments
     variables.popLevel();
 
     // call the function
     out << "call    " << functionName << "\n";
+
+    if (stackOffset > 0) {
+        out << "addq    $" << stackOffset << ", %rsp\n";
+    }
 
     // if return is needed do it
     if (function.returnValueType != ParserFunction::Subtype::none) {

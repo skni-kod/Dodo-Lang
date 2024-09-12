@@ -11,12 +11,12 @@ type u32 : UNSIGNED_INTEGER(4);
 type u64 : UNSIGNED_INTEGER(8);
 
 i32 main() {
-    return function(5);
+    return function(10);
 }
 
 u64 function(i32 var1) {
-    if (var1 > 100) {
-        return var1;
+    if (var1 > 1) {
+        return function(var1 - 1) + var1;
     }
-    return function(var1 + 1);
+    return 1;
 }

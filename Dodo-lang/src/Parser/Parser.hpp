@@ -4,7 +4,7 @@
 #include "../LexicalToken.hpp"
 #include "../LexicalAnalysis.hpp"
 #include "../Flags.hpp"
-#include "CreateTree/CreateTree.hpp"
+
 
 class ParserException : public std::exception {
 public:
@@ -13,6 +13,6 @@ public:
 inline bool doneParsing = false;
 void ParserError(const std::string& message);
 
-ASTTree RunParsing(const std::vector<ProgramPage>& tokens);
+void RunParsing(const std::vector<ProgramPage>& tokens);
 
 #endif //DODO_LANG_PARSER_HPP
