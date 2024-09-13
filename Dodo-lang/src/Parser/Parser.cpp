@@ -35,6 +35,7 @@ Generator <const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>
         for (const auto& line : file.page) {
             currentLine = line.line_number;
             for (const auto& token : line.line) {
+                lastToken = &token;
                 co_yield &token;
             }
         }

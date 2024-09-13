@@ -119,10 +119,6 @@ int main(int argc, char* argv[])
 
     std::system("as -o build/out.o build/out.s");
     std::system("ld build/out.o -o build/out");
-#define RUN_EXECUTABLE
-#ifdef  RUN_EXECUTABLE
-    std::cout << "Running executable:\n";
-    std::system("./build/out");
-#endif
+
 	return 0;
 }

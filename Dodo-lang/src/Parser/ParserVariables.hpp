@@ -108,12 +108,18 @@ struct DoWhileInstruction {
     ParserCondition condition;
 };
 
-struct ForInstruction {
+struct ForLoopVariable {
     std::string typeName;
-    std::string variableName;
-    ParserValue variableValue;
+    std::string identifier;
+    ParserValue value;
+};
+
+struct FunctionInstruction;
+
+struct ForInstruction {
+    std::vector <ForLoopVariable> variables;
     ParserCondition condition;
-    ParserValue endExpression;
+    std::vector<FunctionInstruction> instructions;
 };
 
 struct FunctionInstruction {

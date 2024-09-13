@@ -18,19 +18,21 @@ The project is being developed as a SKNI "KOD" project.
 
 
 ## Currently achieved goals:
-- simple type declaration
-- main function with the ability to declare variables and return values
-- support for addition, subtraction, multiplication and division operations
-- support for complex mathematical expressions
+- type declaration
+- functions with various instructions and value returns
+- addition, subtraction, multiplication and division operations with more easily addable
+- complex mathematical expressions parsing
 - variable storage on stack
-- variable value assignment after declaration
-- variable mutability/immutability
+- variable mutability/immutability and value modification
 - function calls with arguments and value returns
 - signed and unsigned integers operations and conversions
+- simple conditional statements
+- while and for loops
 
 ## Short term plans:
 
+- a rebuild of code generation system to create a platform independent code that would then be optimized and converted to assembly for given target
 - floating point values
 - pointers and arrays
-- syscalls
+- syscalls and/or direct assembly injection
 - macro like system

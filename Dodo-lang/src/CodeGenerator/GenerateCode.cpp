@@ -219,17 +219,15 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     uint64_t returnLabelCounter = 0;
     std::stack<uint64_t> returnLabels;
     std::stack<uint64_t> whileLevels;
+    std::stack<uint64_t> forLevels;
+    std::stack<const ForInstruction*> forPointers;
 
     if (setting::OutputDodoInstructions) {
         out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "(...)\n";
     }
 
-    if (identifier == "main") {
-        out << "_start:\n";
-    }
-    else {
-        out << identifier << ":\n";
-    }
+    out << identifier << ":\n";
+
     if (TargetArchitecture == "X86-64") {
         out << "pushq   %rbp\n";
         out << "movq    %rsp, %rbp\n";
@@ -240,6 +238,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
         switch (function->instructions[current].type) {
             case FunctionInstruction::Type::beginScope:
                 returnLabels.push(returnLabelCounter++);
+                variables.addLevel();
                 break;
 
             case FunctionInstruction::Type::endScope:
@@ -248,8 +247,49 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                         out << "jmp     .L" << returnLabels.top() - 1 << "." << function->name << "\n";
                         whileLevels.pop();
                     }
+                    if (not forLevels.empty() and forLevels.top() == returnLabels.size()) {
+                        // doing the value changes after loop run
+                        if (setting::OutputDodoInstructions) {
+                            out << setting::CommentCharacter << " Post for loop instructions\n";
+                        }
+                        for (auto& change : forPointers.top()->instructions) {
+                            if (change.type != FunctionInstruction::Type::valueChange) {
+                                CodeError("Instructions other than value change not yet added to for loop!");
+                            }
+                            auto& ins = *change.variant.valueChangeInstruction;
+                            if (ins.expression.nodeType == ParserValue::Node::operation) {
+                                out << setting::CommentCharacter << " Value change of variable: " << ins.name << " = expression\n";
+                            } else if (ins.expression.nodeType == ParserValue::Node::constant) {
+                                out << setting::CommentCharacter << " Value change of variable: " << ins.name << " = constant\n";
+                            } else if (ins.expression.nodeType == ParserValue::Node::variable) {
+                                out << setting::CommentCharacter << " Value change of variable: " << " " << ins.name << " = variable\n";
+                            } else {
+                                out << setting::CommentCharacter << " Value change of variable: " << " " << ins.name << "\n";
+                            }
+                            StackVariable &var = variables.find(ins.name);
+                            const ParserType& type = parserTypes[var.typeName];
+                            if (not var.isMutable) {
+                                CodeError("Variable: " + var.name + " is immutable!");
+                            }
+
+                            if (ins.expression.nodeType != ParserValue::Node::empty) {
+                                std::string source = CalculateExpression(variables, out, var.singleSize, ins.expression, type.type,
+                                                                         {1, 1, 0, 1});
+                                out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
+                                    << var.getAddress() << "\n";
+                            } else {
+                                CodeError("No expression in value assignment!");
+                            }
+                        }
+
+                        forPointers.pop();
+                        variables.popLevel();
+                    }
+                    out << "jmp     .L" << returnLabels.top() - 1 << "." << function->name << "\n";
                     out << ".L" << returnLabels.top() << "." << function->name << ":\n";
+                    forLevels.pop();
                     returnLabels.pop();
+                    variables.popLevel();
                 }
                 break;
 
@@ -350,6 +390,90 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 break;
             }
 
+            case FunctionInstruction::Type::forStatement: {
+                const ForInstruction &loop = *function->instructions[current].variant.forInstruction;
+                if (setting::OutputDodoInstructions) {
+                    out << setting::CommentCharacter << " For statement\n";
+                }
+
+                // take both types and find the larger one
+
+                variables.addLevel();
+                // declaring the variables first
+                if (setting::OutputDodoInstructions) {
+                    out << setting::CommentCharacter << " Declaration of for loop variables\n";
+                }
+                for (auto& loopVar : loop.variables) {
+                    StackVariable var;
+                    const ParserType& type = parserTypes[loopVar.typeName];
+                    var.singleSize = type.size;
+                    var.amount = 1;
+                    var.name = loopVar.identifier;
+                    var.type = type.type;
+                    var.typeName = loopVar.typeName;
+                    var.isMutable = true;
+
+                    if (setting::OutputDodoInstructions) {
+                        if (loopVar.value.nodeType == ParserValue::Node::operation) {
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                                << " = expression\n";
+                        } else if (loopVar.value.nodeType == ParserValue::Node::constant) {
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                                << " = constant\n";
+                        } else if (loopVar.value.nodeType == ParserValue::Node::variable) {
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                                << " = variable\n";
+                        } else {
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                                << "\n";
+                        }
+                    }
+
+                    // this one is guaranteed to have value or be 0
+                    std::string source = CalculateExpression(variables, out, var.singleSize, loopVar.value, type.type, {1, 1, 0, 1});
+                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", " << variables.pushAndStr(var) << "\n";
+                }
+
+                uint16_t larger;
+                {
+                    auto left = GetValueByteSize(loop.condition.left, variables);
+                    auto right = GetValueByteSize(loop.condition.right, variables);
+                    larger = (left > right ? left : right);
+                }
+
+                // get the registers ready
+                // TODO: add type check here
+                out << ".L" << returnLabelCounter++ << "." << function->name << ":\n";
+                std::string right = CalculateExpression(variables, out, larger, loop.condition.left, 0, {0, 0, 1, 0});
+                std::string left = CalculateExpression(variables, out, larger, loop.condition.right, 0, {1, 1, 0, 0});
+                forLevels.push(returnLabels.size() + 1);
+                forPointers.push(&loop);
+                out << "cmp" << AddInstructionPostfix(larger) << "    " << left << ", " << right << "\n";
+                if (loop.condition.type == ParserCondition::Type::greater) {
+                    out << "jbe     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (loop.condition.type == ParserCondition::Type::greaterEqual) {
+                    out << "jb      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (loop.condition.type == ParserCondition::Type::lesser) {
+                    out << "jge     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (loop.condition.type == ParserCondition::Type::lesserEqual) {
+                    out << "jg      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (loop.condition.type == ParserCondition::Type::equals) {
+                    out << "jne     " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                else if (loop.condition.type == ParserCondition::Type::notEquals) {
+                    out << "je      " << ".L" << returnLabelCounter << "." << function->name << "\n";
+                }
+                // freeing temp variables
+                if (right[0] != '%' and right[0] != '$' and variables.findByOffset(right).name.empty()) {
+                    variables.free(right);
+                }
+                break;
+            }
+
             case FunctionInstruction::Type::declaration: {
                 const DeclarationInstruction &dec = *function->instructions[current].variant.declarationInstruction;
                 if (setting::OutputDodoInstructions) {
@@ -399,29 +523,17 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                         out << setting::CommentCharacter << " Valueless return\n";
                     }
                 }
-                if (identifier == "main") {
-                    if (TargetArchitecture == "X86-64") {
 
-                        std::string source = CalculateExpression(variables, out, 8, ret.expression, parserTypes[function->returnType].type);
-                        out << "movq    " << source << ", %rdi\n";
 
-                        // interrupt number
-                        out << "movq    $60, %rax\n";
-                        // call out to the kernel to end this misery
-                        out << "syscall\n";
-                    }
-                } else {
-                    if (TargetArchitecture == "X86-64") {
-                        ParserType& type = parserTypes[function->returnType];
+                ParserType& type = parserTypes[function->returnType];
 
-                        std::string source = CalculateExpression(variables, out, type.size, ret.expression, type.type);
-                        if (source != "%rax") {
-                            out << "mov" << AddInstructionPostfix(type.size) << "    " << source << ", " << AddRegisterA(type.size) << "\n";
-                        }
-                        out << "popq    %rbp\n";
-                        out << "ret\n";
-                    }
+                std::string source = CalculateExpression(variables, out, type.size, ret.expression, type.type);
+                if (source != "%rax") {
+                    out << "mov" << AddInstructionPostfix(type.size) << "    " << source << ", " << AddRegisterA(type.size) << "\n";
                 }
+                out << "popq    %rbp\n";
+                out << "ret\n";
+
                 didReturn = true;
                 break;
             }
@@ -446,7 +558,6 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 }
 
                 if (val.expression.nodeType != ParserValue::Node::empty) {
-                    // TODO: add memory to memory move, movsq didn't work in visualizer so I didn't risk it
                     std::string source = CalculateExpression(variables, out, var.singleSize, val.expression, type.type,
                                                              {1, 1, 0, 1});
                     out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
@@ -470,19 +581,11 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     }
 
     if (not didReturn) {
-        if (identifier == "main") {
-            if (TargetArchitecture == "X86-64") {
-                out << "movq    $0, %rdi\n";
-                out << "movq    $60, %rax\n";
-                out << "syscall\n";
-            }
+        if (function->returnType != "void" and not function->returnType.empty()) {
+            // TODO: make this smarter
+            CodeError("Value not returned at the end of a function!");
         }
-        else {
-            if (function->returnType != "void" and not function->returnType.empty()) {
-                // TODO: make this smarter
-                CodeError("Value not returned at the end of a function!");
-            }
-        }
+
     }
 }
 
@@ -512,6 +615,13 @@ void GenerateCode() {
     for (auto& n : parserFunctions.map) {
         GenerateFunction(n.second.name, out);
     }
+
+    out << "\n";
+    out << "_start:\n";
+    out << "call    main\n";
+    out << "movq    %rax, %rdi\n";
+    out << "movq    $60, %rax\n";
+    out << "syscall\n";
 }
 
 

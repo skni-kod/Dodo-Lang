@@ -214,11 +214,10 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
             instruction.type = FunctionInstruction::Type::forStatement;
             instruction.variant.forInstruction = new ForInstruction();
 
-            // get the variable
-            current = generator();
-            // if there is a variable at all
-            if (current->type != LexicalToken::Type::expressionEnd) {
 
+            // if there is a variable at all
+            while (lastToken->type != LexicalToken::Type::expressionEnd) {
+                current = generator();
                 if (current->type != LexicalToken::Type::identifier) {
                     if (current->type == LexicalToken::Type::keyword and current->value == "mut") {
                         current = generator();
@@ -227,29 +226,62 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
                         ParserError("Expected a type identifier in first segment of for loop");
                     }
                 }
-                instruction.variant.forInstruction->typeName = current->value;
+                ForLoopVariable var;
+                var.typeName = current->value;
+
 
                 current = generator();
                 if (current->type != LexicalToken::Type::identifier) {
                     ParserError("Expected a name after type in first segment of for loop");
                 }
-                instruction.variant.forInstruction->variableName = current->value;
+                var.identifier = current->value;
 
                 current = generator();
                 if (current->type == LexicalToken::Type::operand and current->value == "=") {
-                    // expression
+                    var.value = ParseMath(generator);
                 }
                 else if (current->type == LexicalToken::Type::expressionEnd) {
-                    // assign 0
+                    var.value.operationType = ParserValue::Node::constant;
+                    var.value.value = std::make_unique<std::string>("0");
                 }
                 else {
                     ParserError("Expected an expression or an end of expression after loop variable declaration!");
                 }
 
-                // TODO: allow for multiple variables
-
+                instruction.variant.forInstruction->variables.emplace_back(std::move(var));
             }
 
+            // now get the condition
+            current = generator();
+            std::vector <const LexicalToken*> tokens;
+            while (not IsComparisonOperand(current->value)) {
+                tokens.push_back(current);
+                current = generator();
+            }
+
+            instruction.variant.forInstruction->condition.left = ParseMath(tokens);
+            instruction.variant.forInstruction->condition.type = GetComparisonOperandType(current->value);
+
+            // right side
+            current = generator();
+            tokens.clear();
+            uint64_t bracketLevel = 0;
+            while (bracketLevel != 0 or current->type != LexicalToken::Type::expressionEnd) {
+                if (current->value == "(") {
+                    bracketLevel++;
+                }
+                else if (current->value == ")") {
+                    bracketLevel--;
+                }
+                tokens.push_back(current);
+                current = generator();
+            }
+            instruction.variant.forInstruction->condition.right = ParseMath(tokens);
+
+            // and now add the operations after this
+            while (lastToken->value != ")") {
+                instruction.variant.forInstruction->instructions.push_back(CreateInstruction(generator, generator()));
+            }
 
             return instruction;
         }

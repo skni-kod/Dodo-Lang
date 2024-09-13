@@ -5,6 +5,7 @@
 #include "../LexicalAnalysis.hpp"
 #include "../Flags.hpp"
 
+inline const LexicalToken* lastToken = nullptr;
 
 class ParserException : public std::exception {
 public:

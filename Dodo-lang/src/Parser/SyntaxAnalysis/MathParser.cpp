@@ -249,6 +249,9 @@ ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<con
             bracketLevel++;
         }
         if (current->value == ")") {
+            if (bracketLevel == 0) {
+                break;
+            }
             bracketLevel--;
         }
         front.push_back(current);
