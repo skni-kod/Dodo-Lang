@@ -99,20 +99,17 @@ int main(int argc, char* argv[])
     try {
         RunParsing(lt->f_token_list);
     }
-    catch (ParserException& e){
+    catch (__ParserException& e){
         std::cout << "Parsing has failed. compilation aborted!\n";
         return 1;
     }
     std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating assembly code:\n";
 
-    // temp
-    TargetArchitecture = "X86-64";
-    TargetSystem = "LINUX";
 
     try {
         GenerateCode();
     }
-    catch (CodeException& e){
+    catch (__CodeGeneratorException& e){
         std::cout << "Code generation has failed. compilation aborted!\n";
         return 1;
     }

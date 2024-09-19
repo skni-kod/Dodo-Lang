@@ -12,8 +12,7 @@ type u64 : UNSIGNED_INTEGER(8);
 
 i32 main() {
     mut i32 k = 0;
-    for (i32 n = 0, i32 m = n + 1; n < 10; n += 1, m -= 1, m += 1) {
-        k += 1;
-    }
-    return k;
+    mut i16 t = k;
+    k = t - 5 / 6;
+    return k + 1;
 }

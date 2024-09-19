@@ -8,7 +8,7 @@
 uint64_t currentLine = 0;
 const std::string* currentFile = nullptr;
 
-const char* ParserException::what() {
+const char* __ParserException::what() {
     return "Parser has encountered unexpected input";
 }
 
@@ -20,10 +20,10 @@ void ParserError(const std::string& message) {
         std::cout << "ERROR! " << *currentFile << " at line : " << currentLine + 1 << " : " << message << "\n";
     }
     if (not doneParsing) {
-        throw ParserException();
+        throw __ParserException();
     }
     else {
-        throw CodeException();
+        throw __CodeGeneratorException();
     }
 }
 
@@ -54,7 +54,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
 
     // Step 2: checking basic types (might not be required)
 
-    if (flags::informationLevel > flags::InformationLevel::minimal) {
+    if (options::informationLevel > options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with : " << parserTypes.size() << " type definition(s)\n";
     }
 
@@ -67,7 +67,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
         ParserError("No main function found!");
     }
 
-    if (flags::informationLevel > flags::InformationLevel::minimal) {
+    if (options::informationLevel > options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with : " << parserFunctions.size() << " function definition(s)\n";
     }
 }

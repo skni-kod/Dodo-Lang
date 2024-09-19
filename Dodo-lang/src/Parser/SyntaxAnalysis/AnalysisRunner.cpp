@@ -17,7 +17,7 @@ bool RunSyntaxAnalysis(Generator<const LexicalToken*>& generator) {
                 CreateType(generator);
                 continue;
             }
-            catch (ParserException& e){
+            catch (__ParserException& e){
                 didFail = true;
                 while (current->type != LexicalToken::Type::expressionEnd) {
                     current = generator();
@@ -33,7 +33,7 @@ bool RunSyntaxAnalysis(Generator<const LexicalToken*>& generator) {
                 CreateFunction(generator, current->value);
                 continue;
             }
-            catch (ParserException& e){
+            catch (__ParserException& e){
                 didFail = true;
                 while (current->type != LexicalToken::Type::expressionEnd) {
                     current = generator();

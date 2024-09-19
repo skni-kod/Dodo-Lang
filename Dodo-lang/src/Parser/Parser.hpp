@@ -7,7 +7,7 @@
 
 inline const LexicalToken* lastToken = nullptr;
 
-class ParserException : public std::exception {
+class __ParserException : public std::exception {
 public:
     const char* what();
 };

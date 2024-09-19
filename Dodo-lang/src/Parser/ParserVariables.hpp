@@ -43,6 +43,7 @@ struct ParserValue {
         constant, variable, operation, empty
     };
     enum Operation {
+        // !!! keep this updated with Bytecode list, maybe do a macro
         addition, subtraction, multiplication, division, functionCall
     };
     enum Value {

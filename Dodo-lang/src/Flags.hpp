@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace flags {
+namespace options {
     // default values inside
     enum InformationLevel {
         // only general stages, time
@@ -14,6 +14,9 @@ namespace flags {
         full
     };
     inline uint8_t informationLevel = InformationLevel::full;
+    inline std::string targetArchitecture = "X86_64";
+    inline std::string targetSystem = "LINUX";
+    inline std::string commentPrefix = "# ";
 }
 
 #endif //DODO_LANG_FLAGS_HPP
