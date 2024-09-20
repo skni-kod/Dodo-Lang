@@ -12,6 +12,12 @@ ParserType::ParserType(uint8_t type, uint8_t size)  {
     this->size = size;
 }
 
+ParserType::ParserType(uint8_t type, uint8_t size, std::string name)  {
+    this->type = type;
+    this->size = size;
+    this->name = name;
+}
+
 FunctionInstruction::~FunctionInstruction() {
     switch (type) {
         case Type::declaration:

@@ -58,10 +58,15 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
     }
 
     if (expression.nodeType == ParserValue::Node::operation) {
-        std::string left =  CalculateBytecodeExpression(*expression.left,  type);
-        std::string right = CalculateBytecodeExpression(*expression.right, type);
-        bytecodes.emplace_back(expression.operationType, right, left, expressionCounter);
-        return EXPRESSION_SIGN + std::to_string(expressionCounter++);;
+        if (expression.operationType == ParserValue::Operation::functionCall) {
+            return "";
+        }
+        else {
+            std::string left =  CalculateBytecodeExpression(*expression.left,  type);
+            std::string right = CalculateBytecodeExpression(*expression.right, type);
+            bytecodes.emplace_back(expression.operationType, right, left, expressionCounter);
+            return EXPRESSION_SIGN + std::to_string(expressionCounter++);;
+        }
     }
 
     if (expression.nodeType == ParserValue::Node::empty) {
@@ -81,12 +86,30 @@ void BytecodeDeclare(const DeclarationInstruction& instruction) {
     auto& type = parserTypes[instruction.typeName];
     earlyVariables.add({{type.size, type.type, instruction.subtype}, instruction.name, instruction.isMutable});
     bytecodes.emplace_back(Bytecode::declare, CalculateBytecodeExpression(instruction.expression,{type.size, type.type, instruction.subtype}),
-                           instruction.name, VariableType(type.size, type.type, instruction.subtype));
+                           instruction.name, &type);
 }
 
 void BytecodeAssign(const ValueChangeInstruction& instruction) {
     bytecodes.emplace_back(Bytecode::assign, CalculateBytecodeExpression(instruction.expression, earlyVariables.find(instruction.name).type), instruction.name);
 }
+
+void BytecodePushLevel() {
+    earlyVariables.pushLevel();
+    bytecodes.emplace_back(Bytecode::pushLevel);
+}
+
+void BytecodePopLevel() {
+    earlyVariables.popLevel();
+    bytecodes.emplace_back(Bytecode::popLevel);
+}
+
+void BytecodeFunctionCall(const FunctionCallInstruction& instruction) {
+    BytecodePushLevel();
+    bytecodes.emplace_back(Bytecode::prepareArguments, instruction.functionName);
+    bytecodes.emplace_back(Bytecode::callFunction, instruction.functionName);
+    BytecodePopLevel();
+}
+
 
 void GenerateFunctionStepOne(const ParserFunction& function) {
     expressionCounter = 0;
@@ -102,6 +125,15 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
                 break;
             case FunctionInstruction::Type::valueChange:
                 BytecodeAssign(*current.variant.valueChangeInstruction);
+                break;
+            case FunctionInstruction::Type::beginScope:
+                BytecodePushLevel();
+                break;
+            case FunctionInstruction::Type::endScope:
+                BytecodePopLevel();
+                break;
+            case FunctionInstruction::Type::functionCall:
+                BytecodeFunctionCall(*current.variant.functionCallInstruction);
                 break;
         }
     }

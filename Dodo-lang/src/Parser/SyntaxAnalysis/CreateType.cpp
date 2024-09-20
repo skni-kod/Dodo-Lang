@@ -89,5 +89,5 @@ void CreateType(Generator<const LexicalToken*>& generator) {
         ParserError("Expected an end of expression token after closing of basic type type bracket!");
     }
 
-    parserTypes.insert(name, ParserType(type, size));
+    parserTypes.insert(name, ParserType(type, size, name));
 }

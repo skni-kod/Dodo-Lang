@@ -10,9 +10,15 @@ type u16 : UNSIGNED_INTEGER(2);
 type u32 : UNSIGNED_INTEGER(4);
 type u64 : UNSIGNED_INTEGER(8);
 
+i32 fun() {
+    let i64 g = 5;
+    let i16 y = g / 7;
+    return g + y;
+}
+
 i32 main() {
     mut i32 k = 0;
     mut i16 t = k;
-    k = t - 5 / 6;
+    k = t - 5 / 6 + fun();
     return k + 1;
 }

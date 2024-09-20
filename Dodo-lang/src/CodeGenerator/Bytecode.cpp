@@ -2,7 +2,11 @@
 #include <iostream>
 #include "GenerateCode.hpp"
 
+Bytecode::Bytecode(uint64_t code) : code(code) {}
+
 Bytecode::Bytecode(uint64_t code, std::string source) : code(code), source(source) {}
+
+Bytecode::Bytecode(uint64_t code, std::string source, std::string target, const ParserType* typePointer) : code(code), source(source), target(target), typePointer(typePointer) {}
 
 Bytecode::Bytecode(uint64_t code, std::string source, std::string target) : code(code), source(source), target(target) {}
 
@@ -10,17 +14,27 @@ Bytecode::Bytecode(uint64_t code, std::string source, std::string target, uint64
 
 Bytecode::Bytecode(uint64_t code, std::string source, uint64_t number) : code(code), source(source), number(number) {}
 
-Bytecode::Bytecode(uint64_t code, std::string source, uint16_t sourceType, uint16_t sourceSize, uint16_t targetType, uint16_t targetSize)  :
-    code(code), source(source), sourceType(sourceType), sourceSize(sourceSize), targetType(targetType), targetSize(targetSize) {}
-
-Bytecode::Bytecode(uint64_t code, std::string source, uint16_t sourceType, uint16_t sourceSize, VariableType targetType)  :
-        code(code), source(source), sourceType(sourceType), sourceSize(sourceSize), targetType(targetType.type), targetSize(targetType.size) {}
-
 Bytecode::Bytecode(uint64_t code, std::string source, VariableType sourceType, VariableType targetType) :
-        code(code), source(source), sourceType(sourceType.type), sourceSize(sourceType.size), targetType(targetType.type), targetSize(targetType.size) {}
+        code(code), source(source) {
+    types.target = targetType;
+    types.source = sourceType;
+}
 
-Bytecode::Bytecode(uint64_t code, std::string source, std::string target, VariableType sourceType) :
-        code(code), source(source), target(target), sourceType(sourceType.type), sourceSize(sourceType.size) {}
+Bytecode::Bytecode(uint64_t code, std::string source, std::string target, VariableType sourceType, VariableType targetType) :
+        code(code), source(source), target(target) {
+    types.target = targetType;
+    types.source = sourceType;
+}
+
+Bytecode::Bytecode(uint64_t code, std::string source, VariableType bothType) : code(code), source(source) {
+    types.target = bothType;
+    types.source = bothType;
+}
+
+Bytecode::Bytecode(uint64_t code, std::string source, std::string target, VariableType bothType) : code(code), source(source), target(target) {
+    types.target = bothType;
+    types.source = bothType;
+}
 
 std::string EnumToVarType(uint8_t type) {
     switch (type) {
@@ -56,7 +70,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Divide: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << code.number << "\n";
             break;
         case Bytecode::callFunction:
-            out << "Call function: " << code.source << "\n";
+            out << "Call function: " << code.source << " and store result in: " << code.target << "\n";
             break;
         case Bytecode::moveArgument:
             out << "Move: " << code.source << " as function argument number: " << code.number << "\n";
@@ -83,14 +97,13 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Compare: " << code.source << " with: " << code.target << "\n";
             break;
         case Bytecode::declare:
-            out << "Declare variable: " << code.target << " with assigned value: " << code.source << "\n";
+            out << "Declare variable: " << code.target << " of type: " << code.typePointer->name << " with assigned value: " << code.source << "\n";
             break;
         case Bytecode::assign:
             out << "Assign value of: " << code.source << " to: " << code.target << "\n";
             break;
         case Bytecode::convert:
-            out << "Convert value of: " << code.source << " from size: " << code.sourceSize << " to: " << code.targetSize
-                << " and type: " << EnumToVarType(code.sourceType) << " to: " << EnumToVarType(code.targetType) << "\n";
+            out << "Convert: " << code.source << " from: " << code.types.source << " to: " << code.types.target << "\n";
             break;
         default:
             CodeGeneratorError("Invalid bytecode code!");

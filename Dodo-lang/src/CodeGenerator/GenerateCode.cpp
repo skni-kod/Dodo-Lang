@@ -105,6 +105,37 @@ void GenerateCode() {
     }
 }
 
+std::ostream& operator<<(std::ostream& out, const VariableType& type) {
+    switch(type.subtype) {
+        case VariableType::Subtype::value:
+            out << "value of ";
+            break;
+        case VariableType::Subtype::reference:
+            out << "reference to ";
+            break;
+        case VariableType::Subtype::pointer:
+            out << "pointer to ";
+            break;
+        default:
+            CodeGeneratorError("Invalid variable subtype!");
+    }
+    switch(type.type) {
+        case ParserType::Type::unsignedInteger:
+            out << "unsigned integer variable ";
+            break;
+        case ParserType::Type::signedInteger:
+            out << "signed integer variable ";
+            break;
+        case ParserType::Type::floatingPoint:
+            out << "floating point variable ";
+            break;
+        default:
+            CodeGeneratorError("Invalid variable type!");
+    }
+    out << "sized " << uint64_t(type.size) << " bytes";
+    return out;
+}
+
 
 VariableType::VariableType(uint8_t size, uint8_t type, uint8_t subtype) : size(size), type(type), subtype(subtype) {}
 

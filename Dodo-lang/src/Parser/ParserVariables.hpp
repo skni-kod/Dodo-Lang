@@ -24,9 +24,11 @@ struct ParserType {
     enum Type {
         signedInteger, unsignedInteger, floatingPoint
     };
+    std::string name;
     uint8_t type:2;                         // allowed values 0-2
     uint8_t size:6;                         // allowed values 1-8 (maybe more in future)
     ParserType(uint8_t type, uint8_t size); // assumes valid input
+    ParserType(uint8_t type, uint8_t size, std::string name); // assumes valid input
     ParserType() = default;
 };
 
