@@ -198,27 +198,27 @@ void ParserValue::fillValue(std::string val) {
 
 void ParserCondition::SetOperand(const std::string &value) {
     if (value == "==") {
-        type = Type::equals;
+        type = Condition::equals;
         return;
     }
     if (value == "!=") {
-        type = Type::notEquals;
+        type = Condition::notEquals;
         return;
     }
     if (value == ">") {
-        type = Type::greater;
+        type = Condition::greater;
         return;
     }
     if (value == "<") {
-        type = Type::lesser;
+        type = Condition::lesser;
         return;
     }
     if (value == ">=") {
-        type = Type::greaterEqual;
+        type = Condition::greaterEqual;
         return;
     }
     if (value == "<=") {
-        type = Type::lesserEqual;
+        type = Condition::lesserEqual;
         return;
     }
     ParserError("Invalid comparison operator!");

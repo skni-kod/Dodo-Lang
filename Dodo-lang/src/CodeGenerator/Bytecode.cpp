@@ -50,6 +50,26 @@ std::string EnumToVarType(uint8_t type) {
     return "";
 }
 
+std::string EnumToComparisonType(uint8_t type) {
+    switch (type) {
+        case Bytecode::Condition::notEquals:
+            return "is not equal";
+        case Bytecode::Condition::equals:
+            return "is equal";
+        case Bytecode::Condition::greaterEqual:
+            return "is greater or equal";
+        case Bytecode::Condition::greater:
+            return "is greater";
+        case Bytecode::Condition::lesserEqual:
+            return "is lesser or equal";
+        case Bytecode::Condition::lesser:
+            return "is lesser";
+        default:
+            CodeGeneratorError("Invalid type in string conversion!");
+    }
+    return "";
+}
+
 std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
     // none, add, subtract, multiply, divide, callFunction, returnValue, pushLevel, popLevel, jump,
     //        compare, declare, assign
@@ -70,7 +90,12 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Divide: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << code.number << "\n";
             break;
         case Bytecode::callFunction:
-            out << "Call function: " << code.source << " and store result in: " << code.target << "\n";
+            if (code.target.empty()) {
+                out << "Call function: " << code.source << "( ... )\n";
+            }
+            else {
+                out << "Call function: " << code.source << "( ... ) of type: " << code.types.source << " and store result in: " << code.target << "\n";
+            }
             break;
         case Bytecode::moveArgument:
             out << "Move: " << code.source << " as function argument number: " << code.number << "\n";
@@ -88,7 +113,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Pop variable level\n";
             break;
         case Bytecode::jumpConditional:
-            out << "Jump to: " << code.source << " if <not implemented>\n";
+            out << "Jump to: " << code.source << " if left " << EnumToComparisonType(code.number) << " than right\n";
             break;
         case Bytecode::jump:
             out << "Jump to: " << code.source << "\n";
@@ -104,6 +129,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             break;
         case Bytecode::convert:
             out << "Convert: " << code.source << " from: " << code.types.source << " to: " << code.types.target << "\n";
+            break;
+        case Bytecode::addLabel:
+            out << "Add label: " << code.source << "\n";
             break;
         default:
             CodeGeneratorError("Invalid bytecode code!");

@@ -15,6 +15,11 @@ enum Subtype { \
     value, pointer, reference, none \
 };
 
+#define INSERT_CONDITION_ENUM \
+enum Condition { \
+    equals, notEquals, greater, greaterEqual, lesser, lesserEqual \
+};
+
 bool IsType(const std::string& token);
 bool IsObject(const std::string& token);
 // that is if it can be used for a variable
@@ -91,9 +96,7 @@ struct FunctionCallInstruction {
 };
 
 struct ParserCondition {
-    enum Type {
-        equals, notEquals, greater, greaterEqual, lesser, lesserEqual
-    };
+    INSERT_CONDITION_ENUM
     uint8_t type = 0;
     ParserValue left, right;
     void SetOperand(const std::string& value);

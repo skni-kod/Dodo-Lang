@@ -10,22 +10,22 @@ bool IsComparisonOperand(const std::string& value) {
 
 uint8_t GetComparisonOperandType(const std::string& value) {
     if (value == "==") {
-        return ParserCondition::Type::equals;
+        return ParserCondition::Condition::equals;
     }
     if (value == "!=") {
-        return ParserCondition::Type::notEquals;
+        return ParserCondition::Condition::notEquals;
     }
     if (value == ">") {
-        return ParserCondition::Type::greater;
+        return ParserCondition::Condition::greater;
     }
     if (value == ">=") {
-        return ParserCondition::Type::greaterEqual;
+        return ParserCondition::Condition::greaterEqual;
     }
     if (value == "<") {
-        return ParserCondition::Type::lesser;
+        return ParserCondition::Condition::lesser;
     }
     if (value == "<=") {
-        return ParserCondition::Type::lesserEqual;
+        return ParserCondition::Condition::lesserEqual;
     }
     ParserError("Unknown comparison operand!");
     return 1;

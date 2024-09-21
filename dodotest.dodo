@@ -19,6 +19,9 @@ i32 fun() {
 i32 main() {
     mut i32 k = 0;
     mut i16 t = k;
-    k = t - 5 / 6 + fun();
+    fun();
+    if (t > 5) {
+        k = t - 5 / 6 + fun();
+    }
     return k + 1;
 }

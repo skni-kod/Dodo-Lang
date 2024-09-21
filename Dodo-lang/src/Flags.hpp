@@ -17,6 +17,7 @@ namespace options {
     inline std::string targetArchitecture = "X86_64";
     inline std::string targetSystem = "LINUX";
     inline std::string commentPrefix = "# ";
+    inline std::string jumpLabelPrefix = ".LC";
 }
 
 #endif //DODO_LANG_FLAGS_HPP

@@ -47,12 +47,15 @@ struct Bytecode {
         // none
         none,
         // s -> other type
-        convert
+        convert,
+        // s
+        addLabel
 
     };
-    enum Condition {
-        // TODO: add conditional enum
-    };
+
+    // l exp r
+    INSERT_CONDITION_ENUM
+
     uint64_t code = none;
     // number will be used for things like argument number etc
     std::string source;
