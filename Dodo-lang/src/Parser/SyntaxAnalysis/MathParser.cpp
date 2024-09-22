@@ -20,10 +20,10 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         if (tokens[range.first]->type == LexicalToken::Type::identifier) {
             ParserValue value;
             value.nodeType = ParserValue::Node::variable;
-            value.fillValue(tokens[range.first]->value);
+            value.value = std::make_unique<std::string>(tokens[range.first]->value);
             return value;
         }
-        else  if (tokens[range.first]->type == LexicalToken::Type::literal) {
+        else if (tokens[range.first]->type == LexicalToken::Type::literal) {
             ParserValue value;
             value.nodeType = ParserValue::Node::constant;
             value.fillValue(tokens[range.first]->value);

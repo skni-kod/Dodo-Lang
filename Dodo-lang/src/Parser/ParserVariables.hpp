@@ -27,7 +27,7 @@ bool IsDeclarable(const std::string& token);
 
 struct ParserType {
     enum Type {
-        signedInteger, unsignedInteger, floatingPoint
+        unsignedInteger, signedInteger, floatingPoint
     };
     std::string name;
     uint8_t type:2;                         // allowed values 0-2
@@ -35,6 +35,18 @@ struct ParserType {
     ParserType(uint8_t type, uint8_t size); // assumes valid input
     ParserType(uint8_t type, uint8_t size, std::string name); // assumes valid input
     ParserType() = default;
+};
+
+struct VariableType {
+    uint32_t size:28;
+    INSERT_SUBTYPE_ENUM
+    uint8_t type:2 = ParserType::Type::signedInteger;
+    uint8_t subtype:2 = Subtype::value;
+    VariableType() = default;
+    VariableType(uint8_t size, uint8_t type, uint8_t subtype = Subtype::value);
+    explicit VariableType(const std::string& typeName, uint8_t subtype = Subtype::value);
+    explicit VariableType(const ParserType& type, uint8_t subtype = Subtype::value);
+    bool operator==(const VariableType& var);
 };
 
 struct FunctionArgument {

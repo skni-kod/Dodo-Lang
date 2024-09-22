@@ -2,6 +2,7 @@
 #include "Parser.hpp"
 #include "Generator.tpp"
 #include "SyntaxAnalysis/AnalysisInternal.hpp"
+#include "GenerateCode.hpp"
 
 bool IsType(const std::string& token) {
     return parserTypes.isKey(token);
@@ -17,6 +18,67 @@ ParserType::ParserType(uint8_t type, uint8_t size, std::string name)  {
     this->size = size;
     this->name = name;
 }
+
+std::ostream& operator<<(std::ostream& out, const VariableType& type) {
+    switch(type.subtype) {
+        case VariableType::Subtype::value:
+            out << "value of ";
+            break;
+        case VariableType::Subtype::reference:
+            out << "reference to ";
+            break;
+        case VariableType::Subtype::pointer:
+            out << "pointer to ";
+            break;
+        default:
+            if (doneParsing) {
+                CodeGeneratorError("Invalid variable subtype!");
+            }
+            ParserError("Invalid variable subtype!");
+    }
+    switch(type.type) {
+        case ParserType::Type::unsignedInteger:
+            out << "unsigned integer variable ";
+            break;
+        case ParserType::Type::signedInteger:
+            out << "signed integer variable ";
+            break;
+        case ParserType::Type::floatingPoint:
+            out << "floating point variable ";
+            break;
+        default:
+            if (doneParsing) {
+                CodeGeneratorError("Invalid variable type!");
+            }
+            ParserError("Invalid variable type!");
+    }
+    out << "sized " << uint64_t(type.size) << " bytes";
+    return out;
+}
+
+
+VariableType::VariableType(uint8_t size, uint8_t type, uint8_t subtype) : size(size), type(type), subtype(subtype) {}
+
+VariableType::VariableType(const std::string& typeName, uint8_t subtype) {
+    auto& type = parserTypes[typeName];
+    this->subtype = subtype;
+    this->size = type.size;
+    this->type = type.type;
+}
+
+VariableType::VariableType(const ParserType& type, uint8_t subtype) {
+    this->subtype = subtype;
+    this->size = type.size;
+    this->type = type.type;
+}
+
+bool VariableType::operator==(const VariableType &var) {
+    if (size == var.size and type == var.type and subtype == var.subtype) {
+        return true;
+    }
+    return false;
+}
+
 
 FunctionInstruction::~FunctionInstruction() {
     switch (type) {
@@ -157,28 +219,69 @@ void FunctionInstruction::DeleteAfterCopy() {
 }
 
 void ParserValue::fillValue(std::string val) {
-    std::string temp = val;
-    if (temp.empty()) {
+    if (val.empty()) {
         ParserError("Empty string passed to numeric conversion!");
     }
 
-    if (temp.front() == '-') {
-        if (temp.size() == 1) {
-            ParserError("A \"-\" string passed to numeric conversion!");
-        }
-        temp = temp.substr(1, temp.size() - 1);
+    if (val.front() == '-' and val.size() == 1) {
         isNegative = true;
     }
 
     // checking if it's a 0x..., 0b... or 0o...
-    if (temp.size() > 2 and temp.front() == 0 and (temp[1] == 'x' or temp[1] == 'b' or temp[1] == 'o')) {
-        ParserError("Non decimals not yet supported!");
-        // TODO: add non decimals
+    if (val.size() > 2 and val.front() == '0' and (val[1] == 'x' or val[1] == 'b' or val[1] == 'o' or val[1] == 'q')) {
+        uint64_t base;
+        switch (val[1]) {
+            case 'x':
+                base = 16;
+                for (uint16_t n = 2; n < val.size(); n++) {
+                    if ((val[n] < '0' or val[n] > '9') and (val[n] < 'A' or val[n] > 'F') and (val[n] < 'a' or val[n] > 'f')) {
+                        ParserError("Invalid hexadecimal number format!");
+                    }
+                    if (val[n] >= 'a') {
+                        val[n] = val[n] - 'a' + '9' + 1;
+                    }
+                    if (val[n] >= 'A') {
+                        val[n] = val[n] - 'A' + '9' + 1;
+                        continue;
+                    }
+                }
+                break;
+            case 'o':
+                base = 8;
+                for (uint16_t n = 2; n < val.size(); n++) {
+                    if (val[n] < '0' or val[n] > '7') {
+                        ParserError("Invalid octal number format!");
+                    }
+                }
+                break;
+            case 'q':
+                for (uint16_t n = 2; n < val.size(); n++) {
+                    if (val[n] < '0' or val[n] > '3') {
+                        ParserError("Invalid base 4 number format!");
+                    }
+                }
+                base = 4;
+                break;
+            case 'b':
+                for (uint16_t n = 2; n < val.size(); n++) {
+                    if (val[n] != '0' and val[n] != '1') {
+                        ParserError("Invalid binary number format!");
+                    }
+                }
+                base = 2;
+                break;
+        }
+        uint64_t sum = 0;
+        for (uint16_t n = 2; n < val.size(); n++) {
+            sum *= base;
+            sum += val[n] - '0';
+        }
+        value = std::make_unique<std::string>(std::to_string(sum));
         return;
     }
 
     bool isFloatingPoint = false;
-    for (auto& n : temp) {
+    for (auto& n : val) {
         if (n == '.') {
             if (isFloatingPoint == false) {
                 isFloatingPoint = true;
@@ -189,15 +292,19 @@ void ParserValue::fillValue(std::string val) {
         }
     }
 
+    value = std::make_unique<std::string>(val);
+
     if (isFloatingPoint) {
-        // TODO: add floats
-        ParserError("Floating point numbers not yet supported!");
+        operationType = Value::floatingPoint;
         return;
     }
 
-    // at this point val is a valid decimal, so just input it into the pointer
-    value = std::make_unique<std::string>(val);
-    operationType = Value::signedInteger;
+    if (isNegative) {
+        operationType = Value::signedInteger;
+        return;
+    }
+
+    operationType = Value::unsignedInteger;
 }
 
 void ParserCondition::SetOperand(const std::string &value) {

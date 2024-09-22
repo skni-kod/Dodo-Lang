@@ -2,6 +2,11 @@
 #include "Bytecode.hpp"
 #include "GenerateCode.hpp"
 
+#define MIN_16_BIT_FLOAT_PRECISE 0.000000059604644l
+#define MIN_32_BIT_FLOAT_PRECISE 0.000000000000000000000000000000000000000000001401298l
+#define MAX_16_BIT_FLOAT_PRECISE 65504.l
+#define MAX_32_BIT_FLOAT_PRECISE 16777216.l
+
 namespace {
     struct VariableContainer {
         VariableType type;
@@ -75,6 +80,102 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
 
     CodeGeneratorError("Invalid node type!");
     return "";
+}
+
+VariableType NegotiateOperationType(const ParserValue& expression) {
+    if (expression.nodeType == ParserValue::Node::variable) {
+        return earlyVariables.find(*expression.value).type;
+    }
+
+    if (expression.nodeType == ParserValue::Node::constant) {
+        bool isFloat = false;
+        for (auto& n : *expression.value) {
+            if (n != '-' and n != '.' and n < '0' and n > '9') {
+                CodeGeneratorError("Non numeric constants no supported!");
+            }
+            if (n == '.') {
+                if (isFloat) {
+                    CodeGeneratorError("Multiple dots in floating point value!");
+                }
+                isFloat = true;
+            }
+        }
+
+        if (isFloat) {
+            long double number = std::stold(*expression.value);
+            if ((number <= MAX_16_BIT_FLOAT_PRECISE and number > MIN_16_BIT_FLOAT_PRECISE) or (number >= -MAX_16_BIT_FLOAT_PRECISE and number < -MIN_16_BIT_FLOAT_PRECISE)) {
+                return {2, ParserType::Type::floatingPoint};
+            }
+
+            if ((number <= MAX_32_BIT_FLOAT_PRECISE and number > MIN_32_BIT_FLOAT_PRECISE) or (number >= -MAX_32_BIT_FLOAT_PRECISE and number < -MIN_32_BIT_FLOAT_PRECISE)) {
+                return {4, ParserType::Type::floatingPoint};
+            }
+
+            return {8, ParserType::Type::floatingPoint};
+        }
+
+        if (expression.value->front() == '-') {
+            int64_t number = std::stoll(*expression.value);
+            if (number <= 127 and number >= -128) {
+                return {1, ParserType::Type::signedInteger};
+            }
+
+            if (number <= 32767 and number >= -32768) {
+                return {2, ParserType::Type::signedInteger};
+            }
+
+            if (number <= 2147483647 and number >= -2147483648) {
+                return {4, ParserType::Type::signedInteger};
+            }
+
+            return {8, ParserType::Type::signedInteger};
+        }
+
+        uint64_t number = std::stoull(*expression.value);
+        if (number <= 255) {
+            return {1, ParserType::Type::unsignedInteger};
+        }
+
+        if (number <= 65535) {
+            return {2, ParserType::Type::unsignedInteger};
+        }
+
+        if (number <= 4294967295) {
+            return {4, ParserType::Type::unsignedInteger};
+        }
+
+        return {8, ParserType::Type::unsignedInteger};
+    }
+
+    if (expression.nodeType == ParserValue::Node::operation) {
+        if (expression.operationType == ParserValue::Operation::functionCall) {
+            auto& fun = parserFunctions[*expression.value];
+            return VariableType(fun.returnType);
+        }
+
+        auto left = NegotiateOperationType(*expression.left);
+        auto right = NegotiateOperationType(*expression.right);
+
+        if (left.subtype != right.subtype) {
+            CodeGeneratorError("Subtype mismatch in operation!");
+        }
+
+        return VariableType((left.size > right.size ? left.size : right.size), (left.type > right.type ? left.type : right.type));
+    }
+
+    CodeGeneratorError("Invalid node type in bytecode generator size negotiation!");
+    return {};
+}
+
+VariableType NegotiateOperationType(const ParserValue& first, const ParserValue& second) {
+    auto left = NegotiateOperationType(first);
+    auto right = NegotiateOperationType(second);
+
+    if (left.subtype != right.subtype) {
+        CodeGeneratorError("Subtype mismatch in operation!");
+    }
+
+    return VariableType((left.size > right.size ? left.size : right.size), (left.type > right.type ? left.type : right.type));
 }
 
 void BytecodeReturn(const ReturnInstruction& instruction, const ParserFunction& function) {
@@ -174,12 +275,12 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
 }
 
 void BytecodeIf(const ParserFunction& function, const IfInstruction& instruction, uint64_t& counter) {
-    // TODO: add comparison type negotiation
     // get ingredients for comp
-    std::string left  = CalculateBytecodeExpression(instruction.condition.left , {8, ParserType::Type::signedInteger});
-    std::string right = CalculateBytecodeExpression(instruction.condition.right, {8, ParserType::Type::signedInteger});
+    auto type = NegotiateOperationType(instruction.condition.left, instruction.condition.right);
+    std::string left  = CalculateBytecodeExpression(instruction.condition.left , type);
+    std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
-    bytecodes.emplace_back(Bytecode::compare, left, right, VariableType(8, ParserType::Type::signedInteger));
+    bytecodes.emplace_back(Bytecode::compare, left, right, type);
     std::string label = options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::jumpConditionalFalse, label, instruction.condition.type);
     counter++;
@@ -223,16 +324,15 @@ void BytecodeElse(const ParserFunction& function, uint64_t& counter) {
 }
 
 void BytecodeWhile(const ParserFunction& function, const WhileInstruction& instruction, uint64_t& counter) {
-    // TODO: add comparison type negotiation
-
     // add label to return for before every comparison
     std::string labelBefore = options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::addLabel, labelBefore);
     // get ingredients for comp
-    std::string left  = CalculateBytecodeExpression(instruction.condition.left , {8, ParserType::Type::signedInteger});
-    std::string right = CalculateBytecodeExpression(instruction.condition.right, {8, ParserType::Type::signedInteger});
+    auto type = NegotiateOperationType(instruction.condition.left, instruction.condition.right);
+    std::string left  = CalculateBytecodeExpression(instruction.condition.left , type);
+    std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
-    bytecodes.emplace_back(Bytecode::compare, left, right, VariableType(8, ParserType::Type::signedInteger));
+    bytecodes.emplace_back(Bytecode::compare, left, right, type);
     std::string labelAfter = options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::jumpConditionalFalse, labelAfter, instruction.condition.type);
     counter++;
@@ -245,8 +345,6 @@ void BytecodeWhile(const ParserFunction& function, const WhileInstruction& instr
 }
 
 void BytecodeFor(const ParserFunction& function, const ForInstruction& instruction, uint64_t& counter) {
-    // TODO: add comparison type negotiation
-
     // push level here so that these variables get deleted after the loop
     BytecodePushLevel();
     // now declare variables for the loop
@@ -258,10 +356,11 @@ void BytecodeFor(const ParserFunction& function, const ForInstruction& instructi
     std::string labelBefore = options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::addLabel, labelBefore);
     // get ingredients for comp
-    std::string left  = CalculateBytecodeExpression(instruction.condition.left , {8, ParserType::Type::signedInteger});
-    std::string right = CalculateBytecodeExpression(instruction.condition.right, {8, ParserType::Type::signedInteger});
+    auto type = NegotiateOperationType(instruction.condition.left, instruction.condition.right);
+    std::string left  = CalculateBytecodeExpression(instruction.condition.left , type);
+    std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
-    bytecodes.emplace_back(Bytecode::compare, left, right, VariableType(8, ParserType::Type::signedInteger));
+    bytecodes.emplace_back(Bytecode::compare, left, right, type);
     std::string labelAfter = options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::jumpConditionalFalse, labelAfter, instruction.condition.type);
     counter++;
