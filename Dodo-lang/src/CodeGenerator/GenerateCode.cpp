@@ -1,7 +1,8 @@
 #include "GenerateCode.hpp"
 #include "GenerateCodeInternal.hpp"
-#include "MemoryStructure.hpp"
-#include "Bytecode.hpp"
+#include "CodeGenerator/Assembly/MemoryStructure.hpp"
+#include "CodeGenerator/Bytecode/Bytecode.hpp"
+#include "Assembly/X86_64/X86_64Assembly.hpp"
 #include <filesystem>
 #include <fstream>
 
@@ -77,6 +78,7 @@ void GenerateCode() {
     for (auto& current : parserFunctions.map) {
         // cleaning up after possible previous thing
         bytecodes.clear();
+        finalInstructions.clear();
         if (options::targetArchitecture == "X86_64") {
             generatorMemory.cleanX86_86();
             out << "\n"
@@ -86,14 +88,18 @@ void GenerateCode() {
         }
 
         // first off the instructions need to be changed into raw operations universal for platforms
-        // general optimizations will take place here
         GenerateFunctionStepOne(current.second);
 
+        // general optimizations will take place here
+
         // next convert them into platform specific code
+        GenerateFunctionStepTwo(current.second);
         // platform specific optimizations will be done here
 
         // at the end use the calculated stack offset and put the thing into code
-
+        for (const auto & finalInstruction : finalInstructions) {
+            x86_64::EmitAssemblyFromCode(finalInstruction, out);
+        }
 
         // end function
         if (options::targetArchitecture == "X86_64") {

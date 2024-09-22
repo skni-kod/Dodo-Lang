@@ -32,11 +32,14 @@ add_executable(Dodo_Lang
         Dodo-lang/src/Parser/SyntaxAnalysis/MathParser.cpp
         Dodo-lang/src/CodeGenerator/GenerateCode.cpp
         Dodo-lang/src/CodeGenerator/GenerateCodeInternal.hpp
-        Dodo-lang/src/CodeGenerator/MemoryStructure.hpp
-        Dodo-lang/src/CodeGenerator/MemoryStructure.cpp
-        Dodo-lang/src/CodeGenerator/FunctionStepOne.cpp
-        Dodo-lang/src/CodeGenerator/Bytecode.hpp
-        Dodo-lang/src/CodeGenerator/Bytecode.cpp
+        Dodo-lang/src/CodeGenerator/Assembly/MemoryStructure.hpp
+        Dodo-lang/src/CodeGenerator/Assembly/MemoryStructure.cpp
+        Dodo-lang/src/CodeGenerator/Bytecode/FunctionStepOne.cpp
+        Dodo-lang/src/CodeGenerator/Bytecode/Bytecode.hpp
+        Dodo-lang/src/CodeGenerator/Bytecode/Bytecode.cpp
+        Dodo-lang/src/CodeGenerator/Assembly/FunctionStepTwo.cpp
+        Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64Assembly.hpp
+        Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64Assembly.cpp
 )
 
 # uncomment when project works well

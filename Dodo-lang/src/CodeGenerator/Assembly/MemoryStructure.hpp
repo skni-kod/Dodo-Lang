@@ -5,24 +5,31 @@
 #include <string>
 #include <cstdint>
 #include <stack>
+#include "ParserVariables.hpp"
 
 // the memory structure simulates the cpu registers and stack, allowing for more optimized and generalized approach to memory management
 
 namespace internal {
+    struct ContentEntry {
+        std::string value = "!";
+        VariableType type;
+        explicit ContentEntry(std::string value);
+    };
+
     struct Register {
         // names for given sizes
         std::vector <std::pair <uint64_t, std::string>> sizeNamePairs;
         // name of thing inside
-        std::string content = "!";
+        ContentEntry content = ContentEntry("!");
         bool usedForIntegers = false;
         bool usedForFloats = false;
+        const std::string& nameBySize(uint32_t size);
     };
 
     struct StackEntry {
         int64_t offset;
         uint64_t amount;
-        uint64_t size;
-        std::string content;
+        ContentEntry content = ContentEntry("!");
     };
 
     struct Variable {
@@ -60,14 +67,70 @@ struct MemoryStructure {
     std::vector <internal::Register> registers;
     std::vector <internal::StackEntry> stack;
     std::vector <internal::StackEntry> arguments;
-    std::stack  <std::vector <internal::Variable>> variableLevels;
+    std::vector <std::vector <internal::Variable>> variableLevels;
     MemoryStructure() = default;
     void prepareX86_86();
     void cleanX86_86();
     void addArguments(const std::string& functionName);
-
+    void pushLevel();
+    void popLevel();
 };
 
 inline MemoryStructure generatorMemory;
+
+// single instructions
+
+
+struct LabelContainer {
+    enum {
+        string, location, function
+    };
+    uint8_t type:2;
+    uint64_t number:62;
+};
+
+struct DataLocation {
+    enum {
+        reg, sta, val, lab, hea
+    };
+    uint8_t type;
+    union {
+        struct {
+            uint32_t number = 0;
+            uint32_t size = 0;
+        };
+        int64_t offset;
+        uint64_t value;
+        LabelContainer label;
+        uint64_t address;
+    };
+};
+
+std::ostream& operator<<(std::ostream& out, const DataLocation& data);
+
+struct Instruction {
+    uint32_t type = 0;
+    uint8_t size1 = 0;
+    uint8_t size2 = 0;
+    uint8_t postfix1, postfix2;
+    std::string addPostfix1(std::string input) const;
+    std::string addPostfix2(std::string input) const;
+    DataLocation op1, op2, op3;
+    INSERT_CONDITION_ENUM
+    union {
+        DataLocation op4 = {};
+        uint32_t expressionType;
+    };
+};
+
+inline std::vector<Instruction> finalInstructions;
+
+// for operations
+
+// the heavy one, will contain all the information required for instruction preparation
+struct AllowedLocations {
+
+};
+
 
 #endif //DODO_LANG_MEMORY_STRUCTURE_HPP
