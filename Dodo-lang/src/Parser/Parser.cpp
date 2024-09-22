@@ -8,6 +8,14 @@
 uint64_t currentLine = 0;
 const std::string* currentFile = nullptr;
 
+const std::string* GetCurrentFile() {
+    return currentFile;
+}
+
+uint64_t GetCurrentLine() {
+    return currentLine;
+}
+
 const char* __ParserException::what() {
     return "Parser has encountered unexpected input";
 }

@@ -57,6 +57,8 @@ FunctionInstruction::~FunctionInstruction() {
 
 FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
     type = F.type;
+    sourceLine = F.sourceLine;
+    sourceFile = F.sourceFile;
     switch (type) {
         case Type::declaration:
             variant.declarationInstruction = F.variant.declarationInstruction;
@@ -87,6 +89,8 @@ FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
 
 FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
     type = F.type;
+    sourceLine = F.sourceLine;
+    sourceFile = F.sourceFile;
     switch (type) {
         case Type::declaration:
             variant.declarationInstruction = F.variant.declarationInstruction;

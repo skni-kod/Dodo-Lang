@@ -12,7 +12,13 @@ const char* __CodeGeneratorException::what() {
 }
 
 void CodeGeneratorError(std::string message) {
-    std::cout << "ERROR! " << message << "\n";
+    if (currentlyGeneratedInstruction != nullptr) {
+        std::cout << "ERROR! " << *currentlyGeneratedInstruction->sourceFile << " at line : " << currentlyGeneratedInstruction->sourceLine + 1 << " : " << message << "\n";
+    }
+    else {
+        std::cout << "ERROR! " << message << "\n";
+    }
+
     throw __CodeGeneratorException();
 }
 

@@ -114,10 +114,13 @@ struct DoWhileInstruction {
     ParserCondition condition;
 };
 
+INSERT_SUBTYPE_ENUM
+
 struct ForLoopVariable {
     std::string typeName;
     std::string identifier;
     ParserValue value;
+    uint8_t subtype = Subtype::value;
 };
 
 struct FunctionInstruction;
@@ -143,6 +146,8 @@ struct FunctionInstruction {
         DoWhileInstruction* doWhileInstruction;
         ForInstruction* forInstruction;
     }variant;
+    uint64_t sourceLine = 0;
+    const std::string* sourceFile = nullptr;
     uint8_t type = 0;
     ~FunctionInstruction();
     FunctionInstruction() = default;

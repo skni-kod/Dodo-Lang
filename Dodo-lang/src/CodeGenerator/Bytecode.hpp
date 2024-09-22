@@ -6,10 +6,6 @@
 #include <vector>
 #include "GenerateCode.hpp"
 
-struct SourceTargetTypes {
-    VariableType source, target;
-};
-
 struct Bytecode {
     enum {
         // !!! keep this updated with ParserValue list, maybe do a macro
@@ -37,7 +33,9 @@ struct Bytecode {
         // jmp s
         jump,
         // <cond. jump> s
-        jumpConditional,
+        jumpConditionalFalse,
+        // <cond. jump> s
+        jumpConditionalTrue,
         // cmp s t
         compare,
         // tp t = s
@@ -46,8 +44,6 @@ struct Bytecode {
         assign,
         // none
         none,
-        // s -> other type
-        convert,
         // s
         addLabel
 
@@ -62,22 +58,16 @@ struct Bytecode {
     std::string target;
     union {
         uint64_t number = 0;
-        SourceTargetTypes types;
-        const ParserType* typePointer;
     };
+    VariableType type;
     Bytecode() = default;
-    Bytecode(Bytecode& b) = default;
-    Bytecode(Bytecode&& b) = default;
     explicit Bytecode(uint64_t code);
     Bytecode(uint64_t code, std::string source);
-    Bytecode(uint64_t code, std::string source, std::string target, const ParserType* typePointer);
-    Bytecode(uint64_t code, std::string source, std::string target);
-    Bytecode(uint64_t code, std::string source, std::string target, uint64_t number);
     Bytecode(uint64_t code, std::string source, uint64_t number);
-    Bytecode(uint64_t code, std::string source, VariableType sourceType, VariableType targetType);
-    Bytecode(uint64_t code, std::string source, VariableType bothType);
-    Bytecode(uint64_t code, std::string source, std::string target, VariableType bothType);
-    Bytecode(uint64_t code, std::string source, std::string target, VariableType sourceType, VariableType targetType);
+    Bytecode(uint64_t code, std::string source, VariableType type);
+    Bytecode(uint64_t code, std::string source, uint64_t number, VariableType type);
+    Bytecode(uint64_t code, std::string source, std::string target, VariableType type);
+    Bytecode(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type);
 };
 
 std::ostream& operator<<(std::ostream& out, const Bytecode& code);

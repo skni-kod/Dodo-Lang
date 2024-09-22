@@ -33,6 +33,8 @@ uint8_t GetComparisonOperandType(const std::string& value) {
 
 FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator, const LexicalToken* firstToken) {
     FunctionInstruction instruction;
+    instruction.sourceFile = GetCurrentFile();
+    instruction.sourceLine = GetCurrentLine();
 
     // return statement
     if (firstToken->type == LexicalToken::Type::keyword and firstToken->value == "return") {

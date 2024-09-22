@@ -7,6 +7,9 @@
 
 inline const LexicalToken* lastToken = nullptr;
 
+const std::string* GetCurrentFile();
+uint64_t GetCurrentLine();
+
 class __ParserException : public std::exception {
 public:
     const char* what();

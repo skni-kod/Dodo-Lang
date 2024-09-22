@@ -7,6 +7,8 @@
 
 #define EXPRESSION_SIGN '='
 
+inline const FunctionInstruction* currentlyGeneratedInstruction = nullptr;
+
 struct VariableType {
     uint32_t size:28;
     INSERT_SUBTYPE_ENUM
