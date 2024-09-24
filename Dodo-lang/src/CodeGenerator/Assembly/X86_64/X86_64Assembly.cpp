@@ -1,5 +1,6 @@
 #include "X86_64Assembly.hpp"
 #include "Assembly/MemoryStructure.hpp"
+#include "../TheGenerator.hpp"
 #include <fstream>
 
 namespace x86_64 {
@@ -27,7 +28,12 @@ namespace x86_64 {
 
                 break;
             case Bytecode::returnValue:
-
+                // op1 contains the thing that needs to be moved to register a
+                GenerateInstruction({x86_64::ret,
+                                     bytecode.source,
+                                     std::vector<OpCombination> {
+                    OpCombination(OpCombination::Type::reg, {x86_64::rax})}
+                                             });
                 break;
             case Bytecode::pushLevel:
                 generatorMemory.pushLevel();

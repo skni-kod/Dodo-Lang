@@ -79,6 +79,34 @@ bool VariableType::operator==(const VariableType &var) {
     return false;
 }
 
+std::string VariableType::GetPrefix() const {
+    std::string prefix;
+    switch (type) {
+        case ParserType::unsignedInteger:
+            prefix += 'u';
+            break;
+        case ParserType::signedInteger:
+            prefix += 'i';
+            break;
+        case ParserType::floatingPoint:
+            prefix += 'f';
+            break;
+        default:
+            CodeGeneratorError("Invalid type somehow");
+    }
+    prefix += std::to_string(size);
+    switch (subtype) {
+        case Subtype::value:
+            return prefix + "-";
+        case Subtype::reference:
+            return prefix + "&-";
+        case Subtype::pointer:
+            return prefix + "*-";
+        default:
+            CodeGeneratorError("Invalid type somehow");
+    }
+    return "";
+}
 
 FunctionInstruction::~FunctionInstruction() {
     switch (type) {

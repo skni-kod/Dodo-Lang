@@ -40,6 +40,11 @@ add_executable(Dodo_Lang
         Dodo-lang/src/CodeGenerator/Assembly/FunctionStepTwo.cpp
         Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64Assembly.hpp
         Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64Assembly.cpp
+        Dodo-lang/src/CodeGenerator/Assembly/LinearAnalysis.hpp
+        Dodo-lang/src/CodeGenerator/Assembly/LinearAnalysis.cpp
+        Dodo-lang/src/CodeGenerator/Assembly/TheGenerator.hpp
+        Dodo-lang/src/CodeGenerator/Assembly/TheGeneratorConstructors.cpp
+        Dodo-lang/src/CodeGenerator/Assembly/TheGenerator.cpp
 )
 
 # uncomment when project works well

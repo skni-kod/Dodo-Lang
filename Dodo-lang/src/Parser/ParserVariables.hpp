@@ -47,6 +47,7 @@ struct VariableType {
     explicit VariableType(const std::string& typeName, uint8_t subtype = Subtype::value);
     explicit VariableType(const ParserType& type, uint8_t subtype = Subtype::value);
     bool operator==(const VariableType& var);
+    std::string GetPrefix() const;
 };
 
 struct FunctionArgument {
@@ -126,13 +127,11 @@ struct DoWhileInstruction {
     ParserCondition condition;
 };
 
-INSERT_SUBTYPE_ENUM
-
 struct ForLoopVariable {
     std::string typeName;
     std::string identifier;
     ParserValue value;
-    uint8_t subtype = Subtype::value;
+    uint8_t subtype = VariableType::Subtype::value;
 };
 
 struct FunctionInstruction;

@@ -45,6 +45,8 @@ namespace {
 }
 
 VariableContainerVector earlyVariables;
+// some variable names might repeat, they need to be counted
+MapWrapper <std::string, uint64_t> variableInstances;
 
 std::string BytecodeFunctionCall(const ParserValue& expression);
 void HandleInstruction(const ParserFunction& function, const FunctionInstruction& instruction, uint64_t& counter);
@@ -180,14 +182,22 @@ VariableType NegotiateOperationType(const ParserValue& first, const ParserValue&
 
 void BytecodeReturn(const ReturnInstruction& instruction, const ParserFunction& function) {
     const auto& type = parserTypes[function.returnType];
-    bytecodes.emplace_back(Bytecode::returnValue, CalculateBytecodeExpression(instruction.expression, {type.size, type.type}));
+    bytecodes.emplace_back(Bytecode::returnValue, CalculateBytecodeExpression(instruction.expression, VariableType(type, VariableType::Subtype::value)), VariableType(type, VariableType::Subtype::value));
 }
 
 void BytecodeDeclare(const DeclarationInstruction& instruction) {
     auto& type = parserTypes[instruction.typeName];
     earlyVariables.add({{type.size, type.type, instruction.subtype}, instruction.name, instruction.isMutable});
+    uint64_t number;
+    if (variableInstances.isKey(instruction.name)) {
+        number = ++variableInstances[instruction.name];
+    }
+    else {
+        variableInstances.insert(instruction.name, 0);
+        number = 0;
+    }
     bytecodes.emplace_back(Bytecode::declare, CalculateBytecodeExpression(instruction.expression,{type.size, type.type, instruction.subtype}),
-                           instruction.name, VariableType(type.size, type.type));
+                           instruction.name + "#" + std::to_string(number), VariableType(type.size, type.type));
 }
 
 void BytecodeDeclare(const ForLoopVariable& var) {
@@ -419,10 +429,11 @@ void HandleInstruction(const ParserFunction& function, const FunctionInstruction
 void GenerateFunctionStepOne(const ParserFunction& function) {
     expressionCounter = 0;
     earlyVariables.clear();
+    variableInstances.map.clear();
+
     for (uint64_t n = 0; n < function.instructions.size(); n++) {
         HandleInstruction(function, function.instructions[n], n);
     }
-
 
     if (options::informationLevel == options::InformationLevel::full) {
         std::cout << "INFO L3: Bytecodes for function: " << function.name << "(";
@@ -443,5 +454,6 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
             }
             std::cout  << n;
         }
+        std::cout << "INFO L3: Bytecode amount for this function: " << bytecodes.size() << "\n";
     }
 }

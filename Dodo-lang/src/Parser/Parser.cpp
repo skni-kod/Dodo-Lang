@@ -76,6 +76,6 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
     }
 
     if (options::informationLevel > options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished type parsing with : " << parserFunctions.size() << " function definition(s)\n";
+        std::cout << "INFO L2: Finished function parsing with : " << parserFunctions.size() << " function definition(s)\n";
     }
 }

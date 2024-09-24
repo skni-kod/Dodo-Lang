@@ -23,6 +23,7 @@ namespace internal {
         ContentEntry content = ContentEntry("!");
         bool usedForIntegers = false;
         bool usedForFloats = false;
+        bool usedForStorage = false;
         const std::string& nameBySize(uint32_t size);
     };
 
@@ -91,9 +92,9 @@ struct LabelContainer {
 
 struct DataLocation {
     enum {
-        reg, sta, val, lab, hea
+        reg, sta, val, las, lal, laf, hea, empty
     };
-    uint8_t type;
+    uint8_t type = empty;
     union {
         struct {
             uint32_t number = 0;
@@ -101,9 +102,14 @@ struct DataLocation {
         };
         int64_t offset;
         uint64_t value;
+        ParserFunction* functionPtr;
         LabelContainer label;
-        uint64_t address;
     };
+    DataLocation() = default;
+    DataLocation(uint8_t type, uint32_t number, uint32_t size);
+    DataLocation(uint8_t type, int64_t offset);
+    DataLocation(uint8_t type, uint64_t value);
+    DataLocation(uint8_t type, ParserFunction* functionPtr);
 };
 
 std::ostream& operator<<(std::ostream& out, const DataLocation& data);

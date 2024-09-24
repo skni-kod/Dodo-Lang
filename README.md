@@ -7,6 +7,7 @@ The goal of this project is to create a custom programming language compiler wri
 - C++
 - GNU Assembler
 - GNU Linker
+- assembler support will expand in the future
 
 ## About dodo-lang:
 The language itself is to be statically typed, have objects and possibly bindings for more advanced features such as graphics. As of now it is being developed for x86-64 linux, with plans for it to work at least on 32 and 64 bit x86 linux and windows, arm is possible too. There will be no need for header files or specific definition order. The compilation order is as follows: .dodo file -- dodo-lang compiler -> .s file -- gnu as -> .o file -- gnu ld -> executable.
@@ -29,9 +30,15 @@ The project is being developed as a SKNI "KOD" project.
 - simple conditional statements
 - while and for loops
 
+## Goals in progress:
+
+- a rebuild of code generation system to create a platform independent code that would then be optimized and converted to assembly for given target:
+  
+  - as of now the generator is capable of producing general intermediate code, after it's generated a linear analysis is performed to optimize register usage in variable storage,
+  - next step that is currently in works is creating an universal generator that goes instruction after instruction and used passed instruction requirements to create highly optimized assembly level code that, after minor additions like total stack offset for function calls, will be converted to target assembly and later even to multiple different syntaxes
+
 ## Short term plans:
 
-- a rebuild of code generation system to create a platform independent code that would then be optimized and converted to assembly for given target
 - floating point values
 - pointers and arrays
 - syscalls and/or direct assembly injection

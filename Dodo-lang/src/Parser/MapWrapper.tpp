@@ -15,6 +15,13 @@ struct MapWrapper {
         return true;
     }
 
+    TV& find(TK key) {
+        if (map.find(key) == map.end()) {
+            ParserError("call to undefined token!");
+        }
+        return map[key];
+    }
+
     TV& operator[](const TK& key) {
         if (map.find(key) == map.end()) {
             ParserError("call to undefined token!");

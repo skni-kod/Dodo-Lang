@@ -40,6 +40,14 @@ void MemoryStructure::prepareX86_86() {
     registers[13].sizeNamePairs = {{1, "r13b"}, {2, "r13w"}, {4, "r13d"}, {8, "r13"}};
     registers[14].sizeNamePairs = {{1, "r14b"}, {2, "r14w"}, {4, "r14d"}, {8, "r14"}};
     registers[15].sizeNamePairs = {{1, "r15b"}, {2, "r15w"}, {4, "r15d"}, {8, "r15"}};
+    registers[8 ].usedForStorage = true;
+    registers[9 ].usedForStorage = true;
+    registers[10].usedForStorage = true;
+    registers[11].usedForStorage = true;
+    registers[12].usedForStorage = true;
+    registers[13].usedForStorage = true;
+    registers[14].usedForStorage = true;
+    registers[15].usedForStorage = true;
 }
 
 void MemoryStructure::cleanX86_86() {
@@ -80,16 +88,12 @@ std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
                 return out << data.offset << "(%rbp)";
             case DataLocation::hea:
                 CodeGeneratorError("Heap memory not supported!");
-            case DataLocation::lab:
-                switch (data.label.type) {
-                    case LabelContainer::string:
-                        CodeGeneratorError("Text constants not yet supported!");
-                    case LabelContainer::location:
-                        return out << ".LC" << data.label.number;
-                    case LabelContainer::function:
-                        // TODO: add function to number and vice versa thingy
-                        CodeGeneratorError("Function labels not yet supported in output!");
-                }
+            case DataLocation::las:
+                CodeGeneratorError("Text constants not yet supported!");
+            case DataLocation::lal:
+                return out << ".LC" << data.label.number;
+            case DataLocation::laf:
+                CodeGeneratorError("Function labels not yet supported in output!");
             case DataLocation::val:
                 return out << data.value;
         }
@@ -105,3 +109,8 @@ std::string Instruction::addPostfix1(std::string input) const {
 std::string Instruction::addPostfix2(std::string input) const {
     return input + char(postfix2);
 }
+
+DataLocation::DataLocation(uint8_t type, uint32_t number, uint32_t size) : type(type), number(number), size(size) {}
+DataLocation::DataLocation(uint8_t type, int64_t offset) : type(type), offset(offset) {}
+DataLocation::DataLocation(uint8_t type, uint64_t value) : type(type), value(value) {}
+DataLocation::DataLocation(uint8_t type, ParserFunction* functionPtr) : type(type), functionPtr(functionPtr) {}
