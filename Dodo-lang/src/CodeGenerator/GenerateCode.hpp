@@ -10,7 +10,6 @@
 inline const FunctionInstruction* currentlyGeneratedInstruction = nullptr;
 
 
-
 std::ostream& operator<<(std::ostream& out, const VariableType& type);
 
 class __CodeGeneratorException : public std::exception {

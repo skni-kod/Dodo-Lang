@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iostream>
 #include <vector>
 #include <ostream>
@@ -39,12 +40,10 @@ About ProgramPage:
 */
 
 
-class LexicalToken
-{
+class LexicalToken {
 public:
 
-    enum Type
-    {
+    enum Type {
         keyword,
         operand,
         identifier,
@@ -57,118 +56,116 @@ public:
         fileBegin
     };
 
-	//types are described at the end of that file
-	uint8_t type;
-	int literalValue;
+    //types are described at the end of that file
+    uint8_t type;
+    int literalValue;
 
-	//names of token types - use for display
-	static std::string names[11];
+    //names of token types - use for display
+    static std::string names[11];
 
-	//names of literal types - use for display
-	static std::string lnames[6];
+    //names of literal types - use for display
+    static std::string lnames[6];
 
-	//literal type is set to -1
-	LexicalToken(int type, std::string value);
+    //literal type is set to -1
+    LexicalToken(int type, std::string value);
 
-	//allows to set literal type
-	LexicalToken(int type, std::string value, int literal_type);
+    //allows to set literal type
+    LexicalToken(int type, std::string value, int literal_type);
 
-	//friends
-	friend std::ostream& operator<<(std::ostream& os, const LexicalToken& dt);
+    //friends
+    friend std::ostream& operator<<(std::ostream& os, const LexicalToken& dt);
 
-	//getters
-	int get_ltype();
-	int get_type();
-	std::string get_value();
+    //getters
+    int get_ltype();
 
-	//value
-	std::string value;
+    int get_type();
+
+    std::string get_value();
+
+    //value
+    std::string value;
 };
 
-class ProgramLine
-{
+class ProgramLine {
 public:
 
-	//vector of all tokens in one line
-	std::vector<LexicalToken> line;
+    //vector of all tokens in one line
+    std::vector<LexicalToken> line;
 
-	//number of line - 
-	int line_number = 0;
+    //number of line -
+    int line_number = 0;
 
-	int l_size = 0;
+    int l_size = 0;
 
-	// function to print line with all info
-	//displays also types of numeric
-	void line_print() const;
+    // function to print line with all info
+    //displays also types of numeric
+    void line_print() const;
 
-	//overriding << operator
-	friend std::ostream& operator<<(std::ostream& os, const ProgramLine& l);
+    //overriding << operator
+    friend std::ostream& operator<<(std::ostream& os, const ProgramLine& l);
 
-	//add token when it's not literal
-	void add_token(int type, std::string value);
+    //add token when it's not literal
+    void add_token(int type, std::string value);
 
-	//add literal token with literal - uses when adding strings and chars
-	void add_token(int type, std::string value, int literal_type);
+    //add literal token with literal - uses when adding strings and chars
+    void add_token(int type, std::string value, int literal_type);
 
-	//add literal token with numeric type check
-	void add_token(int type, std::string value, bool checkNumeric);
+    //add literal token with numeric type check
+    void add_token(int type, std::string value, bool checkNumeric);
 
 
-	//operators
-	LexicalToken& operator[](int);
+    //operators
+    LexicalToken& operator[](int);
 
 };
 
 //this conteins all info about one file
-class ProgramPage
-{
+class ProgramPage {
 
 public:
-	//tells how many lines are inside
-	int p_size;
+    //tells how many lines are inside
+    int p_size;
 
-	//tells the name of the file
-	std::string file_name;
+    //tells the name of the file
+    std::string file_name;
 
-	//list of all lines inside of one page
-	std::vector<ProgramLine> page;
+    //list of all lines inside of one page
+    std::vector<ProgramLine> page;
 
-	//add line to vector
-	void add_line(ProgramLine p_line);
+    //add line to vector
+    void add_line(ProgramLine p_line);
 
-	friend std::ostream& operator<<(std::ostream& os, const ProgramPage& p);
+    friend std::ostream& operator<<(std::ostream& os, const ProgramPage& p);
 
-	//operators
-	ProgramLine& operator[](int);
+    //operators
+    ProgramLine& operator[](int);
 
 };
 
 //it contains all token types
-enum tokenType
-{
-	keyword = 0, //part of the language
-	operand = 1,
-	identifier = 2, //variable names, functions names, object names etc
-	comma = 3,
-	endline = 4, //;
-	blockBegin = 5, //{
-	blockEnd = 6, //}
-	literal = 7, //number, string, char, bool, etc.
-	unexpeted_type = 8, //if sth was expected to be literal but it turns out to it has wrong format
-	file_begin = 9, //tells that here is the begin of some file
+enum tokenType {
+    keyword = 0, //part of the language
+    operand = 1,
+    identifier = 2, //variable names, functions names, object names etc
+    comma = 3,
+    endline = 4, //;
+    blockBegin = 5, //{
+    blockEnd = 6, //}
+    literal = 7, //number, string, char, bool, etc.
+    unexpeted_type = 8, //if sth was expected to be literal but it turns out to it has wrong format
+    file_begin = 9, //tells that here is the begin of some file
 };
 
 //for now the lexer understands this literar types, numeric is signedInteger, character is char, string_type is string
 //this types do not reprezents the actual program types - numeric can means int, long, long long etc
 //this types are only for checking if the number format is correct
-enum literalType
-{
-	nonee = -1, //this is when token is not literal, why does this exist though since there's an unexpected token type?
-	numeric = 0, // 213123
-	character = 1, // '...'
-	string_type = 2, // "..."
-	float_type = 3, // 12.43
-	hex_type = 4, // 0x...
+enum literalType {
+    nonee = -1, //this is when token is not literal, why does this exist though since there's an unexpected token type?
+    numeric = 0, // 213123
+    character = 1, // '...'
+    string_type = 2, // "..."
+    float_type = 3, // 12.43
+    hex_type = 4, // 0x...
     binary_type, // 0b...
     octal_type // 0o...
 };

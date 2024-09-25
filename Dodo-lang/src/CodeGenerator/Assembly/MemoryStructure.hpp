@@ -7,29 +7,37 @@
 #include <stack>
 #include "ParserVariables.hpp"
 
-// the memory structure simulates the cpu registers and stack, allowing for more optimized and generalized approach to memory management
+namespace Operand {
+    enum {
+        none, reg, sta, imm, adr, var
+    };
+}
 
+// the memory structure simulates the cpu registers and stack, allowing for more optimized and generalized approach to memory management
 namespace internal {
     struct ContentEntry {
         std::string value = "!";
         VariableType type;
+
         explicit ContentEntry(std::string value);
     };
 
     struct Register {
         // names for given sizes
-        std::vector <std::pair <uint64_t, std::string>> sizeNamePairs;
+        std::vector<std::pair<uint64_t, std::string>> sizeNamePairs;
         // name of thing inside
         ContentEntry content = ContentEntry("!");
         bool usedForIntegers = false;
         bool usedForFloats = false;
         bool usedForStorage = false;
+
         const std::string& nameBySize(uint32_t size);
     };
 
     struct StackEntry {
-        int64_t offset;
-        uint64_t amount;
+        int64_t offset = 0;
+        uint64_t amount: 60 = 1;
+        uint32_t size: 4 = 1;
         ContentEntry content = ContentEntry("!");
     };
 
@@ -63,17 +71,25 @@ namespace x86_64 {
     // could add apx support here (32 registers)
 }
 
+struct DataLocation;
+
 struct MemoryStructure {
     int64_t maxOffset = 0;
-    std::vector <internal::Register> registers;
-    std::vector <internal::StackEntry> stack;
-    std::vector <internal::StackEntry> arguments;
-    std::vector <std::vector <internal::Variable>> variableLevels;
+    std::vector<internal::Register> registers;
+    std::vector<internal::StackEntry> stack;
+    std::vector<internal::StackEntry> arguments;
+    std::vector<std::vector<internal::Variable>> variableLevels;
+
     MemoryStructure() = default;
+
     void prepareX86_86();
+
     void cleanX86_86();
-    void addArguments(const std::string& functionName);
+
+    DataLocation findThing(std::string name);
+
     void pushLevel();
+
     void popLevel();
 };
 
@@ -86,8 +102,8 @@ struct LabelContainer {
     enum {
         string, location, function
     };
-    uint8_t type:2;
-    uint64_t number:62;
+    uint8_t type: 2;
+    uint64_t number: 62;
 };
 
 struct DataLocation {
@@ -105,10 +121,17 @@ struct DataLocation {
         ParserFunction* functionPtr;
         LabelContainer label;
     };
+
+    void print(std::ofstream& out, uint8_t size);
+
     DataLocation() = default;
+
     DataLocation(uint8_t type, uint32_t number, uint32_t size);
+
     DataLocation(uint8_t type, int64_t offset);
+
     DataLocation(uint8_t type, uint64_t value);
+
     DataLocation(uint8_t type, ParserFunction* functionPtr);
 };
 
@@ -116,27 +139,24 @@ std::ostream& operator<<(std::ostream& out, const DataLocation& data);
 
 struct Instruction {
     uint32_t type = 0;
-    uint8_t size1 = 0;
-    uint8_t size2 = 0;
+    uint8_t sizeBefore = 0;
+    uint8_t sizeAfter = 0;
     uint8_t postfix1, postfix2;
-    std::string addPostfix1(std::string input) const;
-    std::string addPostfix2(std::string input) const;
     DataLocation op1, op2, op3;
     INSERT_CONDITION_ENUM
     union {
         DataLocation op4 = {};
         uint32_t expressionType;
     };
+
+    void outputX86_64(std::ofstream& out);
 };
 
 inline std::vector<Instruction> finalInstructions;
 
 // for operations
 
-// the heavy one, will contain all the information required for instruction preparation
-struct AllowedLocations {
-
-};
+inline uint64_t currentBytecodeIndex = 0;
 
 
 #endif //DODO_LANG_MEMORY_STRUCTURE_HPP

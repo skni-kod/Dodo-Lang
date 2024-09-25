@@ -3,7 +3,8 @@
 #include "ParserVariables.hpp"
 
 std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
-                                 const std::string& functionName, uint16_t outputSize, uint8_t outputType, const ParserValue* arguments, RegisterNames outputLocation) {
+                                 const std::string& functionName, uint16_t outputSize, uint8_t outputType,
+                                 const ParserValue* arguments, RegisterNames outputLocation) {
 
     const ParserFunction& function = parserFunctions[functionName];
 
@@ -19,7 +20,8 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
                 CodeError("Invalid argument value!");
             }
             const auto& target = parserTypes[function.arguments[n].typeName];
-            std::string sourceRegister = CalculateExpression(variables, out, target.size, *arguments->right, target.type, {1, 0, 0, 0});
+            std::string sourceRegister = CalculateExpression(variables, out, target.size, *arguments->right,
+                                                             target.type, {1, 0, 0, 0});
             StackVariable var;
             var.typeName = function.arguments[n].typeName;
             var.singleSize = target.size;
@@ -30,7 +32,8 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
             if (n == 0) {
                 variables.alignTo16();
             }
-            out << "mov" << AddInstructionPostfix(target.size) << "    " << sourceRegister << ", " << variables.vec.back().back().getAddress() << "\n";
+            out << "mov" << AddInstructionPostfix(target.size) << "    " << sourceRegister << ", "
+                << variables.vec.back().back().getAddress() << "\n";
             // get the next argument
             arguments = arguments->left.get();
         }
@@ -72,7 +75,8 @@ std::string GenerateFunctionCall(std::ofstream& out, StackVector& variables,
         }
 
         // move the value to correct destination
-        out << "mov" << AddInstructionPostfix(outputSize) << "    " << convertedValue << ", " << outputLocation.registerBySize(outputSize) << "\n";
+        out << "mov" << AddInstructionPostfix(outputSize) << "    " << convertedValue << ", "
+            << outputLocation.registerBySize(outputSize) << "\n";
         return outputLocation.registerBySize(outputSize);
     }
 

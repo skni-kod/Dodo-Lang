@@ -3,12 +3,24 @@
 #include "GenerateCode.hpp"
 
 Bytecode::Bytecode(uint64_t code) : code(code) {}
+
 Bytecode::Bytecode(uint64_t code, std::string source) : code(code), source(source) {}
+
 Bytecode::Bytecode(uint64_t code, std::string source, uint64_t number) : code(code), source(source), number(number) {}
+
 Bytecode::Bytecode(uint64_t code, std::string source, VariableType type) : code(code), source(source), type(type) {}
-Bytecode::Bytecode(uint64_t code, std::string source, uint64_t number, VariableType type) : code(code), source(source), number(number), type(type) {}
-Bytecode::Bytecode(uint64_t code, std::string source, std::string target, VariableType type) : code(code), source(source), target(target), type(type) {}
-Bytecode::Bytecode(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type) : code(code), source(source), target(target), number(number), type(type) {}
+
+Bytecode::Bytecode(uint64_t code, std::string source, uint64_t number, VariableType type) : code(code), source(source),
+                                                                                            number(number),
+                                                                                            type(type) {}
+
+Bytecode::Bytecode(uint64_t code, std::string source, std::string target, VariableType type) : code(code),
+                                                                                               source(source),
+                                                                                               target(target),
+                                                                                               type(type) {}
+
+Bytecode::Bytecode(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type) : code(
+        code), source(source), target(target), number(number), type(type) {}
 
 std::string EnumToVarType(uint8_t type) {
     switch (type) {
@@ -72,27 +84,33 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Invalid instruction\n";
             break;
         case Bytecode::add:
-            out << "Add: " << code.source << " to: " << code.target << ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
+            out << "Add: " << code.source << " to: " << code.target << ", store result as: " << EXPRESSION_SIGN << "#"
+                << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::subtract:
-            out << "Subtract: " << code.source << " from: " << code.target <<  ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
+            out << "Subtract: " << code.source << " from: " << code.target << ", store result as: " << EXPRESSION_SIGN
+                << "#" << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::multiply:
-            out << "Multiply: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
+            out << "Multiply: " << code.target << " by: " << code.source << ", store result as: " << EXPRESSION_SIGN
+                << "#" << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::divide:
-            out << "Divide: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
+            out << "Divide: " << code.target << " by: " << code.source << ", store result as: " << EXPRESSION_SIGN
+                << "#" << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::callFunction:
             if (code.target.empty()) {
                 out << "Call function: " << code.source << "( ... )\n";
             }
             else {
-                out << "Call function: " << code.source << "( ... ) of type: " << code.type << " and store result in: " << code.target << "\n";
+                out << "Call function: " << code.source << "( ... ) of type: " << code.type << " and store result in: "
+                    << code.target << "\n";
             }
             break;
         case Bytecode::moveArgument:
-            out << "Move: " << code.source << " as function argument number: " << code.number << " using type: " << code.type << "\n";
+            out << "Move: " << code.source << " as function argument number: " << code.number << " using type: "
+                << code.type << "\n";
             break;
         case Bytecode::prepareArguments:
             out << "Prepare arguments for function: " << code.source << "\n";
@@ -107,7 +125,8 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Pop variable level\n";
             break;
         case Bytecode::jumpConditionalFalse:
-            out << "Jump to: " << code.source << " if left is " << EnumToComparisonTypeNegative(code.number) << " than right\n";
+            out << "Jump to: " << code.source << " if left is " << EnumToComparisonTypeNegative(code.number)
+                << " than right\n";
             break;
         case Bytecode::jumpConditionalTrue:
             out << "Jump to: " << code.source << " if left is " << EnumToComparisonType(code.number) << " than right\n";
@@ -119,7 +138,8 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Compare: " << code.source << " with: " << code.target << " using type: " << code.type << "\n";
             break;
         case Bytecode::declare:
-            out << "Declare variable: " << code.target << " of type: " << code.type<< " with assigned value of: " << code.source << "\n";
+            out << "Declare variable: " << code.target << " of type: " << code.type << " with assigned value of: "
+                << code.source << "\n";
             break;
         case Bytecode::assign:
             out << "Assign value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";

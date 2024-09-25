@@ -6,7 +6,7 @@
 
 template <typename TK, typename TV>
 struct MapWrapper {
-    std::unordered_map <TK, TV> map;
+    std::unordered_map<TK, TV> map;
 
     bool isKey(TK key) {
         if (map.find(key) == map.end()) {
@@ -39,7 +39,7 @@ struct MapWrapper {
 
     void insert(const TK& key, TV&& value) {
         if (map.find(key) == map.end()) {
-            map.insert(std::pair <TK, TV> (key, value));
+            map.insert(std::pair<TK, TV>(key, value));
             return;
         }
         ParserError("token redefinition!");

@@ -58,19 +58,27 @@ struct Bytecode {
     std::string target;
     uint64_t number = 0;
     VariableType type;
+
     Bytecode() = default;
+
     explicit Bytecode(uint64_t code);
+
     Bytecode(uint64_t code, std::string source);
+
     Bytecode(uint64_t code, std::string source, uint64_t number);
+
     Bytecode(uint64_t code, std::string source, VariableType type);
+
     Bytecode(uint64_t code, std::string source, uint64_t number, VariableType type);
+
     Bytecode(uint64_t code, std::string source, std::string target, VariableType type);
+
     Bytecode(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type);
 };
 
 std::ostream& operator<<(std::ostream& out, const Bytecode& code);
 
 // bytecodes inside given function
-inline std::vector <Bytecode> bytecodes;
+inline std::vector<Bytecode> bytecodes;
 
 #endif //DODO_LANG_GENERAL_BYTECODE_HPP

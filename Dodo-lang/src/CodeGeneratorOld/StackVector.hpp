@@ -17,29 +17,46 @@ struct StackVariable {
     uint64_t amount = 1;
     std::string name;
     std::string typeName;
+
     [[nodiscard]] std::string getAddress() const;
+
     [[nodiscard]] RegisterNames getAddressAsRegisterNames() const;
 };
 
 struct StackVector {
     std::vector<StackVariable> arguments;
+
     void addArguments(const ParserFunction& function);
+
     std::vector<std::vector<StackVariable>> vec;
+
     StackVariable& find(const std::string& name);
+
     StackVariable& find(int64_t offset);
+
     StackVariable& findByOffset(const std::string& offset);
+
     int64_t lastOffset();
+
     StackVector();
+
     // reserves the given amount of space on the stack
     const StackVariable& push(StackVariable var);
+
     std::string pushAndStr(StackVariable var);
+
     // frees the last element from the stack
     void free_back();
+
     // frees the element at given offset
     void free(int64_t offset);
+
     void free(std::string address);
+
     void addLevel();
+
     void popLevel();
+
     // aligns last level to start at offset divisible by 16
     void alignTo16();
 };

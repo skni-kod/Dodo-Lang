@@ -14,7 +14,8 @@ const char* __CodeGeneratorException::what() {
 
 void CodeGeneratorError(std::string message) {
     if (currentlyGeneratedInstruction != nullptr) {
-        std::cout << "ERROR! " << *currentlyGeneratedInstruction->sourceFile << " at line : " << currentlyGeneratedInstruction->sourceLine + 1 << " : " << message << "\n";
+        std::cout << "ERROR! " << *currentlyGeneratedInstruction->sourceFile << " at line : "
+                  << currentlyGeneratedInstruction->sourceLine + 1 << " : " << message << "\n";
     }
     else {
         std::cout << "ERROR! " << message << "\n";
@@ -61,7 +62,7 @@ void GenerateCode() {
     else if (options::targetArchitecture == "X86_32") {
         CodeGeneratorError("X86-32 not yet supported!");
     }
-    // might change arm names to versions when support comes
+        // might change arm names to versions when support comes
     else if (options::targetArchitecture == "ARM32") {
         CodeGeneratorError("ARM32 not yet supported!");
     }
@@ -75,7 +76,7 @@ void GenerateCode() {
     // put beginning things here, like message declaration
 
     // Functions:
-    for (auto& current : parserFunctions.map) {
+    for (auto& current: parserFunctions.map) {
         // cleaning up after possible previous thing
         bytecodes.clear();
         finalInstructions.clear();
@@ -97,8 +98,10 @@ void GenerateCode() {
         // platform specific optimizations will be done here
 
         // at the end use the calculated stack offset and put the thing into code
-        for (const auto & finalInstruction : finalInstructions) {
-            x86_64::EmitAssemblyFromCode(finalInstruction, out);
+        for (const auto& finalInstruction: finalInstructions) {
+            for (uint64_t n = 0; n < bytecodes.size(); n++) {
+                finalInstructions[n].outputX86_64(out);
+            }
         }
 
         // end function

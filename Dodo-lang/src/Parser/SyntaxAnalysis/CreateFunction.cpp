@@ -112,7 +112,7 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
         current = generator();
     }
     parserFunctions.insert(function.name, std::move(function));
-    for (auto& n : function.instructions) {
+    for (auto& n: function.instructions) {
         n.DeleteAfterCopy();
     }
 }

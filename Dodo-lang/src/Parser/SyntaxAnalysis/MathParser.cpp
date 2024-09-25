@@ -36,7 +36,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
     if (size == 2) {
         if (tokens[range.first]->type != LexicalToken::Type::operand or tokens[range.first]->value != "-") {
             ParserError("Unexpected two token pair in mathematical expression: " + tokens[range.first]->value + " "
-            + tokens[range.first + 1]->value + "!");
+                        + tokens[range.first + 1]->value + "!");
         }
         if (tokens[range.first + 1]->type == LexicalToken::Type::identifier) {
             ParserValue value;
@@ -91,7 +91,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
     if (size > 2 and tokens[range.first]->type == LexicalToken::Type::identifier and
         tokens[range.first + 1]->value == "(" and tokens[range.second - 1]->value == ")") {
         ParserValue value;
-        value.nodeType =      ParserValue::Node::operation;
+        value.nodeType = ParserValue::Node::operation;
         value.operationType = ParserValue::Operation::functionCall;
         value.value = std::make_unique<std::string>(tokens[range.first]->value);
         // left side is the next node, right is the argument itself
@@ -119,7 +119,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
                 if (tokens[n]->value == ",") {
                     current->left = std::make_unique<ParserValue>();
                     current = current->left.get();
-                    current->nodeType =      ParserValue::Node::operation;
+                    current->nodeType = ParserValue::Node::operation;
                     current->operationType = ParserValue::Operation::functionCall;
                 }
             }
@@ -159,10 +159,10 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         MATH_CHECK_BRACKET
         if (tokens[n]->value == "+") {
             ParserValue value;
-            value.nodeType      = ParserValue::Node     ::operation;
-            value.operationType = ParserValue::Operation::addition ;
-            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
-            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            value.nodeType = ParserValue::Node::operation;
+            value.operationType = ParserValue::Operation::addition;
+            value.left = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first, n}));
+            value.right = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);
         }
     }
@@ -174,10 +174,10 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         MATH_CHECK_BRACKET
         if (tokens[n]->value == "-") {
             ParserValue value;
-            value.nodeType      = ParserValue::Node     ::operation  ;
+            value.nodeType = ParserValue::Node::operation;
             value.operationType = ParserValue::Operation::subtraction;
-            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
-            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            value.left = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first, n}));
+            value.right = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);
         }
     }
@@ -189,10 +189,10 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         MATH_CHECK_BRACKET
         if (tokens[n]->value == "*") {
             ParserValue value;
-            value.nodeType      = ParserValue::Node     ::operation     ;
+            value.nodeType = ParserValue::Node::operation;
             value.operationType = ParserValue::Operation::multiplication;
-            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
-            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            value.left = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first, n}));
+            value.right = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);
         }
     }
@@ -204,10 +204,10 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
         MATH_CHECK_BRACKET
         if (tokens[n]->value == "/") {
             ParserValue value;
-            value.nodeType      = ParserValue::Node     ::operation;
-            value.operationType = ParserValue::Operation::division ;
-            value.left          = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first,n      }));
-            value.right         = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
+            value.nodeType = ParserValue::Node::operation;
+            value.operationType = ParserValue::Operation::division;
+            value.left = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first, n}));
+            value.right = std::make_unique<ParserValue>(ParseMathInternal(tokens, {n + 1, range.second}));
             return std::move(value);
         }
     }
@@ -220,11 +220,12 @@ ParserValue ParseMath(const std::vector<const LexicalToken*>& tokens) {
     return std::move(ParseMathInternal(tokens, std::make_pair<uint32_t, uint32_t>(0, tokens.size())));
 }
 
-ParserValue ParseMath(Generator<const LexicalToken*> &generator) {
+ParserValue ParseMath(Generator<const LexicalToken*>& generator) {
     const LexicalToken* current = generator();
-    std::vector <const LexicalToken*> tokens;
+    std::vector<const LexicalToken*> tokens;
     int64_t bracketLevel = 0;
-    while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or bracketLevel != 0) {
+    while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or
+           bracketLevel != 0) {
         if (current->value == "(") {
             bracketLevel++;
         }
@@ -237,14 +238,16 @@ ParserValue ParseMath(Generator<const LexicalToken*> &generator) {
     return std::move(ParseMath(tokens));
 }
 
-ParserValue ParseMath(Generator<const LexicalToken*> &generator, std::vector<const LexicalToken*> front, bool addBraces, uint64_t bracketLevel) {
+ParserValue ParseMath(Generator<const LexicalToken*>& generator, std::vector<const LexicalToken*> front, bool addBraces,
+                      uint64_t bracketLevel) {
     const LexicalToken* current = generator();
     LexicalToken frontBrace = {LexicalToken::Type::operand, "("};
-    LexicalToken backBrace  = {LexicalToken::Type::operand, ")"};
+    LexicalToken backBrace = {LexicalToken::Type::operand, ")"};
     if (addBraces) {
         front.push_back(&frontBrace);
     }
-    while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or bracketLevel != 0) {
+    while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or
+           bracketLevel != 0) {
         if (current->value == "(") {
             bracketLevel++;
         }

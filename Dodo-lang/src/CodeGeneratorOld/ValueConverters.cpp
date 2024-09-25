@@ -12,7 +12,7 @@ bool RegisterNames::nonDefault() const {
 }
 
 std::string RegisterNames::registerBySize(uint16_t size) const {
-    switch(size) {
+    switch (size) {
         case 1:
             return size1;
         case 2:
@@ -28,7 +28,7 @@ std::string RegisterNames::registerBySize(uint16_t size) const {
 }
 
 char AddInstructionPostfix(uint16_t size) {
-    switch(size) {
+    switch (size) {
         case 1:
             return 'b';
         case 2:
@@ -44,7 +44,7 @@ char AddInstructionPostfix(uint16_t size) {
 }
 
 std::string AddRegisterA(uint16_t size) {
-    switch(size) {
+    switch (size) {
         case 1:
             return "%al";
         case 2:
@@ -62,7 +62,8 @@ std::string AddRegisterA(uint16_t size) {
 // converts value in given register to given singleSize and if asked returns it to the source register
 // pass registers as in "%reg"
 std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uint8_t targetSize,
-                                   uint8_t inputType, uint8_t outputType, RegisterNames registers, bool returnToOriginal) {
+                                   uint8_t inputType, uint8_t outputType, RegisterNames registers,
+                                   bool returnToOriginal) {
 
     // first change type of the variable, nothing to do here yet, floats will require stuff
     if (inputType == ParserValue::Value::floatingPoint or outputType == ParserValue::Value::floatingPoint) {
@@ -73,7 +74,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
         case ParserValue::Value::signedInteger:
             switch (originalSize) {
                 case 1:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -113,7 +114,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
                             CodeError("Invalid singleSize for singleSize conversion!");
                     }
                 case 2:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -143,7 +144,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
                             CodeError("Invalid singleSize for singleSize conversion!");
                     }
                 case 4:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -164,7 +165,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
                             CodeError("Invalid singleSize for singleSize conversion!");
                     }
                 case 8:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -185,7 +186,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
             // does it by either setting a 0 to ah or by doing an and and leaving only the needed value
             switch (originalSize) {
                 case 1:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -224,7 +225,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
                             CodeError("Invalid singleSize for singleSize conversion!");
                     }
                 case 2:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -255,7 +256,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
                             CodeError("Invalid singleSize for singleSize conversion!");
                     }
                 case 4:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -277,7 +278,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
                             CodeError("Invalid singleSize for singleSize conversion!");
                     }
                 case 8:
-                    switch(targetSize) {
+                    switch (targetSize) {
                         case 1:
                             return registers.size1;
                         case 2:
@@ -302,7 +303,7 @@ std::string ConvertValueInRegister(std::ofstream& out, uint8_t originalSize, uin
     return "";
 }
 
-const char *CodeException::what() {
+const char* CodeException::what() {
     return "Code generation failed!";
 }
 
@@ -323,7 +324,7 @@ uint64_t ConvertValue(const std::string& value, uint16_t bitSize) {
 
 
     bool isFloatingPoint = false;
-    for (auto& n : temp) {
+    for (auto& n: temp) {
         if (n == '.') {
             if (isFloatingPoint == false) {
                 isFloatingPoint = true;
@@ -395,10 +396,10 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
 
     switch (originalSize) {
         case 1:
-            switch(targetSize) {
+            switch (targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 << "\n";
                         return registers.size1;
                     }
                     return std::to_string(offset) + "(%rbp)";
@@ -477,16 +478,16 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 2:
-            switch(targetSize) {
+            switch (targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 << "\n";
                         return registers.size1;
                     }
                     return std::to_string(offset) + "(%rbp)";
                 case 2:
                     if (mustBeReg) {
-                        out << "movw    " << offset << "(%rbp), " << registers.size2 <<"\n";
+                        out << "movw    " << offset << "(%rbp), " << registers.size2 << "\n";
                         return registers.size2;
                     }
                     return std::to_string(offset) + "(%rbp)";
@@ -541,22 +542,22 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 4:
-            switch(targetSize) {
+            switch (targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 << "\n";
                         return registers.size1;
                     }
                     return std::to_string(offset) + "(%rbp)";
                 case 2:
                     if (mustBeReg) {
-                        out << "movw    " << offset << "(%rbp), " << registers.size2 <<"\n";
+                        out << "movw    " << offset << "(%rbp), " << registers.size2 << "\n";
                         return registers.size2;
                     }
                     return std::to_string(offset) + "(%rbp)";
                 case 4:
                     if (mustBeReg) {
-                        out << "movl    " << offset << "(%rbp), " << registers.size4 <<"\n";
+                        out << "movl    " << offset << "(%rbp), " << registers.size4 << "\n";
                         return registers.size4;
                     }
                     return std::to_string(offset) + "(%rbp)";
@@ -588,28 +589,28 @@ std::string ConvertSizeFromStack(std::ofstream& out, uint8_t originalSize, uint8
                     CodeError("Invalid singleSize for singleSize conversion!");
             }
         case 8:
-            switch(targetSize) {
+            switch (targetSize) {
                 case 1:
                     if (mustBeReg) {
-                        out << "movb    " << offset << "(%rbp), " << registers.size1 <<"\n";
+                        out << "movb    " << offset << "(%rbp), " << registers.size1 << "\n";
                         return registers.size1;
                     }
                     return std::to_string(offset) + "(%rbp)";
                 case 2:
                     if (mustBeReg) {
-                        out << "movw    " << offset << "(%rbp), " << registers.size2 <<"\n";
+                        out << "movw    " << offset << "(%rbp), " << registers.size2 << "\n";
                         return registers.size2;
                     }
                     return std::to_string(offset) + "(%rbp)";
                 case 4:
                     if (mustBeReg) {
-                        out << "movl    " << offset << "(%rbp), " << registers.size4 <<"\n";
+                        out << "movl    " << offset << "(%rbp), " << registers.size4 << "\n";
                         return registers.size4;
                     }
                     return std::to_string(offset) + "(%rbp)";
                 case 8:
                     if (mustBeReg) {
-                        out << "movq    " << offset << "(%rbp), " << registers.size8 <<"\n";
+                        out << "movq    " << offset << "(%rbp), " << registers.size8 << "\n";
                         return registers.size8;
                     }
                     return std::to_string(offset) + "(%rbp)";

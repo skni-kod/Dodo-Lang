@@ -5,7 +5,7 @@
 VariableStatistics::VariableStatistics(uint64_t number) : firstUse(number), lastUse(number) {}
 
 bool IsVariable(const std::string& input) {
-    for (auto& n : input) {
+    for (auto& n: input) {
         if ((n < '0' or n > '9') and n != '-' and n != '.') {
             return true;
         }
@@ -35,7 +35,8 @@ void CalculateLifetimes() {
             case Bytecode::multiply:
             case Bytecode::divide:
                 // create the expression
-                variableLifetimes.insert(bytecodes[n].type.GetPrefix() +  "=#" + std::to_string(bytecodes[n].number) + "-0", {n});
+                variableLifetimes.insert(
+                        bytecodes[n].type.GetPrefix() + "=#" + std::to_string(bytecodes[n].number) + "-0", {n});
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
@@ -47,7 +48,7 @@ void CalculateLifetimes() {
                         variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         const std::string& ending = bytecodes[n].source;
-                        for (auto& current : variableLifetimes.map) {
+                        for (auto& current: variableLifetimes.map) {
                             if (current.first.ends_with(ending)) {
                                 current.second.usageAmount++;
                                 current.second.lastUse = n;
@@ -66,7 +67,7 @@ void CalculateLifetimes() {
                         variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         const std::string& ending = bytecodes[n].target;
-                        for (auto& current : variableLifetimes.map) {
+                        for (auto& current: variableLifetimes.map) {
                             if (current.first.ends_with(ending)) {
                                 current.second.usageAmount++;
                                 current.second.lastUse = n;
@@ -129,7 +130,7 @@ void CalculateLifetimes() {
                 // handle target
             {
                 variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
-                auto &temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].target);
+                auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].target);
                 temp.usageAmount++;
                 temp.lastUse = n;
                 temp.isMainValue = true;
@@ -150,9 +151,10 @@ void CalculateLifetimes() {
     }
 }
 
-std::vector <std::pair <std::string, VariableStatistics>> lifetimeVector;
+std::vector<std::pair<std::string, VariableStatistics>> lifetimeVector;
 
-bool LifetimeVectorSorter(const std::pair <std::string, VariableStatistics>& l, const std::pair <std::string, VariableStatistics>& r) {
+bool LifetimeVectorSorter(const std::pair<std::string, VariableStatistics>& l,
+                          const std::pair<std::string, VariableStatistics>& r) {
     if (r.second.usageAmount > l.second.usageAmount) {
         return false;
     }
@@ -161,15 +163,16 @@ bool LifetimeVectorSorter(const std::pair <std::string, VariableStatistics>& l, 
 
 struct AssignedRegister {
     uint64_t reg = 0;
-    std::vector <uint64_t> assigned;
+    std::vector<uint64_t> assigned;
+
     explicit AssignedRegister(uint64_t reg) : reg(reg) {}
 };
 
-std::vector <AssignedRegister> assignments;
+std::vector<AssignedRegister> assignments;
 
 void PrepareLifetimesForAnalysis() {
     // first put them in the vector
-    for (auto& n : variableLifetimes.map) {
+    for (auto& n: variableLifetimes.map) {
         lifetimeVector.emplace_back(n.first, n.second);
     }
 
@@ -200,9 +203,9 @@ void RunLinearAnalysis() {
         bool found = false;
 
         // try to find an unused register
-        for (auto& reg : assignments) {
+        for (auto& reg: assignments) {
             bool isValid = true;
-            for (auto& m : reg.assigned) {
+            for (auto& m: reg.assigned) {
                 auto& current = lifetimeVector[m].second;
                 // check if the already assigned variable was used during the needed time
                 if (current.firstUse > var.lastUse or current.lastUse < var.firstUse) {
@@ -232,16 +235,18 @@ void RunLinearAnalysis() {
     if (options::informationLevel == options::InformationLevel::full) {
         uint64_t stacks = 0;
         uint64_t regs = 0;
-        for (auto& n : variableLifetimes.map) {
+        for (auto& n: variableLifetimes.map) {
             if (n.second.assignStatus == VariableStatistics::AssignStatus::sta) {
                 stacks++;
             }
         }
-        for (auto& n : assignments) {
+        for (auto& n: assignments) {
             regs += not n.assigned.empty();
         }
-        std::cout << "INFO L3: Linear analysis for this function concluded with: " << lifetimeVector.size() << " targets and: "
-                  << regs << " out of: " << assignments.size() << " registers used and: " << stacks << " variables on stack\n";
+        std::cout << "INFO L3: Linear analysis for this function concluded with: " << lifetimeVector.size()
+                  << " targets and: "
+                  << regs << " out of: " << assignments.size() << " registers used and: " << stacks
+                  << " variables on stack\n";
     }
 
     assignments.clear();

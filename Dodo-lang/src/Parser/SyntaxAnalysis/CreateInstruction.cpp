@@ -90,7 +90,9 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
             instruction.variant.functionCallInstruction = new FunctionCallInstruction();
             instruction.type = FunctionInstruction::Type::functionCall;
             instruction.variant.functionCallInstruction->functionName = firstToken->value;
-            instruction.variant.functionCallInstruction->arguments = ParseMath(generator, std::vector<const LexicalToken*> {firstToken, current}, false, 1);
+            instruction.variant.functionCallInstruction->arguments = ParseMath(generator,
+                                                                               std::vector<const LexicalToken*> {
+                                                                                       firstToken, current}, false, 1);
             return instruction;
         }
 
@@ -142,7 +144,7 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
             }
             // left side
             current = generator();
-            std::vector <const LexicalToken*> tokens;
+            std::vector<const LexicalToken*> tokens;
             while (not IsComparisonOperand(current->value)) {
                 tokens.push_back(current);
                 current = generator();
@@ -178,7 +180,7 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
             }
             // left side
             current = generator();
-            std::vector <const LexicalToken*> tokens;
+            std::vector<const LexicalToken*> tokens;
             while (not IsComparisonOperand(current->value)) {
                 tokens.push_back(current);
                 current = generator();
@@ -255,7 +257,7 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
 
             // now get the condition
             current = generator();
-            std::vector <const LexicalToken*> tokens;
+            std::vector<const LexicalToken*> tokens;
             while (not IsComparisonOperand(current->value)) {
                 tokens.push_back(current);
                 current = generator();

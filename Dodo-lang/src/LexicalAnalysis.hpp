@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -65,140 +66,138 @@ token object has three parameters - value, type and literal - check the LexicalT
 
 //contains info about file when adding it to list of lexing files
 //this information is used to display proper error information when file was not found
-struct added_file_info
-{
-	std::string file_name; //name of file
-	std::string master_file; //name of file when was used #imp instruction
-	int number_line; //number of line in file when was used #imp instruction
+struct added_file_info {
+    std::string file_name; //name of file
+    std::string master_file; //name of file when was used #imp instruction
+    int number_line; //number of line in file when was used #imp instruction
 };
 
 //singleton - most important function - lexiucal_analize
-class list_of_tokens
-{
+class list_of_tokens {
 private:
-	list_of_tokens() {};
+    list_of_tokens() {};
 
 
+    //PARAMETERS
+    //we are using them in functions - changing it here changes it in all functions
+    //-------------------------------------------------------------------------------------------
+    int number_of_operands = 27;
+    int numer_of_keywords = 17;
+    //------------------------------------------------------------------------------------------
 
-	//PARAMETERS
-	//we are using them in functions - changing it here changes it in all functions
-	//-------------------------------------------------------------------------------------------
-	int number_of_operands = 27;
-	int numer_of_keywords = 17;
-	//------------------------------------------------------------------------------------------
+    //function that checks if word is keyword or operand
+    bool look_for_str_table(std::string str, std::string tab[], int R);
 
-	//function that checks if word is keyword or operand
-	bool look_for_str_table(std::string str, std::string tab[], int R);
-
-	//used in function to add new files if needs
-	std::vector<added_file_info> file_names;
+    //used in function to add new files if needs
+    std::vector<added_file_info> file_names;
 
 protected:
-	static list_of_tokens* list_of_tokens_;
+    static list_of_tokens* list_of_tokens_;
 
 public:
 
-	//number of pages inside f_token_list
-	int f_size = 0;
+    //number of pages inside f_token_list
+    int f_size = 0;
 
-	//number of lines inside token_list
-	int size;
+    //number of lines inside token_list
+    int size;
 
 
-	//if set to true means that Bob didn't find some files
-	bool was_errors;
+    //if set to true means that Bob didn't find some files
+    bool was_errors;
 
-	//this contains all info after lexing
-	std::vector<ProgramLine> token_list;
-	std::vector<ProgramPage> f_token_list;
+    //this contains all info after lexing
+    std::vector<ProgramLine> token_list;
+    std::vector<ProgramPage> f_token_list;
 
-	//disabling construcotrs
-	list_of_tokens(list_of_tokens& lt) = delete;
-	void operator=(const list_of_tokens&) = delete;
+    //disabling construcotrs
+    list_of_tokens(list_of_tokens& lt) = delete;
 
-	//function that allows to get instance of list_of_tokens
-	static list_of_tokens* get_instance();
+    void operator=(const list_of_tokens&) = delete;
 
-	//destructor for deleting the instance of singleton
-	~list_of_tokens();
+    //function that allows to get instance of list_of_tokens
+    static list_of_tokens* get_instance();
 
-	//return list of toknes
-	std::vector<ProgramLine> get_list_of_tokens();
+    //destructor for deleting the instance of singleton
+    ~list_of_tokens();
 
-	//function that analizes program file and returs list of tokens - tokens are grouped in lines object - more in LexicalToken.h
-	std::vector<ProgramLine>analize_file(std::fstream& file, std::string name);
+    //return list of toknes
+    std::vector<ProgramLine> get_list_of_tokens();
 
-	void lexical_analize(const std::string start_file_name);
+    //function that analizes program file and returs list of tokens - tokens are grouped in lines object - more in LexicalToken.h
+    std::vector<ProgramLine> analize_file(std::fstream& file, std::string name);
 
-	//prints info about every line
-	void list_of_tokens_print();
+    void lexical_analize(const std::string start_file_name);
 
-	//list of all keyword of dodo lang
-	//adding new elements REMEBER about changing numer_of_keywords value - this variable is abouve
-	// WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-	//because reasons - USE STD::ARRAY<T> PLEASE
-	std::string list_of_keywords[17] =
-	{
-		"return",
-		"while",
-		"let",
-		"type",
-		"mut",
-		"for",
-		"else",
-		"if",
-		"protected",
-		"struct",
-		"dodo",
-		"class",
-		"asm",
-		"break",
-		"private",
-		"public",
-		"interrupt"
-	};
+    //prints info about every line
+    void list_of_tokens_print();
 
-	//list of all operators in dodo language
-	//	//adding new element REMEBER about changing numer_of_operands value - this variable is abouve
-	std::string list_of_operands[27] =
-	{
-		"(",
-		")",
-		"=",
-		"+",
-		">=",
-		">",
-		"<=",
-		"<",
-		"==",
-		"-",
-		"*",
-		"%",
-		"/",
-		"!",
-		"&",
-		"|",
-		"+=",
-		"-=",
-		"*=",
-		"/=",
-		"[",
-		"]",
-        ":",
-		";",
-		",",
-		"}",
-        "{"
-	};
+    //list of all keyword of dodo lang
+    //adding new elements REMEBER about changing numer_of_keywords value - this variable is abouve
+    // WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+    //because reasons - USE STD::ARRAY<T> PLEASE
+    std::string list_of_keywords[17] =
+            {
+                    "return",
+                    "while",
+                    "let",
+                    "type",
+                    "mut",
+                    "for",
+                    "else",
+                    "if",
+                    "protected",
+                    "struct",
+                    "dodo",
+                    "class",
+                    "asm",
+                    "break",
+                    "private",
+                    "public",
+                    "interrupt"
+            };
 
-	//list of operators for commenting
-	//it havent been used yet;
-	std::string comments_operands[3] =
-	{
-		"//",
-		"/*",
-		"*/"
-	};
+    //list of all operators in dodo language
+    //	//adding new element REMEBER about changing numer_of_operands value - this variable is abouve
+    std::string list_of_operands[27] =
+            {
+                    "(",
+                    ")",
+                    "=",
+                    "+",
+                    ">=",
+                    ">",
+                    "<=",
+                    "<",
+                    "==",
+                    "-",
+                    "*",
+                    "%",
+                    "/",
+                    "!",
+                    "&",
+                    "|",
+                    "+=",
+                    "-=",
+                    "*=",
+                    "/=",
+                    "[",
+                    "]",
+                    ":",
+                    ";",
+                    ",",
+                    "}",
+                    "{"
+            };
+
+    //list of operators for commenting
+    //it havent been used yet;
+    std::string comments_operands[3] =
+            {
+                    "//",
+                    "/*",
+                    "*/"
+            };
 };
 
 

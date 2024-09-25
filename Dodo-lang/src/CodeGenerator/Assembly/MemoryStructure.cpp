@@ -3,12 +3,13 @@
 //
 #include "MemoryStructure.hpp"
 #include "GenerateCode.hpp"
+#include "Assembly/X86_64/X86_64Assembly.hpp"
 
 namespace internal {
     ContentEntry::ContentEntry(std::string value) : value(value) {}
 
-    const std::string &Register::nameBySize(uint32_t size) {
-        for (auto& n : sizeNamePairs) {
+    const std::string& Register::nameBySize(uint32_t size) {
+        for (auto& n: sizeNamePairs) {
             if (size == n.first) {
                 return n.second;
             }
@@ -20,28 +21,76 @@ namespace internal {
 
 void MemoryStructure::prepareX86_86() {
     registers.resize(16);
-    for (auto& n : registers) {
+    for (auto& n: registers) {
         n.usedForIntegers = true;
         n.content.value = "!";
     }
-    registers[0 ].sizeNamePairs = {{1, "al"  }, {2, "ax"  }, {4, "eax" }, {8, "rax"}};
-    registers[1 ].sizeNamePairs = {{1, "bl"  }, {2, "bx"  }, {4, "ebx" }, {8, "rbx"}};
-    registers[2 ].sizeNamePairs = {{1, "cl"  }, {2, "cx"  }, {4, "ecx" }, {8, "rcx"}};
-    registers[3 ].sizeNamePairs = {{1, "dl"  }, {2, "dx"  }, {4, "edx" }, {8, "rdx"}};
-    registers[4 ].sizeNamePairs = {{1, "sil" }, {2, "si"  }, {4, "esi" }, {8, "rsi"}};
-    registers[5 ].sizeNamePairs = {{1, "dil" }, {2, "di"  }, {4, "edi" }, {8, "rdi"}};
-    registers[6 ].sizeNamePairs = {{1, "spl" }, {2, "sp"  }, {4, "esp" }, {8, "rsp"}};
-    registers[7 ].sizeNamePairs = {{1, "bpl" }, {2, "bp"  }, {4, "ebp" }, {8, "rbp"}};
-    registers[8 ].sizeNamePairs = {{1, "r8b" }, {2, "r8w" }, {4, "r8d" }, {8, "r8" }};
-    registers[9 ].sizeNamePairs = {{1, "r9b" }, {2, "r9w" }, {4, "r9d" }, {8, "r9" }};
-    registers[10].sizeNamePairs = {{1, "r10b"}, {2, "r10w"}, {4, "r10d"}, {8, "r10"}};
-    registers[11].sizeNamePairs = {{1, "r11b"}, {2, "r11w"}, {4, "r11d"}, {8, "r11"}};
-    registers[12].sizeNamePairs = {{1, "r12b"}, {2, "r12w"}, {4, "r12d"}, {8, "r12"}};
-    registers[13].sizeNamePairs = {{1, "r13b"}, {2, "r13w"}, {4, "r13d"}, {8, "r13"}};
-    registers[14].sizeNamePairs = {{1, "r14b"}, {2, "r14w"}, {4, "r14d"}, {8, "r14"}};
-    registers[15].sizeNamePairs = {{1, "r15b"}, {2, "r15w"}, {4, "r15d"}, {8, "r15"}};
-    registers[8 ].usedForStorage = true;
-    registers[9 ].usedForStorage = true;
+    registers[0].sizeNamePairs = {{1, "al"},
+                                  {2, "ax"},
+                                  {4, "eax"},
+                                  {8, "rax"}};
+    registers[1].sizeNamePairs = {{1, "bl"},
+                                  {2, "bx"},
+                                  {4, "ebx"},
+                                  {8, "rbx"}};
+    registers[2].sizeNamePairs = {{1, "cl"},
+                                  {2, "cx"},
+                                  {4, "ecx"},
+                                  {8, "rcx"}};
+    registers[3].sizeNamePairs = {{1, "dl"},
+                                  {2, "dx"},
+                                  {4, "edx"},
+                                  {8, "rdx"}};
+    registers[4].sizeNamePairs = {{1, "sil"},
+                                  {2, "si"},
+                                  {4, "esi"},
+                                  {8, "rsi"}};
+    registers[5].sizeNamePairs = {{1, "dil"},
+                                  {2, "di"},
+                                  {4, "edi"},
+                                  {8, "rdi"}};
+    registers[6].sizeNamePairs = {{1, "spl"},
+                                  {2, "sp"},
+                                  {4, "esp"},
+                                  {8, "rsp"}};
+    registers[7].sizeNamePairs = {{1, "bpl"},
+                                  {2, "bp"},
+                                  {4, "ebp"},
+                                  {8, "rbp"}};
+    registers[8].sizeNamePairs = {{1, "r8b"},
+                                  {2, "r8w"},
+                                  {4, "r8d"},
+                                  {8, "r8"}};
+    registers[9].sizeNamePairs = {{1, "r9b"},
+                                  {2, "r9w"},
+                                  {4, "r9d"},
+                                  {8, "r9"}};
+    registers[10].sizeNamePairs = {{1, "r10b"},
+                                   {2, "r10w"},
+                                   {4, "r10d"},
+                                   {8, "r10"}};
+    registers[11].sizeNamePairs = {{1, "r11b"},
+                                   {2, "r11w"},
+                                   {4, "r11d"},
+                                   {8, "r11"}};
+    registers[12].sizeNamePairs = {{1, "r12b"},
+                                   {2, "r12w"},
+                                   {4, "r12d"},
+                                   {8, "r12"}};
+    registers[13].sizeNamePairs = {{1, "r13b"},
+                                   {2, "r13w"},
+                                   {4, "r13d"},
+                                   {8, "r13"}};
+    registers[14].sizeNamePairs = {{1, "r14b"},
+                                   {2, "r14w"},
+                                   {4, "r14d"},
+                                   {8, "r14"}};
+    registers[15].sizeNamePairs = {{1, "r15b"},
+                                   {2, "r15w"},
+                                   {4, "r15d"},
+                                   {8, "r15"}};
+    registers[8].usedForStorage = true;
+    registers[9].usedForStorage = true;
     registers[10].usedForStorage = true;
     registers[11].usedForStorage = true;
     registers[12].usedForStorage = true;
@@ -51,7 +100,7 @@ void MemoryStructure::prepareX86_86() {
 }
 
 void MemoryStructure::cleanX86_86() {
-    for (auto& n : registers) {
+    for (auto& n: registers) {
         n.content.value = "!";
     }
 }
@@ -62,7 +111,7 @@ void MemoryStructure::pushLevel() {
 
 void MemoryStructure::popLevel() {
     // find every variable of this type and get rid of it
-    for (auto& current : variableLevels.back()) {
+    for (auto& current: variableLevels.back()) {
         for (int64_t n = 0; n < registers.size(); n++) {
             if (registers[n].content.value == current.identifier) {
                 registers.erase(registers.begin() + n);
@@ -77,6 +126,36 @@ void MemoryStructure::popLevel() {
         }
     }
     variableLevels.pop_back();
+}
+
+DataLocation MemoryStructure::findThing(std::string name) {
+    if (name.front() == '$') {
+        return {Operand::imm, uint64_t(std::stoull(name.substr(1, name.size() - 1)))};
+    }
+    else if (name.front() == '@') {
+        int64_t offset = std::stoll(name.substr(1, name.size() - 1));
+        for (auto& n : stack) {
+            if (n.offset == offset) {
+                return {Operand::sta, n.offset};
+            }
+        }
+        CodeGeneratorError("No such value in stack!");
+    }
+    else if (name.front() == '%') {
+        return {Operand::reg, uint64_t(std::stoull(name.substr(1, name.size() - 1)))};
+    }
+    for (uint64_t n = 0; n < registers.size(); n++) {
+        if (registers[n].content.value == name) {
+            return {Operand::reg, n};
+        }
+    }
+    for (auto& n : stack) {
+        if (n.content.value == name) {
+            return {Operand::sta, n.offset};
+        }
+    }
+    CodeGeneratorError("Type conversion case 1!");
+    return {};
 }
 
 std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
@@ -102,15 +181,64 @@ std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
     return out;
 }
 
-std::string Instruction::addPostfix1(std::string input) const {
-    return input + char(postfix1);
-}
-
-std::string Instruction::addPostfix2(std::string input) const {
-    return input + char(postfix2);
-}
-
 DataLocation::DataLocation(uint8_t type, uint32_t number, uint32_t size) : type(type), number(number), size(size) {}
+
 DataLocation::DataLocation(uint8_t type, int64_t offset) : type(type), offset(offset) {}
+
 DataLocation::DataLocation(uint8_t type, uint64_t value) : type(type), value(value) {}
+
 DataLocation::DataLocation(uint8_t type, ParserFunction* functionPtr) : type(type), functionPtr(functionPtr) {}
+
+void DataLocation::print(std::ofstream& out, uint8_t size) {
+    if (options::assemblyFlavor == options::AssemblyFlavor::GNU_AS and options::targetArchitecture == "X86_64") {
+        switch (this->type) {
+            case Operand::imm:
+                out << '$' << value;
+                return;
+            case Operand::sta:
+                out << offset << "(%rbp)";
+                return;
+            case Operand::reg:
+                for (auto& n : generatorMemory.registers[number].sizeNamePairs) {
+                    if (n.first == size) {
+                        out << '%' << n.second;
+                        return;
+                    }
+                }
+                CodeGeneratorError("Could not find valid register!");
+                return;
+        }
+    }
+}
+
+char X86_64GNUASPrefix(uint8_t size) {
+    switch (size) {
+        case 1:
+            return 'b';
+        case 2:
+            return 'w';
+        case 4:
+            return 'l';
+        case 8:
+            return 'q';
+    }
+    CodeGeneratorError("Invalid prefix size!");
+    return '0';
+}
+
+void Instruction::outputX86_64(std::ofstream& out) {
+    if (options::assemblyFlavor == options::AssemblyFlavor::GNU_AS) {
+        switch (this->type) {
+            case x86_64::ret:
+                out << "ret\n";
+                break;
+            case x86_64::mov:
+                out << "mov" << X86_64GNUASPrefix(sizeAfter) << "        ";
+                op2.print(out, sizeAfter);
+                out << ", ";
+                op1.print(out, sizeAfter);
+                out << "\n";
+                break;
+        }
+    }
+}

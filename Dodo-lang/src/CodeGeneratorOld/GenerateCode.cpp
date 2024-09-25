@@ -39,8 +39,8 @@ uint16_t GetValueByteSize(const ParserValue& value, StackVector& variables) {
             return parserTypes[parserFunctions[*value.value].returnType].size;
         }
 
-        uint16_t left =   GetValueByteSize(*value.left, variables);
-        uint16_t right  = GetValueByteSize(*value.right, variables);
+        uint16_t left = GetValueByteSize(*value.left, variables);
+        uint16_t right = GetValueByteSize(*value.right, variables);
         if (left > right) {
             return left;
         }
@@ -68,7 +68,8 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
             return "$" + std::to_string(number);
         }
         else if (returnValueLocations.reg) {
-            out << "mov"  << AddInstructionPostfix(outputSize) << "    $" << std::to_string(number) << ", " << registers.registerBySize(outputSize) << "\n";
+            out << "mov" << AddInstructionPostfix(outputSize) << "    $" << std::to_string(number) << ", "
+                << registers.registerBySize(outputSize) << "\n";
             return registers.registerBySize(outputSize);
         }
         else {
@@ -82,11 +83,13 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         auto& var = variables.find(*expression.value);
         if (not returnValueLocations.reg) {
             // strictly stack
-            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType, false, &variables);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType, false,
+                                        &variables);
         }
         if (not returnValueLocations.sta) {
             // strictly register
-            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType, true, nullptr, true, registers);
+            return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType, true,
+                                        nullptr, true, registers);
         }
         else {
             return ConvertSizeFromStack(out, var.singleSize, outputSize, var.offset, var.type, outputType);
@@ -99,7 +102,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         if (expression.operationType == ParserValue::Operation::functionCall) {
             if (returnValueLocations.reg) {
                 return GenerateFunctionCall(out, variables, *expression.value,
-                                     outputSize,  outputType, &expression, registers);
+                                            outputSize, outputType, &expression, registers);
             }
             else if (returnValueLocations.sta) {
                 StackVariable var;
@@ -107,13 +110,12 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
                 var.amount = 1;
                 const StackVariable& pushed = variables.push(var);
                 return GenerateFunctionCall(out, variables, *expression.value,
-                                     outputSize, outputType, &expression, pushed.getAddressAsRegisterNames());
+                                            outputSize, outputType, &expression, pushed.getAddressAsRegisterNames());
             }
             else {
                 CodeError("Unsupported function return type!");
             }
         }
-
 
 
         uint8_t largestSize = outputSize;
@@ -137,14 +139,16 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         std::string left = CalculateExpression(variables, out, largestSize, *expression.left, outputType, {0, 1, 1, 1});
         std::string right;
         if (expression.operationType == ParserValue::Operation::division) {
-            right = CalculateExpression(variables, out, largestSize, *expression.right, outputType, {1, 0, 0, 0}, {"%bl", "%bx", "%ebx", "%rbx"});
+            right = CalculateExpression(variables, out, largestSize, *expression.right, outputType, {1, 0, 0, 0},
+                                        {"%bl", "%bx", "%ebx", "%rbx"});
         }
         else {
             right = CalculateExpression(variables, out, largestSize, *expression.right, outputType, {0, 1, 1, 1});
         }
 
 
-        out << "mov" << AddInstructionPostfix(largestSize) << "    " << left << ", " << AddRegisterA(largestSize) << "\n";
+        out << "mov" << AddInstructionPostfix(largestSize) << "    " << left << ", " << AddRegisterA(largestSize)
+            << "\n";
         // freeing temp variables
         if (left[0] != '%' and left[0] != '$' and variables.findByOffset(left).name.empty()) {
             variables.free(left);
@@ -153,28 +157,33 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
         // operations really only change this part
         switch (expression.operationType) {
             case ParserValue::Operation::addition:
-                out << "add" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                out << "add" << AddInstructionPostfix(largestSize) << "    " << right << ", "
+                    << registers.registerBySize(largestSize) << "\n";
                 break;
             case ParserValue::Operation::subtraction:
-                out << "sub" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                out << "sub" << AddInstructionPostfix(largestSize) << "    " << right << ", "
+                    << registers.registerBySize(largestSize) << "\n";
                 break;
             case ParserValue::Operation::multiplication:
                 if (outputType == ParserValue::Value::unsignedInteger) {
                     out << "mul" << AddInstructionPostfix(largestSize) << "    " << right << "\n";
                 }
                 else if (outputType == ParserValue::Value::signedInteger) {
-                    out << "imul" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                    out << "imul" << AddInstructionPostfix(largestSize) << "   " << right << ", "
+                        << registers.registerBySize(largestSize) << "\n";
                 }
 
                 break;
             case ParserValue::Operation::division:
                 if (outputType == ParserValue::Value::unsignedInteger) {
                     out << "movq    $0, %rdx\n";
-                    out << "div" << AddInstructionPostfix(largestSize) << "    " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                    out << "div" << AddInstructionPostfix(largestSize) << "    " << right << ", "
+                        << registers.registerBySize(largestSize) << "\n";
                 }
                 else if (outputType == ParserValue::Value::signedInteger) {
                     out << "movq    $0, %rdx\n";
-                    out << "idiv" << AddInstructionPostfix(largestSize) << "   " << right << ", " << registers.registerBySize(largestSize) << "\n";
+                    out << "idiv" << AddInstructionPostfix(largestSize) << "   " << right << ", "
+                        << registers.registerBySize(largestSize) << "\n";
                 }
                 break;
             default:
@@ -197,7 +206,7 @@ std::string CalculateExpression(StackVector& variables, std::ofstream& out, uint
             var.singleSize = largestSize;
             var.amount = 1;
 
-            std::string varAddress =  variables.pushAndStr(var);
+            std::string varAddress = variables.pushAndStr(var);
             out << "mov" << AddInstructionPostfix(outputSize) << "    " << reg << ", " << varAddress << "\n";
             return varAddress;
         }
@@ -223,7 +232,8 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
     std::stack<const ForInstruction*> forPointers;
 
     if (setting::OutputDodoInstructions) {
-        out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " " << identifier << "(...)\n";
+        out << "\n" << setting::CommentCharacter << " Declaration of function: " << function->returnType << " "
+            << identifier << "(...)\n";
     }
 
     out << identifier << ":\n";
@@ -242,7 +252,8 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 break;
 
             case FunctionInstruction::Type::endScope:
-                if (current == function->instructions.size() - 1 or function->instructions[current + 1].type != FunctionInstruction::Type::elseStatement) {
+                if (current == function->instructions.size() - 1 or
+                    function->instructions[current + 1].type != FunctionInstruction::Type::elseStatement) {
                     if (not whileLevels.empty() and whileLevels.top() == returnLabels.size()) {
                         out << "jmp     .L" << returnLabels.top() - 1 << "." << function->name << "\n";
                         whileLevels.pop();
@@ -252,32 +263,41 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                         if (setting::OutputDodoInstructions) {
                             out << setting::CommentCharacter << " Post for loop instructions\n";
                         }
-                        for (auto& change : forPointers.top()->instructions) {
+                        for (auto& change: forPointers.top()->instructions) {
                             if (change.type != FunctionInstruction::Type::valueChange) {
                                 CodeError("Instructions other than value change not yet added to for loop!");
                             }
                             auto& ins = *change.variant.valueChangeInstruction;
                             if (ins.expression.nodeType == ParserValue::Node::operation) {
-                                out << setting::CommentCharacter << " Value change of variable: " << ins.name << " = expression\n";
-                            } else if (ins.expression.nodeType == ParserValue::Node::constant) {
-                                out << setting::CommentCharacter << " Value change of variable: " << ins.name << " = constant\n";
-                            } else if (ins.expression.nodeType == ParserValue::Node::variable) {
-                                out << setting::CommentCharacter << " Value change of variable: " << " " << ins.name << " = variable\n";
-                            } else {
-                                out << setting::CommentCharacter << " Value change of variable: " << " " << ins.name << "\n";
+                                out << setting::CommentCharacter << " Value change of variable: " << ins.name
+                                    << " = expression\n";
                             }
-                            StackVariable &var = variables.find(ins.name);
+                            else if (ins.expression.nodeType == ParserValue::Node::constant) {
+                                out << setting::CommentCharacter << " Value change of variable: " << ins.name
+                                    << " = constant\n";
+                            }
+                            else if (ins.expression.nodeType == ParserValue::Node::variable) {
+                                out << setting::CommentCharacter << " Value change of variable: " << " " << ins.name
+                                    << " = variable\n";
+                            }
+                            else {
+                                out << setting::CommentCharacter << " Value change of variable: " << " " << ins.name
+                                    << "\n";
+                            }
+                            StackVariable& var = variables.find(ins.name);
                             const ParserType& type = parserTypes[var.typeName];
                             if (not var.isMutable) {
                                 CodeError("Variable: " + var.name + " is immutable!");
                             }
 
                             if (ins.expression.nodeType != ParserValue::Node::empty) {
-                                std::string source = CalculateExpression(variables, out, var.singleSize, ins.expression, type.type,
+                                std::string source = CalculateExpression(variables, out, var.singleSize, ins.expression,
+                                                                         type.type,
                                                                          {1, 1, 0, 1});
                                 out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
                                     << var.getAddress() << "\n";
-                            } else {
+                            }
+                            else {
                                 CodeError("No expression in value assignment!");
                             }
                         }
@@ -300,7 +320,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 break;
 
             case FunctionInstruction::Type::ifStatement: {
-                const IfInstruction &ifi = *function->instructions[current].variant.ifInstruction;
+                const IfInstruction& ifi = *function->instructions[current].variant.ifInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " If statement\n";
                 }
@@ -316,7 +336,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 // get the registers ready
                 // TODO: add type check here
                 std::string right = CalculateExpression(variables, out, larger, ifi.condition.left, 0, {0, 0, 1, 0});
-                std::string left = CalculateExpression(variables, out, larger, ifi.condition.right, 0, {1, 1, 0 ,0});
+                std::string left = CalculateExpression(variables, out, larger, ifi.condition.right, 0, {1, 1, 0, 0});
                 out << "cmp" << AddInstructionPostfix(larger) << "    " << left << ", " << right << "\n";
                 if (ifi.condition.type == ParserCondition::Type::greater) {
                     out << "jbe     " << ".L" << returnLabelCounter << "." << function->name << "\n";
@@ -345,7 +365,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
 
             case FunctionInstruction::Type::whileStatement: {
-                const WhileInstruction &whi = *function->instructions[current].variant.whileInstruction;
+                const WhileInstruction& whi = *function->instructions[current].variant.whileInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " While statement\n";
                 }
@@ -391,7 +411,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
 
             case FunctionInstruction::Type::forStatement: {
-                const ForInstruction &loop = *function->instructions[current].variant.forInstruction;
+                const ForInstruction& loop = *function->instructions[current].variant.forInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " For statement\n";
                 }
@@ -403,7 +423,7 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " Declaration of for loop variables\n";
                 }
-                for (auto& loopVar : loop.variables) {
+                for (auto& loopVar: loop.variables) {
                     StackVariable var;
                     const ParserType& type = parserTypes[loopVar.typeName];
                     var.singleSize = type.size;
@@ -415,23 +435,32 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
 
                     if (setting::OutputDodoInstructions) {
                         if (loopVar.value.nodeType == ParserValue::Node::operation) {
-                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " "
+                                << loopVar.identifier
                                 << " = expression\n";
-                        } else if (loopVar.value.nodeType == ParserValue::Node::constant) {
-                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                        }
+                        else if (loopVar.value.nodeType == ParserValue::Node::constant) {
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " "
+                                << loopVar.identifier
                                 << " = constant\n";
-                        } else if (loopVar.value.nodeType == ParserValue::Node::variable) {
-                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                        }
+                        else if (loopVar.value.nodeType == ParserValue::Node::variable) {
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " "
+                                << loopVar.identifier
                                 << " = variable\n";
-                        } else {
-                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " " << loopVar.identifier
+                        }
+                        else {
+                            out << setting::CommentCharacter << " Declaration of: mut " << loopVar.typeName << " "
+                                << loopVar.identifier
                                 << "\n";
                         }
                     }
 
                     // this one is guaranteed to have value or be 0
-                    std::string source = CalculateExpression(variables, out, var.singleSize, loopVar.value, type.type, {1, 1, 0, 1});
-                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", " << variables.pushAndStr(var) << "\n";
+                    std::string source = CalculateExpression(variables, out, var.singleSize, loopVar.value, type.type,
+                                                             {1, 1, 0, 1});
+                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
+                        << variables.pushAndStr(var) << "\n";
                 }
 
                 uint16_t larger;
@@ -475,19 +504,26 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
             }
 
             case FunctionInstruction::Type::declaration: {
-                const DeclarationInstruction &dec = *function->instructions[current].variant.declarationInstruction;
+                const DeclarationInstruction& dec = *function->instructions[current].variant.declarationInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (dec.expression.nodeType == ParserValue::Node::operation) {
-                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let")
+                            << " " << dec.typeName << " " << dec.name
                             << " = expression\n";
-                    } else if (dec.expression.nodeType == ParserValue::Node::constant) {
-                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
+                    }
+                    else if (dec.expression.nodeType == ParserValue::Node::constant) {
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let")
+                            << " " << dec.typeName << " " << dec.name
                             << " = constant\n";
-                    } else if (dec.expression.nodeType == ParserValue::Node::variable) {
-                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
+                    }
+                    else if (dec.expression.nodeType == ParserValue::Node::variable) {
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let")
+                            << " " << dec.typeName << " " << dec.name
                             << " = variable\n";
-                    } else {
-                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let") << " " << dec.typeName << " " << dec.name
+                    }
+                    else {
+                        out << setting::CommentCharacter << " Declaration of: " << (dec.isMutable ? "mut" : "let")
+                            << " " << dec.typeName << " " << dec.name
                             << "\n";
                     }
                 }
@@ -501,25 +537,31 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 var.isMutable = dec.isMutable;
 
                 if (dec.expression.nodeType != ParserValue::Node::empty) {
-                    std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression, type.type, {1, 1, 0, 1});
-                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", " << variables.pushAndStr(var) << "\n";
+                    std::string source = CalculateExpression(variables, out, var.singleSize, dec.expression, type.type,
+                                                             {1, 1, 0, 1});
+                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
+                        << variables.pushAndStr(var) << "\n";
                 }
                 else {
                     // declaring with a zero to avoid trash or exploits(?), also for debugging
-                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    $0, " << variables.pushAndStr(var) << "\n";
+                    out << "mov" << AddInstructionPostfix(var.singleSize) << "    $0, " << variables.pushAndStr(var)
+                        << "\n";
                 }
                 break;
             }
             case FunctionInstruction::Type::returnValue: {
-                const ReturnInstruction &ret = *function->instructions[current].variant.returnInstruction;
+                const ReturnInstruction& ret = *function->instructions[current].variant.returnInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (ret.expression.nodeType == ParserValue::Node::operation) {
                         out << setting::CommentCharacter << " Expression return\n";
-                    } else if (ret.expression.nodeType == ParserValue::Node::constant) {
+                    }
+                    else if (ret.expression.nodeType == ParserValue::Node::constant) {
                         out << setting::CommentCharacter << " Constant return\n";
-                    } else if (ret.expression.nodeType == ParserValue::Node::variable) {
+                    }
+                    else if (ret.expression.nodeType == ParserValue::Node::variable) {
                         out << setting::CommentCharacter << " Variable return\n";
-                    } else {
+                    }
+                    else {
                         out << setting::CommentCharacter << " Valueless return\n";
                     }
                 }
@@ -529,7 +571,8 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
 
                 std::string source = CalculateExpression(variables, out, type.size, ret.expression, type.type);
                 if (source != "%rax") {
-                    out << "mov" << AddInstructionPostfix(type.size) << "    " << source << ", " << AddRegisterA(type.size) << "\n";
+                    out << "mov" << AddInstructionPostfix(type.size) << "    " << source << ", "
+                        << AddRegisterA(type.size) << "\n";
                 }
                 out << "popq    %rbp\n";
                 out << "ret\n";
@@ -537,21 +580,26 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                 didReturn = true;
                 break;
             }
-            case FunctionInstruction::Type::valueChange:
-            {
-                const ValueChangeInstruction &val = *function->instructions[current].variant.valueChangeInstruction;
+            case FunctionInstruction::Type::valueChange: {
+                const ValueChangeInstruction& val = *function->instructions[current].variant.valueChangeInstruction;
                 if (setting::OutputDodoInstructions) {
                     if (val.expression.nodeType == ParserValue::Node::operation) {
-                        out << setting::CommentCharacter << " Value change of variable: " << val.name << " = expression\n";
-                    } else if (val.expression.nodeType == ParserValue::Node::constant) {
-                        out << setting::CommentCharacter << " Value change of variable: " << val.name << " = constant\n";
-                    } else if (val.expression.nodeType == ParserValue::Node::variable) {
-                        out << setting::CommentCharacter << " Value change of variable: " << " " << val.name << " = variable\n";
-                    } else {
+                        out << setting::CommentCharacter << " Value change of variable: " << val.name
+                            << " = expression\n";
+                    }
+                    else if (val.expression.nodeType == ParserValue::Node::constant) {
+                        out << setting::CommentCharacter << " Value change of variable: " << val.name
+                            << " = constant\n";
+                    }
+                    else if (val.expression.nodeType == ParserValue::Node::variable) {
+                        out << setting::CommentCharacter << " Value change of variable: " << " " << val.name
+                            << " = variable\n";
+                    }
+                    else {
                         out << setting::CommentCharacter << " Value change of variable: " << " " << val.name << "\n";
                     }
                 }
-                StackVariable &var = variables.find(val.name);
+                StackVariable& var = variables.find(val.name);
                 const ParserType& type = parserTypes[var.typeName];
                 if (not var.isMutable) {
                     CodeError("Variable: " + var.name + " is immutable!");
@@ -562,14 +610,14 @@ void GenerateFunction(const std::string& identifier, std::ofstream& out) {
                                                              {1, 1, 0, 1});
                     out << "mov" << AddInstructionPostfix(var.singleSize) << "    " << source << ", "
                         << var.getAddress() << "\n";
-                } else {
+                }
+                else {
                     CodeError("No expression in value assignment!");
                 }
                 break;
             }
-            case FunctionInstruction::Type::functionCall:
-            {
-                const FunctionCallInstruction &fun = *function->instructions[current].variant.functionCallInstruction;
+            case FunctionInstruction::Type::functionCall: {
+                const FunctionCallInstruction& fun = *function->instructions[current].variant.functionCallInstruction;
                 if (setting::OutputDodoInstructions) {
                     out << setting::CommentCharacter << " Function call to: " << fun.functionName << "(...)\n";
                 }
@@ -612,7 +660,7 @@ void GenerateCode() {
     // ...
 
     // TODO: add a check to see if given function is used at all
-    for (auto& n : parserFunctions.map) {
+    for (auto& n: parserFunctions.map) {
         GenerateFunction(n.second.name, out);
     }
 

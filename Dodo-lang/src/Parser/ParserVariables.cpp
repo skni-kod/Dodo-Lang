@@ -8,19 +8,19 @@ bool IsType(const std::string& token) {
     return parserTypes.isKey(token);
 }
 
-ParserType::ParserType(uint8_t type, uint8_t size)  {
+ParserType::ParserType(uint8_t type, uint8_t size) {
     this->type = type;
     this->size = size;
 }
 
-ParserType::ParserType(uint8_t type, uint8_t size, std::string name)  {
+ParserType::ParserType(uint8_t type, uint8_t size, std::string name) {
     this->type = type;
     this->size = size;
     this->name = name;
 }
 
 std::ostream& operator<<(std::ostream& out, const VariableType& type) {
-    switch(type.subtype) {
+    switch (type.subtype) {
         case VariableType::Subtype::value:
             out << "value of ";
             break;
@@ -36,7 +36,7 @@ std::ostream& operator<<(std::ostream& out, const VariableType& type) {
             }
             ParserError("Invalid variable subtype!");
     }
-    switch(type.type) {
+    switch (type.type) {
         case ParserType::Type::unsignedInteger:
             out << "unsigned integer variable ";
             break;
@@ -72,7 +72,7 @@ VariableType::VariableType(const ParserType& type, uint8_t subtype) {
     this->type = type.type;
 }
 
-bool VariableType::operator==(const VariableType &var) {
+bool VariableType::operator==(const VariableType& var) {
     if (size == var.size and type == var.type and subtype == var.subtype) {
         return true;
     }
@@ -145,7 +145,7 @@ FunctionInstruction::~FunctionInstruction() {
     }
 }
 
-FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
+FunctionInstruction::FunctionInstruction(const FunctionInstruction& F) {
     type = F.type;
     sourceLine = F.sourceLine;
     sourceFile = F.sourceFile;
@@ -177,7 +177,7 @@ FunctionInstruction::FunctionInstruction(const FunctionInstruction &F) {
     }
 }
 
-FunctionInstruction::FunctionInstruction(FunctionInstruction &&F) noexcept {
+FunctionInstruction::FunctionInstruction(FunctionInstruction&& F) noexcept {
     type = F.type;
     sourceLine = F.sourceLine;
     sourceFile = F.sourceFile;
@@ -262,7 +262,8 @@ void ParserValue::fillValue(std::string val) {
             case 'x':
                 base = 16;
                 for (uint16_t n = 2; n < val.size(); n++) {
-                    if ((val[n] < '0' or val[n] > '9') and (val[n] < 'A' or val[n] > 'F') and (val[n] < 'a' or val[n] > 'f')) {
+                    if ((val[n] < '0' or val[n] > '9') and (val[n] < 'A' or val[n] > 'F') and
+                        (val[n] < 'a' or val[n] > 'f')) {
                         ParserError("Invalid hexadecimal number format!");
                     }
                     if (val[n] >= 'a') {
@@ -309,7 +310,7 @@ void ParserValue::fillValue(std::string val) {
     }
 
     bool isFloatingPoint = false;
-    for (auto& n : val) {
+    for (auto& n: val) {
         if (n == '.') {
             if (isFloatingPoint == false) {
                 isFloatingPoint = true;
@@ -335,7 +336,7 @@ void ParserValue::fillValue(std::string val) {
     operationType = Value::unsignedInteger;
 }
 
-void ParserCondition::SetOperand(const std::string &value) {
+void ParserCondition::SetOperand(const std::string& value) {
     if (value == "==") {
         type = Condition::equals;
         return;

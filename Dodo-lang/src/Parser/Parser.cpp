@@ -35,14 +35,14 @@ void ParserError(const std::string& message) {
     }
 }
 
-Generator <const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>& tokens) {
+Generator<const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>& tokens) {
     currentLine = 0;
     currentFile = nullptr;
-    for (const auto& file : tokens) {
+    for (const auto& file: tokens) {
         currentFile = &file.file_name;
-        for (const auto& line : file.page) {
+        for (const auto& line: file.page) {
             currentLine = line.line_number;
-            for (const auto& token : line.line) {
+            for (const auto& token: line.line) {
                 lastToken = &token;
                 co_yield &token;
             }
@@ -76,6 +76,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
     }
 
     if (options::informationLevel > options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished function parsing with : " << parserFunctions.size() << " function definition(s)\n";
+        std::cout << "INFO L2: Finished function parsing with : " << parserFunctions.size()
+                  << " function definition(s)\n";
     }
 }

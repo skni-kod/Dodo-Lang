@@ -9,19 +9,21 @@
 struct VariableStatistics {
     uint64_t firstUse = 0;
     uint64_t lastUse = 0;
-    uint64_t usageAmount:47 = 0;
-    uint8_t isMainValue:1 = false;
+    uint64_t usageAmount: 47 = 0;
+    uint8_t isMainValue: 1 = false;
     enum AssignStatus {
         none, reg, sta
     };
-    uint8_t assignStatus:2 = none;
+    uint8_t assignStatus: 2 = none;
     // assigned register if there is one
-    uint16_t assigned:14 = 0;
+    uint16_t assigned: 14 = 0;
+
     VariableStatistics(uint64_t number);
+
     VariableStatistics() = default;
 };
 
-inline MapWrapper <std::string, VariableStatistics> variableLifetimes;
+inline MapWrapper<std::string, VariableStatistics> variableLifetimes;
 
 void RunLinearAnalysis();
 

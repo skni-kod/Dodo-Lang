@@ -7,7 +7,7 @@
 
 namespace x86_64 {
     void ConvertBytecode(const Bytecode& bytecode);
-    void EmitAssemblyFromCode(const Instruction& instruction, std::ofstream& out);
+
     enum {
         // op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm
         mov,

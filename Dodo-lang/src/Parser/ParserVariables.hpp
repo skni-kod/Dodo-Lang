@@ -21,7 +21,9 @@ enum Condition { \
 };
 
 bool IsType(const std::string& token);
+
 bool IsObject(const std::string& token);
+
 // that is if it can be used for a variable
 bool IsDeclarable(const std::string& token);
 
@@ -30,23 +32,29 @@ struct ParserType {
         unsignedInteger, signedInteger, floatingPoint
     };
     std::string name;
-    uint8_t type:2;                         // allowed values 0-2
-    uint8_t size:6;                         // allowed values 1-8 (maybe more in future)
+    uint8_t type: 2;                         // allowed values 0-2
+    uint8_t size: 6;                         // allowed values 1-8 (maybe more in future)
     ParserType(uint8_t type, uint8_t size); // assumes valid input
     ParserType(uint8_t type, uint8_t size, std::string name); // assumes valid input
     ParserType() = default;
 };
 
 struct VariableType {
-    uint32_t size:28;
+    uint32_t size: 28;
     INSERT_SUBTYPE_ENUM
-    uint8_t type:2 = ParserType::Type::signedInteger;
-    uint8_t subtype:2 = Subtype::value;
+    uint8_t type: 2 = ParserType::Type::signedInteger;
+    uint8_t subtype: 2 = Subtype::value;
+
     VariableType() = default;
+
     VariableType(uint8_t size, uint8_t type, uint8_t subtype = Subtype::value);
+
     explicit VariableType(const std::string& typeName, uint8_t subtype = Subtype::value);
+
     explicit VariableType(const ParserType& type, uint8_t subtype = Subtype::value);
+
     bool operator==(const VariableType& var);
+
     std::string GetPrefix() const;
 };
 
@@ -76,6 +84,7 @@ struct ParserValue {
     std::unique_ptr<ParserValue> left = nullptr;
     std::unique_ptr<ParserValue> right = nullptr;
     std::unique_ptr<std::string> value = nullptr;
+
     // takes the input and prepares the value and it's classification
     void fillValue(std::string val);
 };
@@ -112,6 +121,7 @@ struct ParserCondition {
     INSERT_CONDITION_ENUM
     uint8_t type = 0;
     ParserValue left, right;
+
     void SetOperand(const std::string& value);
 };
 
@@ -137,7 +147,7 @@ struct ForLoopVariable {
 struct FunctionInstruction;
 
 struct ForInstruction {
-    std::vector <ForLoopVariable> variables;
+    std::vector<ForLoopVariable> variables;
     ParserCondition condition;
     std::vector<FunctionInstruction> instructions;
 };
@@ -156,14 +166,19 @@ struct FunctionInstruction {
         WhileInstruction* whileInstruction;
         DoWhileInstruction* doWhileInstruction;
         ForInstruction* forInstruction;
-    }variant;
+    } variant;
     uint64_t sourceLine = 0;
     const std::string* sourceFile = nullptr;
     uint8_t type = 0;
+
     ~FunctionInstruction();
+
     FunctionInstruction() = default;
+
     FunctionInstruction(const FunctionInstruction& F);
-    FunctionInstruction(FunctionInstruction&& F) noexcept ;
+
+    FunctionInstruction(FunctionInstruction&& F) noexcept;
+
     void DeleteAfterCopy();
 
 };
@@ -172,13 +187,13 @@ struct ParserFunction {
     INSERT_SUBTYPE_ENUM
     std::string returnType;
     std::string name;
-    uint8_t returnValueType:2 = 0;
-    std::vector <FunctionArgument> arguments;
-    std::vector <FunctionInstruction> instructions;
+    uint8_t returnValueType: 2 = 0;
+    std::vector<FunctionArgument> arguments;
+    std::vector<FunctionInstruction> instructions;
 };
 
-inline MapWrapper <std::string, ParserType> parserTypes;
-inline MapWrapper <std::string, ParserFunction> parserFunctions;
+inline MapWrapper<std::string, ParserType> parserTypes;
+inline MapWrapper<std::string, ParserFunction> parserFunctions;
 
 
 #endif //DODO_LANG_PARSER_VARIABLES_HPP

@@ -12,19 +12,19 @@ RegisterNames StackVariable::getAddressAsRegisterNames() const {
             std::to_string(offset) + "(%rbp)"};
 }
 
-StackVariable &StackVector::findByOffset(const std::string& offset) {
+StackVariable& StackVector::findByOffset(const std::string& offset) {
 
     int64_t intOffset = std::stoll(offset.substr(0, offset.size() - 6));
     if (intOffset > 0) {
-        for (auto& n : arguments) {
+        for (auto& n: arguments) {
             if (n.offset == intOffset) {
                 return n;
             }
         }
     }
     else {
-        for (auto& n : vec) {
-            for (auto& m : n) {
+        for (auto& n: vec) {
+            for (auto& m: n) {
                 if (m.offset == intOffset) {
                     return m;
                 }
@@ -36,14 +36,14 @@ StackVariable &StackVector::findByOffset(const std::string& offset) {
     return vec.back().back();
 }
 
-StackVariable &StackVector::find(const std::string& name) {
-    for (auto& n : arguments) {
+StackVariable& StackVector::find(const std::string& name) {
+    for (auto& n: arguments) {
         if (n.name == name) {
             return n;
         }
     }
-    for (auto& n : vec) {
-        for (auto& m : n) {
+    for (auto& n: vec) {
+        for (auto& m: n) {
             if (m.name == name) {
                 return m;
             }
@@ -55,14 +55,14 @@ StackVariable &StackVector::find(const std::string& name) {
 }
 
 
-StackVariable &StackVector::find(int64_t offset) {
-    for (auto& n : arguments) {
+StackVariable& StackVector::find(int64_t offset) {
+    for (auto& n: arguments) {
         if (n.offset == offset) {
             return n;
         }
     }
-    for (auto& n : vec) {
-        for (auto& m : n) {
+    for (auto& n: vec) {
+        for (auto& m: n) {
             if (m.offset == offset) {
                 return m;
             }
@@ -85,7 +85,7 @@ StackVector::StackVector() {
     vec.emplace_back();
 }
 
-const StackVariable &StackVector::push(StackVariable var) {
+const StackVariable& StackVector::push(StackVariable var) {
     // searching for a place the variable can possibly fit that is not the back of the stack
     if (not vec.back().empty()) {
         // if there is enough space at the front to fit the variable
@@ -201,7 +201,7 @@ void StackVector::alignTo16() {
     }
 }
 
-void StackVector::addArguments(const ParserFunction &function) {
+void StackVector::addArguments(const ParserFunction& function) {
     // check if it has any arguments
     if (function.arguments.empty()) {
         return;
@@ -209,7 +209,7 @@ void StackVector::addArguments(const ParserFunction &function) {
 
     // calculating normal offset
     int64_t size = 0;
-    for (const auto& n : function.arguments) {
+    for (const auto& n: function.arguments) {
         StackVariable var;
         const auto& type = parserTypes[n.typeName];
         var.singleSize = type.size;
@@ -234,7 +234,7 @@ void StackVector::addArguments(const ParserFunction &function) {
     size += 16;
 
     // calculating variable offset from function base
-    for (auto& n : arguments) {
+    for (auto& n: arguments) {
         n.offset = size - n.offset;
     }
 

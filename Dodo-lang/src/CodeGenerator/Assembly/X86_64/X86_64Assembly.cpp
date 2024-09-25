@@ -29,7 +29,8 @@ namespace x86_64 {
                 break;
             case Bytecode::returnValue:
                 // move returned value into register a
-                InsertValue(REGISTER_SIGN + "0", bytecode.source);
+                MoveValue("$0", "%0");
+                //InsertValue(REGISTER_SIGN + "0", bytecode.source);
                 // insert a return statement
                 GenerateInstruction({x86_64::ret});
                 break;
@@ -62,76 +63,6 @@ namespace x86_64 {
                 break;
             default:
                 CodeGeneratorError("Invalid bytecode code!");
-                break;
-        }
-    }
-
-    void WriteToFile(std::ofstream& out, const std::string& instruction,
-                     const DataLocation& op1) {
-        //switch(options::assemblyFlavor) {
-            //case options::AssemblyFlavor::ATnT:
-                //return;
-        //}
-        out << instruction;
-        if (instruction.size() >= options::spaceOnLeft) {
-            out << " ";
-        }
-        else {
-            for (uint8_t n = instruction.size(); n < options::spaceOnLeft; n++) {
-                out << " ";
-            }
-        }
-        out << op1 << "\n";
-    }
-
-    void WriteToFile(std::ofstream& out, std::string instruction,
-                     const DataLocation& op1, const DataLocation& op2) {
-        out << instruction;
-        if (instruction.size() >= options::spaceOnLeft) {
-            out << " ";
-        }
-        else {
-            for (uint8_t n = instruction.size(); n < options::spaceOnLeft; n++) {
-                out << " ";
-            }
-        }
-        out << op2 << ", " << op1 << "\n";
-    }
-
-    void WriteToFile(std::ofstream& out, const std::string& instruction,
-                     const DataLocation& op1, const DataLocation& op2, const DataLocation& op3) {
-        out << instruction;
-        if (instruction.size() >= options::spaceOnLeft) {
-            out << " ";
-        }
-        else {
-            for (uint8_t n = instruction.size(); n < options::spaceOnLeft; n++) {
-                out << " ";
-            }
-        }
-        out << op2 << ", " << op1 << ", " << op3 << "\n";
-    }
-
-    void WriteToFile(std::ofstream& out, const std::string& instruction,
-                     const DataLocation& op1, const DataLocation& op2, const DataLocation& op3, const DataLocation& op4) {
-        out << instruction;
-        if (instruction.size() >= options::spaceOnLeft) {
-            out << " ";
-        }
-        else {
-            for (uint8_t n = instruction.size(); n < options::spaceOnLeft; n++) {
-                out << " ";
-            }
-        }
-        out << op2 << ", " << op1 << ", " << op3 << ", " << op4 << "\n";
-    }
-
-
-    void EmitAssemblyFromCode(const Instruction& ins, std::ofstream& out) {
-        // movs, movz, mul, imul, div, idiv, cxtx, call, ret, push, pop, add, sub, syscall, jump, jc, cmp
-        switch (ins.type) {
-            case mov:
-                WriteToFile(out, ins.addPostfix1("mov"), ins.op1, ins.op2);
                 break;
         }
     }
