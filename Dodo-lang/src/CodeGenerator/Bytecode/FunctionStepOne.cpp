@@ -46,7 +46,51 @@ namespace {
 
 VariableContainerVector earlyVariables;
 // some variable names might repeat, they need to be counted
-MapWrapper <std::string, uint64_t> variableInstances;
+struct VarInstanceStruct {
+    uint32_t instanceNumber = 0;
+    uint32_t assignmentNumber = 0;
+    uint32_t addInstance() {
+        return ++instanceNumber;
+        assignmentNumber = 0;
+    }
+};
+MapWrapper <std::string, VarInstanceStruct> variableInstances;
+
+std::string AddVariableInstance (std::string identifier) {
+    if (variableInstances.isKey(identifier)) {
+        auto& ins = variableInstances[identifier];
+        ins.instanceNumber++;
+        ins.assignmentNumber = 0;
+        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+    }
+    else {
+        variableInstances.insert(identifier, {});
+        auto& ins = variableInstances[identifier];
+        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+    }
+}
+
+std::string GetVariableInstance (std::string identifier) {
+    if (variableInstances.isKey(identifier)) {
+        auto& ins = variableInstances[identifier];
+        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+    }
+    CodeGeneratorError("Invalid variable reference!");
+    return "";
+}
+
+std::string ReassignVariableInstance (std::string identifier, const VariableType& type) {
+    if (variableInstances.isKey(identifier)) {
+        auto& ins = variableInstances[identifier];
+        ins.assignmentNumber++;
+        earlyVariables.add({type, GetVariableInstance(identifier), true});
+        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+    }
+    CodeGeneratorError("Invalid variable reference!");
+    return "";
+}
+
+
 
 std::string BytecodeFunctionCall(const ParserValue& expression);
 void HandleInstruction(const ParserFunction& function, const FunctionInstruction& instruction, uint64_t& counter);
@@ -60,8 +104,8 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
     }
 
     if (expression.nodeType == ParserValue::Node::variable) {
-        const auto& var = earlyVariables.find(*expression.value);
-        return *expression.value;
+        const auto& var = earlyVariables.find(GetVariableInstance(*expression.value));
+        return GetVariableInstance(*expression.value);
     }
 
     if (expression.nodeType == ParserValue::Node::operation) {
@@ -71,8 +115,8 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
         else {
             std::string left =  CalculateBytecodeExpression(*expression.left,  type);
             std::string right = CalculateBytecodeExpression(*expression.right, type);
-            bytecodes.emplace_back(expression.operationType, right, left, expressionCounter, type);
-            return EXPRESSION_SIGN + std::to_string(expressionCounter++);
+            bytecodes.emplace_back(expression.operationType, right, left, expressionCounter++, type);
+            return AddVariableInstance(EXPRESSION_SIGN);
         }
     }
 
@@ -187,28 +231,24 @@ void BytecodeReturn(const ReturnInstruction& instruction, const ParserFunction& 
 
 void BytecodeDeclare(const DeclarationInstruction& instruction) {
     auto& type = parserTypes[instruction.typeName];
-    earlyVariables.add({{type.size, type.type, instruction.subtype}, instruction.name, instruction.isMutable});
-    uint64_t number;
-    if (variableInstances.isKey(instruction.name)) {
-        number = ++variableInstances[instruction.name];
-    }
-    else {
-        variableInstances.insert(instruction.name, 0);
-        number = 0;
-    }
+    std::string name = AddVariableInstance(instruction.name);
+    earlyVariables.add({{type.size, type.type, instruction.subtype}, name, instruction.isMutable});
     bytecodes.emplace_back(Bytecode::declare, CalculateBytecodeExpression(instruction.expression,{type.size, type.type, instruction.subtype}),
-                           instruction.name + "#" + std::to_string(number), VariableType(type.size, type.type));
+                          name, VariableType(type.size, type.type));
 }
 
 void BytecodeDeclare(const ForLoopVariable& var) {
     auto& type = parserTypes[var.typeName];
-    earlyVariables.add({{type.size, type.type, var.subtype}, var.identifier, true});
+    std::string name = AddVariableInstance(var.identifier);
+    earlyVariables.add({{type.size, type.type, var.subtype}, name, true});
     bytecodes.emplace_back(Bytecode::declare, CalculateBytecodeExpression(var.value,{type.size, type.type, var.subtype}),
-                           var.identifier, VariableType(type.size, type.type));
+                           name, VariableType(type.size, type.type));
 }
 
 void BytecodeAssign(const ValueChangeInstruction& instruction) {
-    bytecodes.emplace_back(Bytecode::assign, CalculateBytecodeExpression(instruction.expression, earlyVariables.find(instruction.name).type), instruction.name, earlyVariables.find(instruction.name).type);
+    auto& type = earlyVariables.find(GetVariableInstance(instruction.name)).type;
+    bytecodes.emplace_back(Bytecode::assign, CalculateBytecodeExpression(instruction.expression, type), "", type);
+    bytecodes.back().target = ReassignVariableInstance(instruction.name, type);
 }
 
 void BytecodePushLevel() {

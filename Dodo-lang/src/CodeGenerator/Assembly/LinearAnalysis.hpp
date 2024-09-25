@@ -10,6 +10,7 @@ struct VariableStatistics {
     uint64_t firstUse = 0;
     uint64_t lastUse = 0;
     uint64_t usageAmount:47 = 0;
+    uint8_t isMainValue:1 = false;
     enum AssignStatus {
         none, reg, sta
     };

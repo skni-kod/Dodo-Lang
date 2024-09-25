@@ -72,16 +72,16 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Invalid instruction\n";
             break;
         case Bytecode::add:
-            out << "Add: " << code.source << " to: " << code.target << ", store result as: "<< EXPRESSION_SIGN << code.number << " using type: " << code.type << "\n";
+            out << "Add: " << code.source << " to: " << code.target << ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::subtract:
-            out << "Subtract: " << code.source << " from: " << code.target <<  ", store result as: "<< EXPRESSION_SIGN << code.number << " using type: " << code.type << "\n";
+            out << "Subtract: " << code.source << " from: " << code.target <<  ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::multiply:
-            out << "Multiply: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << code.number << " using type: " << code.type << "\n";
+            out << "Multiply: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::divide:
-            out << "Divide: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << code.number << " using type: " << code.type << "\n";
+            out << "Divide: " << code.target << " by: " << code.source <<  ", store result as: "<< EXPRESSION_SIGN << "#" << code.number << " using type: " << code.type << "\n";
             break;
         case Bytecode::callFunction:
             if (code.target.empty()) {

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "ParserVariables.hpp"
 
-#define EXPRESSION_SIGN '='
+#define EXPRESSION_SIGN "="
 
 inline const FunctionInstruction* currentlyGeneratedInstruction = nullptr;
 

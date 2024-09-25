@@ -17,5 +17,7 @@ type f64 : FLOATING_POINT(8);
 
 
 i32 main() {
-    return 64;
+    mut u32 k = 64;
+    k = k - 1;
+    return k + 1;
 }

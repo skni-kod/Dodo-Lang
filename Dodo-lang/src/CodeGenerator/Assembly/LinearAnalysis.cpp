@@ -23,6 +23,7 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        temp.isMainValue = true;
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
@@ -34,7 +35,7 @@ void CalculateLifetimes() {
             case Bytecode::multiply:
             case Bytecode::divide:
                 // create the expression
-                variableLifetimes.insert(bytecodes[n].type.GetPrefix() + EXPRESSION_SIGN + std::to_string(bytecodes[n].number), {n});
+                variableLifetimes.insert(bytecodes[n].type.GetPrefix() +  "=#" + std::to_string(bytecodes[n].number) + "-0", {n});
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
@@ -44,6 +45,14 @@ void CalculateLifetimes() {
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        const std::string& ending = bytecodes[n].source;
+                        for (auto& current : variableLifetimes.map) {
+                            if (current.first.ends_with(ending)) {
+                                current.second.usageAmount++;
+                                current.second.lastUse = n;
+                            }
+                        }
                     }
                 }
                 // handle target
@@ -55,6 +64,14 @@ void CalculateLifetimes() {
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        const std::string& ending = bytecodes[n].target;
+                        for (auto& current : variableLifetimes.map) {
+                            if (current.first.ends_with(ending)) {
+                                current.second.usageAmount++;
+                                current.second.lastUse = n;
+                            }
+                        }
                     }
                 }
                 break;
@@ -111,9 +128,11 @@ void CalculateLifetimes() {
             case Bytecode::assign:
                 // handle target
             {
+                variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
                 auto &temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].target);
                 temp.usageAmount++;
                 temp.lastUse = n;
+                temp.isMainValue = true;
             }
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
@@ -186,15 +205,12 @@ void RunLinearAnalysis() {
             for (auto& m : reg.assigned) {
                 auto& current = lifetimeVector[m].second;
                 // check if the already assigned variable was used during the needed time
-                if (current.firstUse >= var.lastUse) {
+                if (current.firstUse > var.lastUse or current.lastUse < var.firstUse) {
                     continue;
                 }
-                if (current.lastUse <= var.firstUse) {
-                    continue;
-                }
-
                 // if it got here then it was, move on
                 isValid = false;
+                break;
             }
             if (isValid) {
                 reg.assigned.push_back(n);

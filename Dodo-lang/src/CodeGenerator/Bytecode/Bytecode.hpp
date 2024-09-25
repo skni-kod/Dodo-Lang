@@ -56,9 +56,7 @@ struct Bytecode {
     // number will be used for things like argument number etc
     std::string source;
     std::string target;
-    union {
-        uint64_t number = 0;
-    };
+    uint64_t number = 0;
     VariableType type;
     Bytecode() = default;
     explicit Bytecode(uint64_t code);
