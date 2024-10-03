@@ -13,7 +13,6 @@ type u32 : UNSIGNED_INTEGER(4);
 type u64 : UNSIGNED_INTEGER(8);
 
 // basic floating point
-type f8 : FLOATING_POINT(1);
 type f16 : FLOATING_POINT(2);
 type f32 : FLOATING_POINT(4);
 type f64 : FLOATING_POINT(8);

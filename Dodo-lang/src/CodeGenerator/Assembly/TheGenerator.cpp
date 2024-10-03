@@ -42,9 +42,10 @@ std::vector<uint8_t> GetOperandTypes(const InstructionRequirements& req) {
     return types;
 
 }
+OpCombination opCombDummy;
 
-const OpCombination& ChooseOpCombination(const InstructionRequirements& req, const std::vector<uint8_t>& operands) {
-    std::vector<const OpCombination*> validOnes;
+OpCombination& ChooseOpCombination(InstructionRequirements& req, std::vector<uint8_t>& operands) {
+    std::vector<OpCombination*> validOnes;
 
     uint16_t index = 0;
     uint16_t maxMatch = 0;
@@ -106,26 +107,13 @@ const OpCombination& ChooseOpCombination(const InstructionRequirements& req, con
     else if (validOnes.size() > 1) {
         return *validOnes[index];
     }
-
-    return {};
+    return opCombDummy;
 }
 
 void MoveValueToStorage() {
 
 }
 
-void MoveValueToRegister(uint16_t number, uint64_t value) {
-    if (options::targetArchitecture == "X86_64") {
-        GenerateInstruction({x86_64::mov, "%" + std::to_string(number), "$" + std::to_string(value),
-                             {{OpCombination(Operand::reg, {x86_64::rax}, Operand::imm, {})}}});
-    }
-}
-
-void SetRequiredValues(const std::vector<std::pair<uint64_t, uint64_t>>& registerValues) {
-    for (auto& n: registerValues) {
-        MoveValueToRegister(n.first, n.second);
-    }
-}
 
 void UpdateVariables() {
     for (auto& n: generatorMemory.registers) {
@@ -224,7 +212,9 @@ internal::StackEntry* AddStackVariable(std::string name) {
 
     return &generatorMemory.stack.back();
 }
-
+void MoveValue(std::pair <std::string, std::string> pair) {
+    MoveValue(pair.first, pair.second);
+}
 void MoveValue(std::string source, std::string target) {
     uint64_t targetNumber;
     internal::StackEntry* stackLocation = nullptr;
@@ -256,6 +246,8 @@ void MoveValue(std::string source, std::string target) {
                     ins.op1 = {Operand::sta, stackLocation->offset};
                     ins.op2 = {Operand::reg, targetNumber};
                     ins.sizeAfter = ins.sizeAfter = stackLocation->size;
+                    ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                    finalInstructions.push_back(ins);
                 }
             }
             else if (stackLocation->content.value != reg.content.value) {
@@ -265,6 +257,8 @@ void MoveValue(std::string source, std::string target) {
                     ins.op1 = {Operand::sta, stackLocation->offset};
                     ins.op2 = {Operand::reg, targetNumber};
                     ins.sizeAfter = ins.sizeAfter = stackLocation->size;
+                    ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                    finalInstructions.push_back(ins);
                 }
                 stackLocation->content.value = reg.content.value;
             }
@@ -281,6 +275,7 @@ void MoveValue(std::string source, std::string target) {
             // if it's already there then end this charade
             return;
         }
+        stackLocation->content.value = source;
     }
 
     // now the target is ready for input
@@ -325,6 +320,7 @@ void MoveValue(std::string source, std::string target) {
             else if (sourceType == Operand::var) {
                 ins.sizeAfter = ins.sizeBefore = std::stoull(source.substr(1, 1));
             }
+            generatorMemory.registers[targetNumber].content.value = source;
         }
         finalInstructions.push_back(ins);
     }
@@ -332,18 +328,144 @@ void MoveValue(std::string source, std::string target) {
 
 void GenerateInstruction(InstructionRequirements req) {
 
-    if (req.op1.empty() and not req.combinations.empty()) {
-        // there are no operands, just ensure any needed values are set and call
-        SetRequiredValues(req.combinations.front().registerValues);
-    }
-
     // get the operand types passed by caller
     auto types = GetOperandTypes(req);
     // choose the best valid operand combination if there is one
-    const OpCombination& combination = ChooseOpCombination(req, types);
+    OpCombination& combination = ChooseOpCombination(req, types);
+
+    Instruction ins;
+    ins.type = req.instructionNumber;
+    ins.sizeBefore = ins.sizeAfter = req.instructionSize;
+    ins.postfix1 = AddInstructionPostfix(ins.sizeBefore);
+    ins.postfix2 = AddInstructionPostfix(ins.sizeAfter);
 
     // move the first argument into place if it's there
     if (types.size() >= 1) {
-
+        auto temp = combination.getOperand(1, req.op1);
+        MoveValue(temp.first, temp.second);
+        ins.op1 = temp.second;
     }
+
+    if (types.size() >= 2) {
+        auto temp = combination.getOperand(2, req.op2);
+        MoveValue(temp.first, temp.second);
+        ins.op2 = temp.second;
+    }
+
+    if (types.size() >= 3) {
+        auto temp = combination.getOperand(3, req.op3);
+        MoveValue(temp.first, temp.second);
+        ins.op3 = temp.second;
+    }
+
+    if (types.size() == 4) {
+        auto temp = combination.getOperand(4, req.op1);
+        MoveValue(temp.first, temp.second);
+        ins.op4 = temp.second;
+    }
+
+    if (req.op1.empty() and not req.combinations.empty()) {
+        // there are no operands, just ensure any needed values are set and call
+        for (auto& n : combination.registerValues) {
+            MoveValue("$" + std::to_string(n.second), "%" + std::to_string(n.first));
+        }
+    }
+
+    finalInstructions.push_back(ins);
+}
+
+std::pair<std::string, std::string> OpCombination::getOperand(uint16_t number, std::string source) {
+    uint8_t type = 0;
+    std::vector <uint16_t>* vec = nullptr;
+    switch (number) {
+        case 1:
+            type = type1;
+            vec = &allowed1;
+            break;
+        case 2:
+            type = type2;
+            vec = &allowed2;
+            break;
+        case 3:
+            type = type3;
+            vec = &allowed3;
+            break;
+        case 4:
+            type = type4;
+            vec = &allowed4;
+            break;
+        default:
+            CodeGeneratorError("BUG: Invalid number in operand get!");
+            return {};
+    }
+
+    // now type and allowed vec is ready
+    DataLocation sourceType;
+    sourceType.type = GetOperandType(source);
+    // it it's a var convert it into a location
+    if (sourceType.type == Operand::var) {
+        // get new source
+        sourceType = generatorMemory.findThing(source);
+        if (sourceType.type == Operand::reg) {
+            source = "%" + std::to_string(sourceType.value);
+        }
+        else {
+            source = "@" + std::to_string(sourceType.offset);
+        }
+    }
+    if (sourceType.type == Operand::sta) {
+        if (type == sta) {
+            return {source, source};
+        }
+        if (type == reg) {
+            // in this case find a free and allowed register, start from back to be sure it's fine
+            for (int64_t n = vec->size() - 1; n >= 0; n++) {
+                if (generatorMemory.registers[vec->at(n)].content.value == "!") {
+                    std::string target = "%" + std::to_string(vec->at(n));
+                    return {source, target};
+                }
+            }
+            // if not found, that would be annoying
+            // try values, should be safe
+            for (int64_t n = vec->size() - 1; n >= 0; n++) {
+                if (generatorMemory.registers[vec->at(n)].content.value.starts_with("$")) {
+                    std::string target = "%" + std::to_string(vec->at(n));
+                    return {source, target};
+                }
+            }
+            CodeGeneratorError("As of yet unhandled operand placing exception!");
+        }
+    }
+    if (sourceType.type == Operand::reg) {
+        // if it's on stack then it needs to ge there
+        if (type == Operand::sta) {
+            CodeGeneratorError("Unimplemented stack operation!");
+        }
+        else {
+            for (auto& n : *vec) {
+                if (n == sourceType.number) {
+                    return {source, source};
+                }
+            }
+            for (int64_t n = vec->size() - 1; n >= 0; n++) {
+                if (generatorMemory.registers[vec->at(n)].content.value == "!") {
+                    std::string target = "%" + std::to_string(vec->at(n));
+                    return {source, target};
+                }
+            }
+            // if not found, that would be annoying
+            // try values, should be safe
+            for (int64_t n = vec->size() - 1; n >= 0; n++) {
+                if (generatorMemory.registers[vec->at(n)].content.value.starts_with("$")) {
+                    std::string target = "%" + std::to_string(vec->at(n));
+                    return {source, target};
+                }
+            }
+        }
+    }
+    else if (sourceType.type == Operand::imm) {
+        return {source, source};
+    }
+    CodeGeneratorError("Invalid operand get operation!");
+    return {};
 }

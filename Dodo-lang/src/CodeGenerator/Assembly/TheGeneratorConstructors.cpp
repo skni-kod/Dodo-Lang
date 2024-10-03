@@ -46,28 +46,28 @@ OpCombination::OpCombination(uint8_t type1, std::vector<uint16_t> allowed1,
                              std::vector<std::pair<uint64_t, uint64_t>> registerValues) :
         type1(type1), allowed1(allowed1), registerValues(registerValues) {}
 
-InstructionRequirements::InstructionRequirements(uint64_t instructionNumber,
+InstructionRequirements::InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize,
                                                  std::string op1, std::string op2, std::string op3, std::string op4,
                                                  std::vector<OpCombination> combinations) :
-        instructionNumber(instructionNumber), op1(op1), op2(op2), op3(op3), op4(op4), combinations(combinations) {}
+        instructionNumber(instructionNumber), instructionSize(instructionSize), op1(op1), op2(op2), op3(op3), op4(op4), combinations(combinations) {}
 
-InstructionRequirements::InstructionRequirements(uint64_t instructionNumber,
+InstructionRequirements::InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize,
                                                  std::string op1, std::string op2, std::string op3,
                                                  std::vector<OpCombination> combinations) :
-        instructionNumber(instructionNumber), op1(op1), op2(op2), op3(op3), combinations(combinations) {}
+        instructionNumber(instructionNumber), instructionSize(instructionSize), op1(op1), op2(op2), op3(op3), combinations(combinations) {}
 
-InstructionRequirements::InstructionRequirements(uint64_t instructionNumber,
+InstructionRequirements::InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize,
                                                  std::string op1, std::string op2,
                                                  std::vector<OpCombination> combinations) :
-        instructionNumber(instructionNumber), op1(op1), op2(op2), combinations(combinations) {}
+        instructionNumber(instructionNumber), instructionSize(instructionSize), op1(op1), op2(op2), combinations(combinations) {}
 
-InstructionRequirements::InstructionRequirements(uint64_t instructionNumber,
+InstructionRequirements::InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize,
                                                  std::string op1,
                                                  std::vector<OpCombination> combinations) :
-        instructionNumber(instructionNumber), op1(op1), combinations(combinations) {}
+        instructionNumber(instructionNumber), instructionSize(instructionSize), op1(op1), combinations(combinations) {}
 
-InstructionRequirements::InstructionRequirements(uint64_t instructionNumber,
+InstructionRequirements::InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize,
                                                  std::vector<OpCombination> combinations) :
-        instructionNumber(instructionNumber), combinations(combinations) {}
+        instructionNumber(instructionNumber), instructionSize(instructionSize), combinations(combinations) {}
 
 InstructionRequirements::InstructionRequirements(uint64_t instructionNumber) : instructionNumber(instructionNumber) {}

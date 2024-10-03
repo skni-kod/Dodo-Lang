@@ -133,6 +133,8 @@ struct DataLocation {
     DataLocation(uint8_t type, uint64_t value);
 
     DataLocation(uint8_t type, ParserFunction* functionPtr);
+
+    DataLocation(const std::string& operand);
 };
 
 std::ostream& operator<<(std::ostream& out, const DataLocation& data);
@@ -158,5 +160,6 @@ inline std::vector<Instruction> finalInstructions;
 
 inline uint64_t currentBytecodeIndex = 0;
 
+char AddInstructionPostfix(uint32_t size);
 
 #endif //DODO_LANG_MEMORY_STRUCTURE_HPP

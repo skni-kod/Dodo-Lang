@@ -20,7 +20,9 @@ struct OpCombination {
     uint8_t type4: 4 = Type::none;
     // these contain allowed registers
     std::vector<uint16_t> allowed1, allowed2, allowed3, allowed4;
+    // first is register, second is value to set
     std::vector<std::pair<uint64_t, uint64_t>> registerValues;
+    std::pair <std::string, std::string> getOperand(uint16_t number, std::string source);
 
     OpCombination() = default;
 
@@ -59,6 +61,7 @@ struct InstructionRequirements {
     // operands to be used, empty means it and further ones are unused
     std::string op1, op2, op3, op4;
     uint64_t instructionNumber {};
+    uint64_t instructionSize = 1;
 
     // now the dreaded combinations
     std::vector<OpCombination> combinations;
@@ -67,17 +70,17 @@ struct InstructionRequirements {
 
     InstructionRequirements(uint64_t instructionNumber);
 
-    InstructionRequirements(uint64_t instructionNumber, std::vector<OpCombination> combinations);
+    InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize, std::vector<OpCombination> combinations);
 
-    InstructionRequirements(uint64_t instructionNumber, std::string op1, std::vector<OpCombination> combinations);
+    InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize, std::string op1, std::vector<OpCombination> combinations);
 
-    InstructionRequirements(uint64_t instructionNumber, std::string op1, std::string op2,
+    InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize, std::string op1, std::string op2,
                             std::vector<OpCombination> combinations);
 
-    InstructionRequirements(uint64_t instructionNumber, std::string op1, std::string op2, std::string op3,
+    InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize, std::string op1, std::string op2, std::string op3,
                             std::vector<OpCombination> combinations);
 
-    InstructionRequirements(uint64_t instructionNumber, std::string op1, std::string op2, std::string op3,
+    InstructionRequirements(uint64_t instructionNumber, uint64_t instructionSize, std::string op1, std::string op2, std::string op3,
                             std::string op4, std::vector<OpCombination> combinations);
 };
 
@@ -86,6 +89,10 @@ void GenerateInstruction(InstructionRequirements req);
 void InsertValue(std::string target, std::string source);
 
 void MoveValue(std::string source, std::string target);
+
+uint8_t GetOperandType(const std::string& operand);
+
+internal::StackEntry* AddStackVariable(std::string name);
 
 void UpdateVariables();
 

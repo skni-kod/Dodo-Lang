@@ -110,7 +110,7 @@ uint64_t labelCounter = 0;
 
 std::string CalculateBytecodeExpression(const ParserValue& expression, VariableType type) {
     if (expression.nodeType == ParserValue::Node::constant) {
-        return *expression.value;
+        return "$" + *expression.value;
     }
 
     if (expression.nodeType == ParserValue::Node::variable) {

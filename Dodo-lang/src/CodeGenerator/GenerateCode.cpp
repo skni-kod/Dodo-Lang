@@ -98,10 +98,8 @@ void GenerateCode() {
         // platform specific optimizations will be done here
 
         // at the end use the calculated stack offset and put the thing into code
-        for (const auto& finalInstruction: finalInstructions) {
-            for (uint64_t n = 0; n < bytecodes.size(); n++) {
-                finalInstructions[n].outputX86_64(out);
-            }
+        for (auto& finalInstruction: finalInstructions) {
+            finalInstruction.outputX86_64(out);
         }
 
         // end function

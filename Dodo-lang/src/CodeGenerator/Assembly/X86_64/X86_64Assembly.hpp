@@ -9,12 +9,12 @@ namespace x86_64 {
     void ConvertBytecode(const Bytecode& bytecode);
 
     enum {
-        // op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm
+        // (mov+p1) op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm
         mov,
-        //
-        movs,
-        //
-        movz,
+        // (movz+p1+p2) move with sign extension op1 = op2, reg + reg/mem
+        movsx,
+        // (movz+p1+p2) move with zero extension op1 = op2, reg + reg/mem
+        movzx,
         //
         mul,
         //

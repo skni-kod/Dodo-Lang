@@ -4,6 +4,9 @@
 #include "MemoryStructure.hpp"
 #include "GenerateCode.hpp"
 #include "Assembly/X86_64/X86_64Assembly.hpp"
+#include "LinearAnalysis.hpp"
+#include "TheGenerator.hpp"
+#include "CodeGeneratorOld/GenerateCode.hpp"
 
 namespace internal {
     ContentEntry::ContentEntry(std::string value) : value(value) {}
@@ -128,6 +131,168 @@ void MemoryStructure::popLevel() {
     variableLevels.pop_back();
 }
 
+
+char AddInstructionPostfix(uint32_t size) {
+    if (options::targetArchitecture == "X86_64") {
+        switch (size) {
+            case 1:
+                return 'b';
+            case 2:
+                return 'w';
+            case 4:
+                return 'l';
+            case 8:
+                return 'q';
+            default:
+                CodeGeneratorError("Invalid size for postfix!");
+        }
+    }
+    return 0;
+}
+
+std::string GetSizedRegister(uint32_t number ,uint32_t size) {
+    if (options::targetArchitecture == "X86_64") {
+        switch (size) {
+            case 1:
+                return generatorMemory.registers[number].sizeNamePairs[0].second;
+            case 2:
+                return generatorMemory.registers[number].sizeNamePairs[1].second;
+            case 4:
+                return generatorMemory.registers[number].sizeNamePairs[2].second;
+            case 8:
+                return generatorMemory.registers[number].sizeNamePairs[3].second;
+            default:
+                CodeGeneratorError("Invalid size for register name!");
+        }
+    }
+    return {};
+}
+
+DataLocation dataLocationDummy;
+
+DataLocation GetConvertedValue(const std::string& name) {
+    // the value requested does not exist!
+    // take the main type value for this value and convert it to requested type
+
+    // first find the main variable
+    std::string searched = name.substr(3, name.size() - 3);
+    DataLocation stat;
+    // this is the location where we want the variable if possible
+    VariableStatistics* lifetime = nullptr;
+    stat.type == Operand::none;
+    VariableType sourceType, targetType;
+    targetType.size = std::stoull(name.substr(1, 1));
+    targetType.type = GetOperandType(name);
+    for (auto& n : variableLifetimes.map) {
+        if (n.first.ends_with(searched) and n.second.isMainValue) {
+            stat = generatorMemory.findThing(n.first);
+            sourceType.size = std::stoull(n.first.substr(1, 1));
+            sourceType.type = GetOperandType(n.first);
+        }
+    }
+    if (stat.type == Operand::none) {
+        CodeGeneratorError("Could not find baseline variable for conversion!");
+    }
+
+    for (auto& n : variableLifetimes.map) {
+        if (n.first == name) {
+            lifetime = &n.second;
+        }
+    }
+    DataLocation where;
+    if (lifetime->assignStatus == VariableStatistics::reg) {
+        where = {Operand::reg, uint64_t(lifetime->assigned)};
+    }
+    else {
+        where = {Operand::sta, AddStackVariable(name)->offset};
+    }
+
+    // now the base if found, convert it and return its location
+    if (options::targetArchitecture == "X86_64") {
+        switch (sourceType.type) {
+            case ParserType::Type::signedInteger:
+            case ParserType::Type::unsignedInteger:
+                switch (targetType.type) {
+                    case ParserType::Type::signedInteger:
+                    case ParserType::Type::unsignedInteger:
+                        if (sourceType.size > targetType.size) {
+                            if (stat.type == Operand::sta) {
+                                return {Operand::sta, stat.offset + sourceType.size - targetType.size};
+                            }
+                            else {
+                                return stat;
+                            }
+                        }
+                        else {
+                            // in this case get the extended value
+                            if (where.type == Operand::reg) {
+                                Instruction ins;
+                                if (targetType.type == ParserType::unsignedInteger) {
+                                    ins.type == x86_64::movzx;
+                                }
+                                else if (targetType.type == ParserType::signedInteger) {
+                                    ins.type == x86_64::movsx;
+                                }
+                                ins.sizeBefore = sourceType.size;
+                                ins.sizeAfter = targetType.size;
+                                ins.postfix1 = AddInstructionPostfix(sourceType.size);
+                                ins.postfix2 = AddInstructionPostfix(targetType.size);
+                                ins.op1 = where;
+                                if (sourceType.type == Operand::sta) {
+                                    ins.op2 = {Operand::sta, stat.offset};
+                                }
+                                else {
+                                    ins.op2 = {Operand::reg, uint64_t(stat.number)};
+                                }
+                                finalInstructions.push_back(ins);
+                                return where;
+
+                            }
+                            else if (where.type == Operand::sta) {
+                                // TODO: make a free register function and then do a movsx/movzx to rax
+                                if (sourceType.type == Operand::reg) {
+                                    // for now move a 0 to that location and then the value
+                                    Instruction ins;
+                                    ins.type == x86_64::mov;
+                                    ins.sizeAfter = ins.sizeBefore = where.size;
+                                    ins.postfix1 = AddInstructionPostfix(where.size);
+                                    ins.op1 = {Operand::sta, stat.offset};
+                                    ins.op2 = {Operand::imm, uint64_t(0)};
+                                    finalInstructions.push_back(ins);
+                                    // now move the value
+                                    ins.sizeAfter = ins.sizeBefore = sourceType.size;
+                                    ins.postfix1 = AddInstructionPostfix(sourceType.size);
+                                    ins.op2 = {Operand::reg, uint64_t(stat.number)};
+                                }
+                                else {
+                                    // move 0 to given register
+                                    MoveValue("$0", "%" + GetSizedRegister(0, targetType.size));
+                                    Instruction ins;
+                                    ins.type == x86_64::mov;
+                                    ins.sizeAfter = ins.sizeBefore = sourceType.size;
+                                    ins.postfix1 = AddInstructionPostfix(sourceType.size);
+                                    ins.op1 = {Operand::reg, uint64_t(0)};
+                                    ins.op2 = {Operand::sta, stat.offset};
+                                    finalInstructions.push_back(ins);
+                                    // now move the value
+                                    ins.op1 = {Operand::sta, where.offset};
+                                    ins.op2 = {Operand::reg, uint64_t(0)};
+                                    ins.sizeAfter = ins.sizeBefore = targetType.size;
+                                    ins.postfix1 = AddInstructionPostfix(targetType.size);
+                                    finalInstructions.push_back(ins);
+                                }
+
+                            }
+                        }
+                        break;
+                }
+                break;
+        }
+    }
+    CodeGeneratorError("Reached end of conversion function!");
+    return dataLocationDummy;
+}
+
 DataLocation MemoryStructure::findThing(std::string name) {
     if (name.front() == '$') {
         return {Operand::imm, uint64_t(std::stoull(name.substr(1, name.size() - 1)))};
@@ -154,8 +319,7 @@ DataLocation MemoryStructure::findThing(std::string name) {
             return {Operand::sta, n.offset};
         }
     }
-    CodeGeneratorError("Type conversion case 1!");
-    return {};
+    return GetConvertedValue(name);
 }
 
 std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
@@ -209,6 +373,20 @@ void DataLocation::print(std::ofstream& out, uint8_t size) {
                 return;
         }
     }
+}
+
+DataLocation::DataLocation(const std::string& operand) {
+    type = GetOperandType(operand);
+    switch (type) {
+        case Operand::reg:
+        case Operand::imm:
+            value = std::stoull(operand.substr(1, operand.size() - 1));
+            return;
+        case Operand::sta:
+            offset = std::stoll(operand.substr(1, operand.size() - 1));
+            return;
+    }
+    CodeGeneratorError("Invalid operand in data location constructor!");
 }
 
 char X86_64GNUASPrefix(uint8_t size) {

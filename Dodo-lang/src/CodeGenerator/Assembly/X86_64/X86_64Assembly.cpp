@@ -29,8 +29,7 @@ namespace x86_64 {
                 break;
             case Bytecode::returnValue:
                 // move returned value into register a
-                MoveValue("$0", "%0");
-                //InsertValue(REGISTER_SIGN + "0", bytecode.source);
+                MoveValue(bytecode.source, "%0");
                 // insert a return statement
                 GenerateInstruction({x86_64::ret});
                 break;
