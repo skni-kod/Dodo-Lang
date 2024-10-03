@@ -13,7 +13,7 @@ void GenerateFunctionStepTwo(const ParserFunction& function) {
     if (options::targetArchitecture == "X86_64") {
         for (uint64_t n = 0; n < bytecodes.size(); n++) {
             currentBytecodeIndex = n;
-            UpdateVariables();
+            //UpdateVariables();
             x86_64::ConvertBytecode(bytecodes[n]);
         }
     }

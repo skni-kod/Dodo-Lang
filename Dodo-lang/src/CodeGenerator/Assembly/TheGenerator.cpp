@@ -212,10 +212,8 @@ internal::StackEntry* AddStackVariable(std::string name) {
 
     return &generatorMemory.stack.back();
 }
-void MoveValue(std::pair <std::string, std::string> pair) {
-    MoveValue(pair.first, pair.second);
-}
-void MoveValue(std::string source, std::string target) {
+
+void MoveValue(std::string source, std::string target, std::string contentToSet) {
     uint64_t targetNumber;
     internal::StackEntry* stackLocation = nullptr;
     // since this thing needs to move a value to given place first we need to know if the target is a register,
@@ -242,7 +240,7 @@ void MoveValue(std::string source, std::string target) {
                 stackLocation = AddStackVariable(reg.content.value);
                 if (options::targetArchitecture == "X86_64") {
                     Instruction ins;
-                    ins.type == x86_64::mov;
+                    ins.type = x86_64::mov;
                     ins.op1 = {Operand::sta, stackLocation->offset};
                     ins.op2 = {Operand::reg, targetNumber};
                     ins.sizeAfter = ins.sizeAfter = stackLocation->size;
@@ -253,7 +251,7 @@ void MoveValue(std::string source, std::string target) {
             else if (stackLocation->content.value != reg.content.value) {
                 if (options::targetArchitecture == "X86_64") {
                     Instruction ins;
-                    ins.type == x86_64::mov;
+                    ins.type = x86_64::mov;
                     ins.op1 = {Operand::sta, stackLocation->offset};
                     ins.op2 = {Operand::reg, targetNumber};
                     ins.sizeAfter = ins.sizeAfter = stackLocation->size;
@@ -288,9 +286,25 @@ void MoveValue(std::string source, std::string target) {
         ins.op2 = sourceContent;
         // immutables are simple, just move them
         if (targetType == Operand::reg) {
+            if (sourceType == Operand::var) {
+                ins.sizeAfter = ins.sizeBefore = std::stoull(source.substr(1, 1));
+            }
+            else if (sourceType == Operand::var) {
+                ins.sizeAfter = ins.sizeBefore = std::stoull(target.substr(1, 1));
+            }
+            else {
+                uint8_t contentType = GetOperandType(contentToSet);
+                if (contentType != Operand::var) {
+                    CodeGeneratorError("Could not find size for operation");
+                    return;
+                }
+                ins.sizeAfter = ins.sizeBefore = std::stoull(contentToSet.substr(1, 1));
+            }
+
             ins.op1 = {Operand::reg, targetNumber};
+            generatorMemory.registers[targetNumber].content.value = contentToSet;
         }
-        if (targetType == Operand::sta) {
+        else if (targetType == Operand::sta) {
             ins.sizeAfter = ins.sizeBefore = stackLocation->size;
             // it cannot be nullptr clion, it CAN NOT
             if (sourceContent.type == Operand::sta) {
@@ -302,7 +316,8 @@ void MoveValue(std::string source, std::string target) {
                         break;
                     }
                 }
-                MoveValue("@" + std::to_string(stackLocation->offset), "%" + std::to_string(reg));
+                MoveValue("@" + std::to_string(stackLocation->offset), "%" + std::to_string(reg), stackLocation->content.value);
+                stackLocation->content.value = contentToSet;
                 ins.op1 = {Operand::reg, reg};
             }
             else {
@@ -310,17 +325,9 @@ void MoveValue(std::string source, std::string target) {
             }
         }
         else {
-            if (sourceType == Operand::imm) {
-                // TODO: figure out where to take the value from
-                ins.sizeAfter = ins.sizeBefore = 4;
-            }
-            else if (sourceType == Operand::sta) {
-                ins.sizeAfter = ins.sizeBefore = FindStackVariableByOffset(sourceContent.offset)->size;
-            }
-            else if (sourceType == Operand::var) {
-                ins.sizeAfter = ins.sizeBefore = std::stoull(source.substr(1, 1));
-            }
-            generatorMemory.registers[targetNumber].content.value = source;
+            CodeGeneratorError("Assigning to invalid operand?");
+
+
         }
         finalInstructions.push_back(ins);
     }
@@ -342,32 +349,32 @@ void GenerateInstruction(InstructionRequirements req) {
     // move the first argument into place if it's there
     if (types.size() >= 1) {
         auto temp = combination.getOperand(1, req.op1);
-        MoveValue(temp.first, temp.second);
+        MoveValue(temp.first, temp.second, req.op1);
         ins.op1 = temp.second;
     }
 
     if (types.size() >= 2) {
         auto temp = combination.getOperand(2, req.op2);
-        MoveValue(temp.first, temp.second);
+        MoveValue(temp.first, temp.second, req.op2);
         ins.op2 = temp.second;
     }
 
     if (types.size() >= 3) {
         auto temp = combination.getOperand(3, req.op3);
-        MoveValue(temp.first, temp.second);
+        MoveValue(temp.first, temp.second, req.op3);
         ins.op3 = temp.second;
     }
 
     if (types.size() == 4) {
         auto temp = combination.getOperand(4, req.op1);
-        MoveValue(temp.first, temp.second);
+        MoveValue(temp.first, temp.second, req.op4);
         ins.op4 = temp.second;
     }
 
     if (req.op1.empty() and not req.combinations.empty()) {
         // there are no operands, just ensure any needed values are set and call
         for (auto& n : combination.registerValues) {
-            MoveValue("$" + std::to_string(n.second), "%" + std::to_string(n.first));
+            MoveValue("$" + std::to_string(n.second), "%" + std::to_string(n.first), "$" + std::to_string(n.second));
         }
     }
 

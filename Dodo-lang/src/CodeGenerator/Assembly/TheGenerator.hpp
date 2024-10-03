@@ -88,7 +88,7 @@ void GenerateInstruction(InstructionRequirements req);
 
 void InsertValue(std::string target, std::string source);
 
-void MoveValue(std::string source, std::string target);
+void MoveValue(std::string source, std::string target, std::string contentToSet);
 
 uint8_t GetOperandType(const std::string& operand);
 

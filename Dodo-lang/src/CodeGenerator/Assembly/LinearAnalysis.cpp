@@ -17,16 +17,16 @@ void CalculateLifetimes() {
     for (uint64_t n = 0; n < bytecodes.size(); n++) {
         switch (bytecodes[n].code) {
             case Bytecode::declare:
-                variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
+                variableLifetimes.insert(bytecodes[n].target, {n});
+                variableLifetimes[bytecodes[n].target].isMainValue = true;
                 if (IsVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].source);
+                    if (variableLifetimes.isKey(bytecodes[n].source)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
-                        temp.isMainValue = true;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
+                        variableLifetimes.insert(bytecodes[n].source, {n});
                     }
                 }
                 break;
@@ -36,16 +36,16 @@ void CalculateLifetimes() {
             case Bytecode::divide:
                 // create the expression
                 variableLifetimes.insert(
-                        bytecodes[n].type.GetPrefix() + "=#" + std::to_string(bytecodes[n].number) + "-0", {n});
+                        "=#" + std::to_string(bytecodes[n].number) + "-0", {n});
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].source);
+                    if (variableLifetimes.isKey(bytecodes[n].source)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
+                        variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         const std::string& ending = bytecodes[n].source;
                         for (auto& current: variableLifetimes.map) {
@@ -58,13 +58,13 @@ void CalculateLifetimes() {
                 }
                 // handle target
                 if (IsVariable(bytecodes[n].target)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].target)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].target);
+                    if (variableLifetimes.isKey(bytecodes[n].target)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].target);
                         temp.usageAmount++;
                         temp.lastUse = n;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
+                        variableLifetimes.insert(bytecodes[n].target, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         const std::string& ending = bytecodes[n].target;
                         for (auto& current: variableLifetimes.map) {
@@ -79,71 +79,71 @@ void CalculateLifetimes() {
             case Bytecode::compare:
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].source);
+                    if (variableLifetimes.isKey(bytecodes[n].source)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
+                        variableLifetimes.insert(bytecodes[n].source, {n});
                     }
                 }
                 // handle target
                 if (IsVariable(bytecodes[n].target)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].target)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].target);
+                    if (variableLifetimes.isKey(bytecodes[n].target)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].target);
                         temp.usageAmount++;
                         temp.lastUse = n;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
+                        variableLifetimes.insert(bytecodes[n].target, {n});
                     }
                 }
                 break;
             case Bytecode::returnValue:
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].source);
+                    if (variableLifetimes.isKey(bytecodes[n].source)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
+                        variableLifetimes.insert(bytecodes[n].source, {n});
                     }
                 }
                 break;
             case Bytecode::moveArgument:
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].source);
+                    if (variableLifetimes.isKey(bytecodes[n].source)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
+                        variableLifetimes.insert(bytecodes[n].source, {n});
                     }
                 }
                 break;
             case Bytecode::assign:
                 // handle target
             {
-                variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].target, {n});
-                auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].target);
+                variableLifetimes.insert(bytecodes[n].target, {n});
+                auto& temp = variableLifetimes.find(bytecodes[n].target);
                 temp.usageAmount++;
                 temp.lastUse = n;
                 temp.isMainValue = true;
             }
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].type.GetPrefix() + bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].type.GetPrefix() + bytecodes[n].source);
+                    if (variableLifetimes.isKey(bytecodes[n].source)) {
+                        auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
                     }
                     else {
-                        variableLifetimes.insert(bytecodes[n].type.GetPrefix() + bytecodes[n].source, {n});
+                        variableLifetimes.insert(bytecodes[n].source, {n});
                     }
                 }
                 break;

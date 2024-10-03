@@ -500,6 +500,20 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
         HandleInstruction(function, function.instructions[n], n);
     }
 
+    // adding size prefixes to things
+    for (auto& n : bytecodes) {
+        if (not n.source.empty()) {
+            if (n.source.front() != '$') {
+                n.source = n.type.GetPrefix() + n.source;
+            }
+        }
+        if (not n.target.empty()) {
+            if (n.target.front() != '$') {
+                n.target = n.type.GetPrefix() + n.target;
+            }
+        }
+    }
+
     if (options::informationLevel == options::InformationLevel::full) {
         std::cout << "INFO L3: Bytecodes for function: " << function.name << "(";
         // TODO: Add arguments here

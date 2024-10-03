@@ -179,7 +179,7 @@ DataLocation GetConvertedValue(const std::string& name) {
     DataLocation stat;
     // this is the location where we want the variable if possible
     VariableStatistics* lifetime = nullptr;
-    stat.type == Operand::none;
+    stat.type = Operand::none;
     VariableType sourceType, targetType;
     targetType.size = std::stoull(name.substr(1, 1));
     targetType.type = GetOperandType(name);
@@ -191,7 +191,7 @@ DataLocation GetConvertedValue(const std::string& name) {
         }
     }
     if (stat.type == Operand::none) {
-        CodeGeneratorError("Could not find baseline variable for conversion!");
+        CodeGeneratorError("Base variable ending with: " + searched + " does not exist!");
     }
 
     for (auto& n : variableLifetimes.map) {
@@ -228,10 +228,10 @@ DataLocation GetConvertedValue(const std::string& name) {
                             if (where.type == Operand::reg) {
                                 Instruction ins;
                                 if (targetType.type == ParserType::unsignedInteger) {
-                                    ins.type == x86_64::movzx;
+                                    ins.type = x86_64::movzx;
                                 }
                                 else if (targetType.type == ParserType::signedInteger) {
-                                    ins.type == x86_64::movsx;
+                                    ins.type = x86_64::movsx;
                                 }
                                 ins.sizeBefore = sourceType.size;
                                 ins.sizeAfter = targetType.size;
@@ -253,7 +253,7 @@ DataLocation GetConvertedValue(const std::string& name) {
                                 if (sourceType.type == Operand::reg) {
                                     // for now move a 0 to that location and then the value
                                     Instruction ins;
-                                    ins.type == x86_64::mov;
+                                    ins.type = x86_64::mov;
                                     ins.sizeAfter = ins.sizeBefore = where.size;
                                     ins.postfix1 = AddInstructionPostfix(where.size);
                                     ins.op1 = {Operand::sta, stat.offset};
@@ -266,9 +266,9 @@ DataLocation GetConvertedValue(const std::string& name) {
                                 }
                                 else {
                                     // move 0 to given register
-                                    MoveValue("$0", "%" + GetSizedRegister(0, targetType.size));
+                                    MoveValue("$0", "%" + GetSizedRegister(0, targetType.size), "$0");
                                     Instruction ins;
-                                    ins.type == x86_64::mov;
+                                    ins.type = x86_64::mov;
                                     ins.sizeAfter = ins.sizeBefore = sourceType.size;
                                     ins.postfix1 = AddInstructionPostfix(sourceType.size);
                                     ins.op1 = {Operand::reg, uint64_t(0)};
@@ -408,6 +408,7 @@ void Instruction::outputX86_64(std::ofstream& out) {
     if (options::assemblyFlavor == options::AssemblyFlavor::GNU_AS) {
         switch (this->type) {
             case x86_64::ret:
+                out << "popq    %rbp\n";
                 out << "ret\n";
                 break;
             case x86_64::mov:

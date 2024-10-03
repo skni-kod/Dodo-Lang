@@ -1,6 +1,7 @@
 #include "X86_64Assembly.hpp"
 #include "Assembly/MemoryStructure.hpp"
 #include "../TheGenerator.hpp"
+#include "Assembly/LinearAnalysis.hpp"
 #include <fstream>
 
 namespace x86_64 {
@@ -29,7 +30,7 @@ namespace x86_64 {
                 break;
             case Bytecode::returnValue:
                 // move returned value into register a
-                MoveValue(bytecode.source, "%0");
+                MoveValue(bytecode.source, "%0", bytecode.source);
                 // insert a return statement
                 GenerateInstruction({x86_64::ret});
                 break;
@@ -52,8 +53,13 @@ namespace x86_64 {
 
                 break;
             case Bytecode::declare:
-
+            {
+                auto& var = variableLifetimes[bytecode.target];
+                MoveValue(bytecode.source, (var.assignStatus == VariableStatistics::AssignStatus::reg ?
+                                            "%" + std::to_string(var.assigned) :
+                                            "@" + std::to_string(AddStackVariable(bytecode.target)->offset)), bytecode.target);
                 break;
+            }
             case Bytecode::assign:
 
                 break;

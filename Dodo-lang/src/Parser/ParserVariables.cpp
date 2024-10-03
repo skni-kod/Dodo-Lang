@@ -97,11 +97,11 @@ std::string VariableType::GetPrefix() const {
     prefix += std::to_string(size);
     switch (subtype) {
         case Subtype::value:
-            return prefix + "-";
+            return prefix + "$";
         case Subtype::reference:
-            return prefix + "&-";
+            return prefix + "&";
         case Subtype::pointer:
-            return prefix + "*-";
+            return prefix + "*";
         default:
             CodeGeneratorError("Invalid type somehow");
     }

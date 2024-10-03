@@ -33,7 +33,7 @@ namespace x86_64 {
         push,
         //
         pop,
-        //
+        // (add + p1) add signed/unsigned integer op1 = op1 + op2 reg + reg/mem, reg/mem + reg, reg/mem + imm
         add,
         //
         sub,
