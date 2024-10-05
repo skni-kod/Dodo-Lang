@@ -133,7 +133,7 @@ void MemoryStructure::popLevel() {
 
 
 char AddInstructionPostfix(uint32_t size) {
-    if (options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == "X86_64") {
         switch (size) {
             case 1:
                 return 'b';
@@ -151,7 +151,7 @@ char AddInstructionPostfix(uint32_t size) {
 }
 
 std::string GetSizedRegister(uint32_t number ,uint32_t size) {
-    if (options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == "X86_64") {
         switch (size) {
             case 1:
                 return generatorMemory.registers[number].sizeNamePairs[0].second;
@@ -208,7 +208,7 @@ DataLocation GetConvertedValue(const std::string& name) {
     }
 
     // now the base if found, convert it and return its location
-    if (options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == "X86_64") {
         switch (sourceType.type) {
             case ParserType::Type::signedInteger:
             case ParserType::Type::unsignedInteger:
@@ -319,9 +319,10 @@ DataLocation MemoryStructure::findThing(std::string name) {
             return {Operand::sta, n.offset};
         }
     }
-    return GetConvertedValue(name);
+    return {Operand::none, uint64_t(0)};
 }
 
+/*
 std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
     if (options::targetArchitecture == "X86_64") {
         switch (data.type) {
@@ -344,6 +345,7 @@ std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
     CodeGeneratorError("Unsupported target for assembly output!");
     return out;
 }
+*/
 
 DataLocation::DataLocation(uint8_t type, uint32_t number, uint32_t size) : type(type), number(number), size(size) {}
 
@@ -354,7 +356,7 @@ DataLocation::DataLocation(uint8_t type, uint64_t value) : type(type), value(val
 DataLocation::DataLocation(uint8_t type, ParserFunction* functionPtr) : type(type), functionPtr(functionPtr) {}
 
 void DataLocation::print(std::ofstream& out, uint8_t size) {
-    if (options::assemblyFlavor == options::AssemblyFlavor::GNU_AS and options::targetArchitecture == "X86_64") {
+    if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS and Options::targetArchitecture == "X86_64") {
         switch (this->type) {
             case Operand::imm:
                 out << '$' << value;
@@ -389,31 +391,58 @@ DataLocation::DataLocation(const std::string& operand) {
     CodeGeneratorError("Invalid operand in data location constructor!");
 }
 
-char X86_64GNUASPrefix(uint8_t size) {
+std::string X86_64GNUASPrefix(uint8_t size) {
     switch (size) {
         case 1:
-            return 'b';
+            return "b";
         case 2:
-            return 'w';
+            return "w";
         case 4:
-            return 'l';
+            return "l";
         case 8:
-            return 'q';
+            return "q";
     }
     CodeGeneratorError("Invalid prefix size!");
-    return '0';
+    return "";
+}
+
+void PrintWithSpaces(std::string input, std::ofstream& out) {
+    out << input;
+
+    if (input.size() < Options::spaceOnLeft) {
+        for (uint16_t n = input.size(); n < Options::spaceOnLeft; n++) {
+            out << " ";
+        }
+    }
+    else {
+        out << " ";
+    }
 }
 
 void Instruction::outputX86_64(std::ofstream& out) {
-    if (options::assemblyFlavor == options::AssemblyFlavor::GNU_AS) {
+    if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS) {
         switch (this->type) {
             case x86_64::ret:
                 out << "popq    %rbp\n";
                 out << "ret\n";
                 break;
             case x86_64::mov:
-                out << "mov" << X86_64GNUASPrefix(sizeAfter) << "        ";
+                PrintWithSpaces("mov" + X86_64GNUASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
+                out << ", ";
+                op1.print(out, sizeAfter);
+                out << "\n";
+                break;
+            case x86_64::movzx:
+                PrintWithSpaces("movz" + X86_64GNUASPrefix(sizeBefore) + X86_64GNUASPrefix(sizeAfter), out);
+                op2.print(out, sizeBefore);
+                out << ", ";
+                op1.print(out, sizeAfter);
+                out << "\n";
+                break;
+            case x86_64::movsx:
+                PrintWithSpaces("movs" + X86_64GNUASPrefix(sizeBefore) + X86_64GNUASPrefix(sizeAfter), out);
+                op2.print(out, sizeBefore);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";

@@ -5,13 +5,20 @@
 VariableStatistics::VariableStatistics(uint64_t number) : firstUse(number), lastUse(number) {}
 
 bool IsVariable(const std::string& input) {
-    for (auto& n: input) {
-        if ((n < '0' or n > '9') and n != '-' and n != '.') {
-            return true;
+    return input.front() == 'u' or input.front() == 'i' or input.front() == 'f';
+};
+
+void AddLifetimeToMain(std::string& child, uint64_t index) {
+    std::string searched = child.substr(2, child.size() - 2);
+    for (auto& n : variableLifetimes.map) {
+        if (n.first.ends_with(searched) and n.second.isMainValue) {
+            n.second.lastUse = index;
+            n.second.usageAmount++;
+            return;
         }
     }
-    return false;
-};
+    CodeGeneratorError("Internal: Could not find main value to add lifetime!");
+}
 
 void CalculateLifetimes() {
     for (uint64_t n = 0; n < bytecodes.size(); n++) {
@@ -24,9 +31,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].source, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        AddLifetimeToMain(bytecodes[n].source, n);
                     }
                 }
                 break;
@@ -35,7 +47,7 @@ void CalculateLifetimes() {
             case Bytecode::multiply:
             case Bytecode::divide:
                 // create the expression
-                variableLifetimes.insert(
+                variableLifetimes.insert(bytecodes[n].type.GetPrefix() +
                         "=#" + std::to_string(bytecodes[n].number) + "-0", {n});
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
@@ -43,17 +55,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].source, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
-                        const std::string& ending = bytecodes[n].source;
-                        for (auto& current: variableLifetimes.map) {
-                            if (current.first.ends_with(ending)) {
-                                current.second.usageAmount++;
-                                current.second.lastUse = n;
-                            }
-                        }
+                        AddLifetimeToMain(bytecodes[n].source, n);
                     }
                 }
                 // handle target
@@ -62,17 +71,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].target);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].target, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].target, {n});
                         // this is not the original value and as such the original one must still exist to convert from
-                        const std::string& ending = bytecodes[n].target;
-                        for (auto& current: variableLifetimes.map) {
-                            if (current.first.ends_with(ending)) {
-                                current.second.usageAmount++;
-                                current.second.lastUse = n;
-                            }
-                        }
+                        AddLifetimeToMain(bytecodes[n].source, n);
                     }
                 }
                 break;
@@ -83,9 +89,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].source, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        AddLifetimeToMain(bytecodes[n].source, n);
                     }
                 }
                 // handle target
@@ -94,9 +105,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].target);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].target, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].target, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        AddLifetimeToMain(bytecodes[n].target, n);
                     }
                 }
                 break;
@@ -107,9 +123,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].source, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        AddLifetimeToMain(bytecodes[n].source, n);
                     }
                 }
                 break;
@@ -120,9 +141,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].source, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        AddLifetimeToMain(bytecodes[n].source, n);
                     }
                 }
                 break;
@@ -141,9 +167,14 @@ void CalculateLifetimes() {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
                         temp.lastUse = n;
+                        if (not temp.isMainValue) {
+                            AddLifetimeToMain(bytecodes[n].source, n);
+                        }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
+                        // this is not the original value and as such the original one must still exist to convert from
+                        AddLifetimeToMain(bytecodes[n].source, n);
                     }
                 }
                 break;
@@ -232,7 +263,7 @@ void RunLinearAnalysis() {
         variableLifetimes[lifetimeVector[n].first].assignStatus = VariableStatistics::AssignStatus::sta;
     }
 
-    if (options::informationLevel == options::InformationLevel::full) {
+    if (Options::informationLevel == Options::InformationLevel::full) {
         uint64_t stacks = 0;
         uint64_t regs = 0;
         for (auto& n: variableLifetimes.map) {

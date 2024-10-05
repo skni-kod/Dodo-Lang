@@ -12,7 +12,7 @@ struct VariableStatistics {
     uint64_t usageAmount: 47 = 0;
     uint8_t isMainValue: 1 = false;
     enum AssignStatus {
-        none, reg, sta
+        none, reg, sta, hea
     };
     uint8_t assignStatus: 2 = none;
     // assigned register if there is one

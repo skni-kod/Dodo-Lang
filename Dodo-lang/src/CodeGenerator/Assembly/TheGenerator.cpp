@@ -238,7 +238,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet)
             stackLocation = FindStackVariableByName(reg.content.value);
             if (not stackLocation) {
                 stackLocation = AddStackVariable(reg.content.value);
-                if (options::targetArchitecture == "X86_64") {
+                if (Options::targetArchitecture == "X86_64") {
                     Instruction ins;
                     ins.type = x86_64::mov;
                     ins.op1 = {Operand::sta, stackLocation->offset};
@@ -249,7 +249,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet)
                 }
             }
             else if (stackLocation->content.value != reg.content.value) {
-                if (options::targetArchitecture == "X86_64") {
+                if (Options::targetArchitecture == "X86_64") {
                     Instruction ins;
                     ins.type = x86_64::mov;
                     ins.op1 = {Operand::sta, stackLocation->offset};
@@ -280,56 +280,139 @@ void MoveValue(std::string source, std::string target, std::string contentToSet)
     auto sourceContent = generatorMemory.findThing(source);
 
     // move the source to target
-    if (options::targetArchitecture == "X86_64") {
-        Instruction ins;
-        ins.type = x86_64::mov;
-        ins.op2 = sourceContent;
-        // immutables are simple, just move them
-        if (targetType == Operand::reg) {
-            if (sourceType == Operand::var) {
-                ins.sizeAfter = ins.sizeBefore = std::stoull(source.substr(1, 1));
+    if (Options::targetArchitecture == "X86_64") {
+        // source was found
+        if (sourceContent.type != Operand::none) {
+            Instruction ins;
+            ins.type = x86_64::mov;
+            ins.op2 = sourceContent;
+            // immutables are simple, just move them
+            if (targetType == Operand::reg) {
+                if (sourceType == Operand::var) {
+                    ins.sizeAfter = ins.sizeBefore = std::stoull(source.substr(1, 1));
+                }
+                else if (sourceType == Operand::var) {
+                    ins.sizeAfter = ins.sizeBefore = std::stoull(target.substr(1, 1));
+                }
+                else {
+                    uint8_t contentType = GetOperandType(contentToSet);
+                    if (contentType != Operand::var) {
+                        CodeGeneratorError("Could not find size for operation");
+                        return;
+                    }
+                    ins.sizeAfter = ins.sizeBefore = std::stoull(contentToSet.substr(1, 1));
+                }
+
+                ins.op1 = {Operand::reg, targetNumber};
+                generatorMemory.registers[targetNumber].content.value = contentToSet;
             }
-            else if (sourceType == Operand::var) {
-                ins.sizeAfter = ins.sizeBefore = std::stoull(target.substr(1, 1));
+            else if (targetType == Operand::sta) {
+                ins.sizeAfter = ins.sizeBefore = stackLocation->size;
+                // it cannot be nullptr clion, it CAN NOT
+                if (sourceContent.type == Operand::sta) {
+                    // stack to stack transfer is not allowed, need to do an intermediate move to a register
+                    uint64_t reg = 0;
+                    for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
+                        if (generatorMemory.registers[n].content.value == "!") {
+                            reg = n;
+                            break;
+                        }
+                    }
+                    MoveValue("@" + std::to_string(stackLocation->offset), "%" + std::to_string(reg), stackLocation->content.value);
+                    stackLocation->content.value = contentToSet;
+                    ins.op1 = {Operand::reg, reg};
+                }
+                else {
+                    ins.op1 = {Operand::sta, stackLocation->offset};
+                }
             }
             else {
-                uint8_t contentType = GetOperandType(contentToSet);
-                if (contentType != Operand::var) {
-                    CodeGeneratorError("Could not find size for operation");
-                    return;
+                CodeGeneratorError("Assigning to invalid operand?");
+
+
+            }
+            finalInstructions.push_back(ins);
+        }
+        // in this case variable does not exist and needs to be converted from base variable
+        else {
+            // first find the main variable
+            std::string searched = source.substr(3, source.size() - 3);
+            DataLocation baseLocation;
+            VariableType baseType;
+            for (auto& n : variableLifetimes.map) {
+                if (n.first.ends_with(searched) and n.second.isMainValue) {
+                    baseLocation = generatorMemory.findThing(n.first);
+                    baseType.size = std::stoull(n.first.substr(1, 1));
+                    baseType.type = GetOperandType(n.first);
                 }
-                ins.sizeAfter = ins.sizeBefore = std::stoull(contentToSet.substr(1, 1));
+            }
+            if (baseLocation.type == Operand::none) {
+                CodeGeneratorError("Base variable ending with: " + searched + " does not exist!");
             }
 
-            ins.op1 = {Operand::reg, targetNumber};
-            generatorMemory.registers[targetNumber].content.value = contentToSet;
-        }
-        else if (targetType == Operand::sta) {
-            ins.sizeAfter = ins.sizeBefore = stackLocation->size;
-            // it cannot be nullptr clion, it CAN NOT
-            if (sourceContent.type == Operand::sta) {
-                // stack to stack transfer is not allowed, need to do an intermediate move to a register
-                uint64_t reg = 0;
-                for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
-                    if (generatorMemory.registers[n].content.value == "!") {
-                        reg = n;
-                        break;
+            // get target size from size of source variable
+            uint8_t targetSize = std::stoull(source.substr(1, 1));
+
+            // now that base variable is found convert it
+            if (baseLocation.type != ParserType::floatingPoint and targetType != ParserType::floatingPoint) {
+                // both are integers, it's simple in that case
+                Instruction ins;
+                ins.sizeAfter = targetSize;
+                // size before is the same if base is bigger or the same and smaller if it's smaller
+
+                // first set the operation type and source operands
+
+                // if the target is smaller or equal to base just move the value
+                if (targetSize <= baseType.size) {
+                    ins.sizeBefore = targetSize;
+                    ins.type == x86_64::mov;
+                    if (baseLocation.type == Operand::reg) {
+                        ins.op2 = {Operand::reg, baseLocation.value};
+                    }
+                    else if (baseLocation.type == Operand::sta) {
+                        ins.op2 = {Operand::sta, baseLocation.offset};
                     }
                 }
-                MoveValue("@" + std::to_string(stackLocation->offset), "%" + std::to_string(reg), stackLocation->content.value);
-                stackLocation->content.value = contentToSet;
-                ins.op1 = {Operand::reg, reg};
-            }
-            else {
-                ins.op1 = {Operand::sta, stackLocation->offset};
-            }
-        }
-        else {
-            CodeGeneratorError("Assigning to invalid operand?");
+                // if it's bigger move the value with movzx or movsx depending on the source signedness to better preserve values
+                else {
+                    ins.sizeBefore = baseType.size;
+                    if (baseType.type == ParserType::signedInteger) {
+                        ins.type = x86_64::movsx;
+                    }
+                    else {
+                        ins.type = x86_64::movzx;
+                    }
 
+                    if (baseLocation.type == Operand::reg) {
+                        ins.op2 = {Operand::reg, baseLocation.value};
+                    }
+                    else if (baseLocation.type == Operand::sta) {
+                        ins.op2 = {Operand::sta, baseLocation.offset};
+                    }
+                }
+
+                // set destination operands
+                // if both are on the stack do a conversion into the designated register for the converted type or %rax and then move it to stack
+                if (targetType == Operand::sta and baseLocation.type == Operand::sta) {
+                    // TODO: add move back to location instruction and get the value out of the destination register and move there
+                    CodeGeneratorError("Stack to stack type conversions not yet supported!");
+                }
+                else {
+                    // this case is simple, just move the value there
+                    if (targetType == Operand::reg) {
+                        ins.op1 = {Operand::reg, targetNumber};
+                    }
+                    else if (targetType == Operand::sta) {
+                        auto* temp = AddStackVariable(target);
+                        temp->content.value = contentToSet;
+                        ins.op1 = {Operand::sta, temp->offset};
+                    }
+                    finalInstructions.push_back(ins);
+                }
+            }
 
         }
-        finalInstructions.push_back(ins);
+
     }
 }
 

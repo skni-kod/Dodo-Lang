@@ -16,7 +16,7 @@ add_executable(Dodo_Lang
         Dodo-lang/src/Parser/Parser.hpp
         Dodo-lang/src/Parser/ParserVariables.cpp
         Dodo-lang/src/Parser/ParserVariables.hpp
-        Dodo-lang/src/Flags.hpp
+        Dodo-lang/src/Options.hpp
         Dodo-lang/src/lexical_analysis.cpp
         Dodo-lang/src/LexicalAnalysis.hpp
         Dodo-lang/src/LexicalToken.cpp

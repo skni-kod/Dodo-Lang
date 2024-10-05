@@ -54,6 +54,12 @@ namespace x86_64 {
                 break;
             case Bytecode::declare:
             {
+                if (Optimizations::skipUnusedVariables) {
+                    auto& temp = variableLifetimes[bytecode.target];
+                    if (temp.usageAmount == 0) {
+                        return;
+                    }
+                }
                 auto& var = variableLifetimes[bytecode.target];
                 MoveValue(bytecode.source, (var.assignStatus == VariableStatistics::AssignStatus::reg ?
                                             "%" + std::to_string(var.assigned) :

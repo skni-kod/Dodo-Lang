@@ -107,10 +107,13 @@ struct LabelContainer {
 };
 
 struct DataLocation {
+    /*
     enum {
         reg, sta, val, las, lal, laf, hea, empty
     };
-    uint8_t type = empty;
+     */
+
+    uint8_t type = Operand::none;
     union {
         struct {
             uint32_t number = 0;
@@ -160,6 +163,9 @@ inline std::vector<Instruction> finalInstructions;
 
 inline uint64_t currentBytecodeIndex = 0;
 
+// outdated
 char AddInstructionPostfix(uint32_t size);
+
+void PrintWithSpaces(std::string input, std::ofstream& out);
 
 #endif //DODO_LANG_MEMORY_STRUCTURE_HPP

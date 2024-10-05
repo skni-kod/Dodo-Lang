@@ -3,7 +3,7 @@
 
 #include "../LexicalToken.hpp"
 #include "../LexicalAnalysis.hpp"
-#include "../Flags.hpp"
+#include "../Options.hpp"
 
 inline const LexicalToken* lastToken = nullptr;
 

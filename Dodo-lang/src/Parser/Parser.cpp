@@ -62,7 +62,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
 
     // Step 2: checking basic types (might not be required)
 
-    if (options::informationLevel > options::InformationLevel::minimal) {
+    if (Options::informationLevel > Options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with : " << parserTypes.size() << " type definition(s)\n";
     }
 
@@ -75,7 +75,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
         ParserError("No main function found!");
     }
 
-    if (options::informationLevel > options::InformationLevel::minimal) {
+    if (Options::informationLevel > Options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished function parsing with : " << parserFunctions.size()
                   << " function definition(s)\n";
     }

@@ -1,9 +1,9 @@
-#ifndef DODO_LANG_FLAGS_HPP
-#define DODO_LANG_FLAGS_HPP
+#ifndef DODO_LANG_OPTIONS_HPP
+#define DODO_LANG_OPTIONS_HPP
 
 #include <cstdint>
 
-namespace options {
+namespace Options {
     // default values inside
     enum InformationLevel {
         // only general stages, time
@@ -25,4 +25,8 @@ namespace options {
     inline uint8_t spaceOnLeft = 8;
 }
 
-#endif //DODO_LANG_FLAGS_HPP
+namespace Optimizations {
+    inline bool skipUnusedVariables = true;
+}
+
+#endif //DODO_LANG_OPTIONS_HPP

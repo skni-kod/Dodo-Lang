@@ -352,7 +352,7 @@ void BytecodeIf(const ParserFunction& function, const IfInstruction& instruction
     std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
     bytecodes.emplace_back(Bytecode::compare, left, right, type);
-    std::string label = options::jumpLabelPrefix + std::to_string(labelCounter++);
+    std::string label = Options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::jumpConditionalFalse, label, instruction.condition.type);
     counter++;
     for (; counter < function.instructions.size() and
@@ -385,7 +385,7 @@ void BytecodeElse(const ParserFunction& function, uint64_t& counter) {
     }
 
     // adding the label to jump at the end
-    std::string label = options::jumpLabelPrefix + std::to_string(labelCounter++);
+    std::string label = Options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace(bytecodes.end() - 1, Bytecode::jump, label);
     counter++;
     for (; counter < function.instructions.size() and
@@ -398,7 +398,7 @@ void BytecodeElse(const ParserFunction& function, uint64_t& counter) {
 
 void BytecodeWhile(const ParserFunction& function, const WhileInstruction& instruction, uint64_t& counter) {
     // add label to return for before every comparison
-    std::string labelBefore = options::jumpLabelPrefix + std::to_string(labelCounter++);
+    std::string labelBefore = Options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::addLabel, labelBefore);
     // get ingredients for comp
     auto type = NegotiateOperationType(instruction.condition.left, instruction.condition.right);
@@ -406,7 +406,7 @@ void BytecodeWhile(const ParserFunction& function, const WhileInstruction& instr
     std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
     bytecodes.emplace_back(Bytecode::compare, left, right, type);
-    std::string labelAfter = options::jumpLabelPrefix + std::to_string(labelCounter++);
+    std::string labelAfter = Options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::jumpConditionalFalse, labelAfter, instruction.condition.type);
     counter++;
     for (; counter < function.instructions.size() and
@@ -427,7 +427,7 @@ void BytecodeFor(const ParserFunction& function, const ForInstruction& instructi
     }
 
     // add label to return for before every comparison
-    std::string labelBefore = options::jumpLabelPrefix + std::to_string(labelCounter++);
+    std::string labelBefore = Options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::addLabel, labelBefore);
     // get ingredients for comp
     auto type = NegotiateOperationType(instruction.condition.left, instruction.condition.right);
@@ -435,7 +435,7 @@ void BytecodeFor(const ParserFunction& function, const ForInstruction& instructi
     std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
     bytecodes.emplace_back(Bytecode::compare, left, right, type);
-    std::string labelAfter = options::jumpLabelPrefix + std::to_string(labelCounter++);
+    std::string labelAfter = Options::jumpLabelPrefix + std::to_string(labelCounter++);
     bytecodes.emplace_back(Bytecode::jumpConditionalFalse, labelAfter, instruction.condition.type);
     counter++;
     for (; counter < function.instructions.size() and
@@ -514,7 +514,7 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
         }
     }
 
-    if (options::informationLevel == options::InformationLevel::full) {
+    if (Options::informationLevel == Options::InformationLevel::full) {
         std::cout << "INFO L3: Bytecodes for function: " << function.name << "(";
         // TODO: Add arguments here
         std::cout << ")\n";
