@@ -17,7 +17,10 @@ type f64 : FLOATING_POINT(8);
 
 
 i32 main() {
-    let i8 test = 5;
-    let u16 k = 50;
+    let u16 y = 16;
+    let i64 h = 53;
+    mut i16 test = h - 74;
+    let u8 k = 64 - y;
+    test += k;
     return test;
 }

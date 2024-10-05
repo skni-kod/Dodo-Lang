@@ -10,47 +10,46 @@
 
 struct OpCombination {
     // here we need to define a possible combination of operands, with the inclusion of different register combinations
-    enum Type {
-        none, reg, sta, imm, adr, // add other types here if needed
-    };
     // general types of operands
-    uint8_t type1: 4 = Type::none;
-    uint8_t type2: 4 = Type::none;
-    uint8_t type3: 4 = Type::none;
-    uint8_t type4: 4 = Type::none;
+    uint8_t type1: 4 = Operand::none;
+    uint8_t type2: 4 = Operand::none;
+    uint8_t type3: 4 = Operand::none;
+    uint8_t type4: 4 = Operand::none;
     // these contain allowed registers
     std::vector<uint16_t> allowed1, allowed2, allowed3, allowed4;
     // first is register, second is value to set
     std::vector<std::pair<uint64_t, uint64_t>> registerValues;
+    // when type is of replace the operand value is changed, operand number is stored in the union, value in string
+    std::vector <std::pair<DataLocation, std::string>> results;
     std::pair <std::string, std::string> getOperand(uint16_t number, std::string source);
 
     OpCombination() = default;
 
     OpCombination(uint8_t type1);
 
-    OpCombination(uint8_t type1, std::vector<uint16_t> allowed1);
+    OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, std::vector <std::pair<DataLocation, std::string>> results = {});
 
     OpCombination(uint8_t type1, std::vector<uint16_t> allowed1,
-                  std::vector<std::pair<uint64_t, uint64_t>> registerValues);
+                  std::vector<std::pair<uint64_t, uint64_t>> registerValues, std::vector <std::pair<DataLocation, std::string>> results = {});
 
-    OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2);
-
-    OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2,
-                  std::vector<std::pair<uint64_t, uint64_t>> registerValues);
+    OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2, std::vector <std::pair<DataLocation, std::string>> results = {});
 
     OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2,
-                  uint8_t type3, std::vector<uint16_t> allowed3);
+                  std::vector<std::pair<uint64_t, uint64_t>> registerValues, std::vector <std::pair<DataLocation, std::string>> results = {});
+
+    OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2,
+                  uint8_t type3, std::vector<uint16_t> allowed3, std::vector <std::pair<DataLocation, std::string>> results = {});
 
     OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2,
                   uint8_t type3, std::vector<uint16_t> allowed3,
-                  std::vector<std::pair<uint64_t, uint64_t>> registerValues);
+                  std::vector<std::pair<uint64_t, uint64_t>> registerValues, std::vector <std::pair<DataLocation, std::string>> results = {});
 
     OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2,
-                  uint8_t type3, std::vector<uint16_t> allowed3, uint8_t type4, std::vector<uint16_t> allowed4);
+                  uint8_t type3, std::vector<uint16_t> allowed3, uint8_t type4, std::vector<uint16_t> allowed4, std::vector <std::pair<DataLocation, std::string>> results = {});
 
     OpCombination(uint8_t type1, std::vector<uint16_t> allowed1, uint8_t type2, std::vector<uint16_t> allowed2,
                   uint8_t type3, std::vector<uint16_t> allowed3, uint8_t type4, std::vector<uint16_t> allowed4,
-                  std::vector<std::pair<uint64_t, uint64_t>> registerValues);
+                  std::vector<std::pair<uint64_t, uint64_t>> registerValues, std::vector <std::pair<DataLocation, std::string>> results = {});
 };
 
 struct InstructionRequirements {
@@ -84,13 +83,15 @@ struct InstructionRequirements {
                             std::string op4, std::vector<OpCombination> combinations);
 };
 
-void GenerateInstruction(InstructionRequirements req);
+void GenerateInstruction(InstructionRequirements req, uint64_t index);
 
 void InsertValue(std::string target, std::string source);
 
-void MoveValue(std::string source, std::string target, std::string contentToSet);
+void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize);
 
 uint8_t GetOperandType(const std::string& operand);
+
+void AssignExpressionToVariable(const std::string& exp, const std::string& var);
 
 internal::StackEntry* AddStackVariable(std::string name);
 

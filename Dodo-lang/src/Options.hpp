@@ -27,6 +27,8 @@ namespace Options {
 
 namespace Optimizations {
     inline bool skipUnusedVariables = true;
+    inline bool replaceKnownValueVariables = true;
+    inline bool optimizeBytecode = false;
 }
 
 #endif //DODO_LANG_OPTIONS_HPP

@@ -266,7 +266,7 @@ DataLocation GetConvertedValue(const std::string& name) {
                                 }
                                 else {
                                     // move 0 to given register
-                                    MoveValue("$0", "%" + GetSizedRegister(0, targetType.size), "$0");
+                                    MoveValue("$0", "%0", "$0", targetType.size);
                                     Instruction ins;
                                     ins.type = x86_64::mov;
                                     ins.sizeAfter = ins.sizeBefore = sourceType.size;
@@ -443,6 +443,20 @@ void Instruction::outputX86_64(std::ofstream& out) {
             case x86_64::movsx:
                 PrintWithSpaces("movs" + X86_64GNUASPrefix(sizeBefore) + X86_64GNUASPrefix(sizeAfter), out);
                 op2.print(out, sizeBefore);
+                out << ", ";
+                op1.print(out, sizeAfter);
+                out << "\n";
+                break;
+            case x86_64::add:
+                PrintWithSpaces("add" + X86_64GNUASPrefix(sizeAfter), out);
+                op2.print(out, sizeAfter);
+                out << ", ";
+                op1.print(out, sizeAfter);
+                out << "\n";
+                break;
+            case x86_64::sub:
+                PrintWithSpaces("sub" + X86_64GNUASPrefix(sizeAfter), out);
+                op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";

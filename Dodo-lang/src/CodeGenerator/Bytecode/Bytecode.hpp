@@ -78,6 +78,8 @@ struct Bytecode {
 
 std::ostream& operator<<(std::ostream& out, const Bytecode& code);
 
+void OptimizeBytecode();
+
 // bytecodes inside given function
 inline std::vector<Bytecode> bytecodes;
 

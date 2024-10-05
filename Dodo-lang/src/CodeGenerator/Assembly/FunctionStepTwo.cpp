@@ -14,7 +14,7 @@ void GenerateFunctionStepTwo(const ParserFunction& function) {
         for (uint64_t n = 0; n < bytecodes.size(); n++) {
             currentBytecodeIndex = n;
             //UpdateVariables();
-            x86_64::ConvertBytecode(bytecodes[n]);
+            x86_64::ConvertBytecode(bytecodes[n], n);
         }
     }
 

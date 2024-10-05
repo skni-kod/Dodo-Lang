@@ -45,6 +45,7 @@ add_executable(Dodo_Lang
         Dodo-lang/src/CodeGenerator/Assembly/TheGenerator.hpp
         Dodo-lang/src/CodeGenerator/Assembly/TheGeneratorConstructors.cpp
         Dodo-lang/src/CodeGenerator/Assembly/TheGenerator.cpp
+        Dodo-lang/src/CodeGenerator/Bytecode/BytecodeOptimizations.cpp
 )
 
 # uncomment when project works well

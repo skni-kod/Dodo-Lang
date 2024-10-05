@@ -2,22 +2,30 @@
 #include "../Bytecode/Bytecode.hpp"
 #include "MemoryStructure.hpp"
 
-VariableStatistics::VariableStatistics(uint64_t number) : firstUse(number), lastUse(number) {}
+VariableStatistics::VariableStatistics(uint64_t number, bool isMain) : firstUse(number), lastUse(number), isMainValue(isMain) {}
 
 bool IsVariable(const std::string& input) {
     return input.front() == 'u' or input.front() == 'i' or input.front() == 'f';
 };
 
-void AddLifetimeToMain(std::string& child, uint64_t index) {
+VariableStatistics VSDummy;
+
+VariableStatistics& FindMain(std::string& child) {
     std::string searched = child.substr(2, child.size() - 2);
     for (auto& n : variableLifetimes.map) {
         if (n.first.ends_with(searched) and n.second.isMainValue) {
-            n.second.lastUse = index;
-            n.second.usageAmount++;
-            return;
+            lastMainName = &n.first;
+            return n.second;
         }
     }
-    CodeGeneratorError("Internal: Could not find main value to add lifetime!");
+    CodeGeneratorError("Bug: Could not find main value to add lifetime!");
+    return VSDummy;
+}
+
+void AddLifetimeToMain(std::string& child, uint64_t index) {
+    auto& main = FindMain(child);
+    main.lastUse = index;
+    main.usageAmount++;
 }
 
 void CalculateLifetimes() {
@@ -48,7 +56,7 @@ void CalculateLifetimes() {
             case Bytecode::divide:
                 // create the expression
                 variableLifetimes.insert(bytecodes[n].type.GetPrefix() +
-                        "=#" + std::to_string(bytecodes[n].number) + "-0", {n});
+                        "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
@@ -78,7 +86,7 @@ void CalculateLifetimes() {
                     else {
                         variableLifetimes.insert(bytecodes[n].target, {n});
                         // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].source, n);
+                        AddLifetimeToMain(bytecodes[n].target, n);
                     }
                 }
                 break;
@@ -239,7 +247,7 @@ void RunLinearAnalysis() {
             for (auto& m: reg.assigned) {
                 auto& current = lifetimeVector[m].second;
                 // check if the already assigned variable was used during the needed time
-                if (current.firstUse > var.lastUse or current.lastUse < var.firstUse) {
+                if (current.firstUse >= var.lastUse or current.lastUse <= var.firstUse) {
                     continue;
                 }
                 // if it got here then it was, move on

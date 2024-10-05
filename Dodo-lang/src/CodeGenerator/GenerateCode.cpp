@@ -94,6 +94,9 @@ void GenerateCode() {
         GenerateFunctionStepOne(current.second);
 
         // general optimizations will take place here
+        if (Optimizations::optimizeBytecode) {
+            OptimizeBytecode();
+        }
 
         // next convert them into platform specific code
         GenerateFunctionStepTwo(current.second);

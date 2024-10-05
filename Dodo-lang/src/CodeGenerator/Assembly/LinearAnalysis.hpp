@@ -18,7 +18,7 @@ struct VariableStatistics {
     // assigned register if there is one
     uint16_t assigned: 14 = 0;
 
-    VariableStatistics(uint64_t number);
+    VariableStatistics(uint64_t number, bool isMain = false);
 
     VariableStatistics() = default;
 };
@@ -26,5 +26,8 @@ struct VariableStatistics {
 inline MapWrapper<std::string, VariableStatistics> variableLifetimes;
 
 void RunLinearAnalysis();
+
+VariableStatistics& FindMain(std::string& child);
+inline const std::string* lastMainName = nullptr;
 
 #endif //DODO_LANG_LINEAR_ANALYSIS_HPP

@@ -6,7 +6,7 @@
 #include "../MemoryStructure.hpp"
 
 namespace x86_64 {
-    void ConvertBytecode(const Bytecode& bytecode);
+    void ConvertBytecode(const Bytecode& bytecode, uint64_t index);
 
     enum {
         // (mov+p1) op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm

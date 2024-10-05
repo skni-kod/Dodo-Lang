@@ -9,7 +9,7 @@
 
 namespace Operand {
     enum {
-        none, reg, sta, imm, adr, var
+        none, reg, sta, imm, adr, var, replace, copy, move, copyMove
     };
 }
 
