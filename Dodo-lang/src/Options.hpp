@@ -26,9 +26,16 @@ namespace Options {
 }
 
 namespace Optimizations {
+    // while outputting assembly
+    inline bool skipUselessMoves = true;
+
+    // when converting bytecode
     inline bool skipUnusedVariables = true;
-    inline bool replaceKnownValueVariables = true;
+    inline bool swapExpressionOperands = true;
+
+    // in bytecode optimization function before conversion
     inline bool optimizeBytecode = false;
+    inline bool replaceKnownValueVariables = true;
 }
 
 #endif //DODO_LANG_OPTIONS_HPP

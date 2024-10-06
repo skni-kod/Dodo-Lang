@@ -127,6 +127,8 @@ struct DataLocation {
 
     void print(std::ofstream& out, uint8_t size);
 
+    bool operator==(const DataLocation& data) const;
+
     DataLocation() = default;
 
     DataLocation(uint8_t type, uint32_t number, uint32_t size);

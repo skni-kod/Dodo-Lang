@@ -59,13 +59,6 @@ std::ostream& operator<<(std::ostream& out, const VariableType& type) {
 
 VariableType::VariableType(uint8_t size, uint8_t type, uint8_t subtype) : size(size), type(type), subtype(subtype) {}
 
-VariableType::VariableType(const std::string& typeName, uint8_t subtype) {
-    auto& type = parserTypes[typeName];
-    this->subtype = subtype;
-    this->size = type.size;
-    this->type = type.type;
-}
-
 VariableType::VariableType(const ParserType& type, uint8_t subtype) {
     this->subtype = subtype;
     this->size = type.size;
@@ -106,6 +99,36 @@ std::string VariableType::GetPrefix() const {
             CodeGeneratorError("Invalid type somehow");
     }
     return "";
+}
+
+VariableType::VariableType(const std::string& var) {
+    switch (var.front()) {
+        case 'u':
+            type = ParserType::unsignedInteger;
+            break;
+        case 'i':
+            type = ParserType::signedInteger;
+            break;
+        case 'f':
+            type = ParserType::floatingPoint;
+            break;
+        default:
+            CodeGeneratorError("Bug: Invalid variable type!");
+    }
+    size = var[1] - '0';
+    switch (var[2]) {
+        case '$':
+            subtype = Subtype::value;
+            break;
+        case '*':
+            subtype = Subtype::pointer;
+            break;
+        case '&':
+            subtype = Subtype::reference;
+            break;
+        default:
+            CodeGeneratorError("Bug: Invalid variable subtype!");
+    }
 }
 
 FunctionInstruction::~FunctionInstruction() {

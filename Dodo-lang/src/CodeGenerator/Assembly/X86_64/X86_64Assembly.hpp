@@ -6,20 +6,20 @@
 #include "../MemoryStructure.hpp"
 
 namespace x86_64 {
-    void ConvertBytecode(const Bytecode& bytecode, uint64_t index);
+    void ConvertBytecode(Bytecode& bytecode, uint64_t index);
 
     enum {
-        // (mov+p1) op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm
+        // (mov+p1) move : op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm
         mov,
-        // (movz+p1+p2) move with sign extension op1 = op2, reg + reg/mem
+        // (movz+p1+p2) move with sign extension: op1 = op2, reg + reg/mem
         movsx,
-        // (movz+p1+p2) move with zero extension op1 = op2, reg + reg/mem
+        // (movz+p1+p2) move with zero extension: op1 = op2, reg + reg/mem
         movzx,
-        //
+        // (mul + p1) unsigned multiply content of register a by op2: reg0 = reg0 * reg/mem
         mul,
         //
         imul,
-        //
+        // (mul + p1) unsigned divide content of register a by op2: reg0 = reg0 * reg/mem, set 0 to reg3
         div,
         //
         idiv,
@@ -35,7 +35,7 @@ namespace x86_64 {
         pop,
         // (add + p1) add signed/unsigned integer op1 = op1 + op2 reg + reg/mem, reg/mem + reg, reg/mem + imm
         add,
-        //
+        // (sub + p1) subtract signed/unsigned integer op1 = op1 + op2 reg + reg/mem, reg/mem + reg, reg/mem + imm
         sub,
         //
         syscall,

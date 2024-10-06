@@ -197,7 +197,7 @@ void UpdateVariables() {
     }
 }
 
-internal::StackEntry* FindStackVariableByName(std::string name) {
+internal::StackEntry* FindStackVariableByName(const std::string& name) {
     for (auto& n: generatorMemory.stack) {
         if (n.content.value == name) {
             return &n;
@@ -207,7 +207,7 @@ internal::StackEntry* FindStackVariableByName(std::string name) {
 }
 
 // pass a string in format "@<offset>"
-internal::StackEntry* FindStackVariableByOffset(std::string offset) {
+internal::StackEntry* FindStackVariableByOffset(const std::string& offset) {
     uint64_t off = std::stoull(offset.substr(1, offset.size() - 1));
     for (auto& n: generatorMemory.stack) {
         if (n.offset == off) {
@@ -231,13 +231,13 @@ internal::StackEntry* AddStackVariable(std::string name) {
     // type will be used in things probably
     uint8_t type;
     if (name.front() == 'u') {
-        type == ParserType::Type::unsignedInteger;
+        type = ParserType::Type::unsignedInteger;
     }
     else if (name.front() == 'i') {
-        type == ParserType::Type::signedInteger;
+        type = ParserType::Type::signedInteger;
     }
     else if (name.front() == 'f') {
-        type == ParserType::Type::floatingPoint;
+        type = ParserType::Type::floatingPoint;
     }
     else {
         CodeGeneratorError("Invalid prefix type!");
@@ -279,7 +279,19 @@ internal::StackEntry* AddStackVariable(std::string name) {
     return &generatorMemory.stack.back();
 }
 
-void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize) {
+void SetContent(DataLocation location, const std::string& content) {
+    switch (location.type) {
+        case Operand::reg:
+            generatorMemory.registers[location.value].content.value = content;
+            return;
+        case Operand::sta:
+            FindStackVariableByOffset(location.offset)->content.value = content;
+            return;
+    }
+    CodeGeneratorError("Unimplemented: Non stack/register content set!");
+}
+
+void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index) {
     uint64_t targetNumber;
     internal::StackEntry* stackLocation = nullptr;
     // since this thing needs to move a value to given place first we need to know if the target is a register,
@@ -295,36 +307,33 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                 // if the value is already there
                 return;
             }
-            if (GetOperandType(reg.content.value) == Operand::imm) {
-                // immutables should be safe to overwrite since they are always set before the instruction
-                return;
-            }
-
-            // in this case the value needs to be moved back to it's correct place if it's not already there
-            stackLocation = FindStackVariableByName(reg.content.value);
-            if (not stackLocation) {
-                stackLocation = AddStackVariable(reg.content.value);
-                if (Options::targetArchitecture == "X86_64") {
-                    Instruction ins;
-                    ins.type = x86_64::mov;
-                    ins.op1 = {Operand::sta, stackLocation->offset};
-                    ins.op2 = {Operand::reg, targetNumber};
-                    ins.sizeAfter = ins.sizeAfter = stackLocation->size;
-                    ins.postfix1 = AddInstructionPostfix(stackLocation->size);
-                    finalInstructions.push_back(ins);
+            if (GetOperandType(reg.content.value) != Operand::imm and variableLifetimes[reg.content.value].lastUse > index) {
+                // in this case the value needs to be moved back to it's correct place if it's not already there
+                stackLocation = FindStackVariableByName(reg.content.value);
+                if (not stackLocation) {
+                    stackLocation = AddStackVariable(reg.content.value);
+                    if (Options::targetArchitecture == "X86_64") {
+                        Instruction ins;
+                        ins.type = x86_64::mov;
+                        ins.op1 = {Operand::sta, stackLocation->offset};
+                        ins.op2 = {Operand::reg, targetNumber};
+                        ins.sizeAfter = ins.sizeAfter = stackLocation->size;
+                        ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                        finalInstructions.push_back(ins);
+                    }
                 }
-            }
-            else if (stackLocation->content.value != reg.content.value) {
-                if (Options::targetArchitecture == "X86_64") {
-                    Instruction ins;
-                    ins.type = x86_64::mov;
-                    ins.op1 = {Operand::sta, stackLocation->offset};
-                    ins.op2 = {Operand::reg, targetNumber};
-                    ins.sizeAfter = ins.sizeAfter = stackLocation->size;
-                    ins.postfix1 = AddInstructionPostfix(stackLocation->size);
-                    finalInstructions.push_back(ins);
+                else if (stackLocation->content.value != reg.content.value) {
+                    if (Options::targetArchitecture == "X86_64") {
+                        Instruction ins;
+                        ins.type = x86_64::mov;
+                        ins.op1 = {Operand::sta, stackLocation->offset};
+                        ins.op2 = {Operand::reg, targetNumber};
+                        ins.sizeAfter = ins.sizeAfter = stackLocation->size;
+                        ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                        finalInstructions.push_back(ins);
+                    }
+                    stackLocation->content.value = contentToSet;
                 }
-                stackLocation->content.value = contentToSet;
             }
         }
     }
@@ -370,7 +379,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                             break;
                         }
                     }
-                    MoveValue("@" + std::to_string(stackLocation->offset), "%" + std::to_string(reg), stackLocation->content.value, operationSize);
+                    MoveValue("@" + std::to_string(stackLocation->offset), "%" + std::to_string(reg), stackLocation->content.value, operationSize, index);
                     stackLocation->content.value = contentToSet;
                     ins.op1 = {Operand::reg, reg};
                 }
@@ -381,6 +390,10 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
             else {
                 CodeGeneratorError("Assigning to invalid operand?");
             }
+            // there is no sense in normal move to the same location, return
+            if (ins.op1 == ins.op2) {
+                return;
+            }
             finalInstructions.push_back(ins);
         }
         // in this case variable does not exist and needs to be converted from base variable
@@ -389,14 +402,18 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
             std::string searched = source.substr(3, source.size() - 3);
             DataLocation baseLocation;
             VariableType baseType;
+            bool baseDies = false;
             for (auto& n : variableLifetimes.map) {
                 if (n.first.ends_with(searched) and n.second.isMainValue) {
                     baseLocation = generatorMemory.findThing(n.first);
+                    // check if it's the last use of the base, if it is then it allows for more optimized operations
+                    if (variableLifetimes[n.first].lastUse <= index) {
+                        baseDies = true;
+                    }
                     if (baseLocation.type == Operand::none) {
                         CodeGeneratorError("Bug: searched variable was not created!");
                     }
-                    baseType.size = std::stoull(n.first.substr(1, 1));
-                    baseType.type = GetOperandType(n.first);
+                    baseType = VariableType(n.first);
                 }
             }
             if (baseLocation.type == Operand::none) {
@@ -417,14 +434,12 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
 
                 // if the target is smaller or equal to base just move the value
                 if (targetSize <= baseType.size) {
+                    if (baseDies) {
+                        SetContent(baseLocation, contentToSet);
+                    }
                     ins.sizeBefore = targetSize;
-                    ins.type == x86_64::mov;
-                    if (baseLocation.type == Operand::reg) {
-                        ins.op2 = {Operand::reg, baseLocation.value};
-                    }
-                    else if (baseLocation.type == Operand::sta) {
-                        ins.op2 = {Operand::sta, baseLocation.offset};
-                    }
+                    ins.type = x86_64::mov;
+                    ins.op2 = baseLocation;
                 }
                 // if it's bigger move the value with movzx or movsx depending on the source signedness to better preserve values
                 else {
@@ -436,12 +451,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                         ins.type = x86_64::movzx;
                     }
 
-                    if (baseLocation.type == Operand::reg) {
-                        ins.op2 = {Operand::reg, baseLocation.value};
-                    }
-                    else if (baseLocation.type == Operand::sta) {
-                        ins.op2 = {Operand::sta, baseLocation.offset};
-                    }
+                    ins.op2 = baseLocation;
                 }
 
                 // set destination operands
@@ -462,6 +472,9 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                     }
                     finalInstructions.push_back(ins);
                 }
+            }
+            else {
+                CodeGeneratorError("Unimplemented: Floating point type/size conversions!");
             }
         }
     }
@@ -516,10 +529,10 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     std::vector <DataLocation> valueRegisters;
     std::vector <bool> occupied;
     if (Options::targetArchitecture == "X86_64") {
-        occupied.resize(16, false);
+        occupied.resize(64, false);
     }
 
-    // Aaaaaand another rewrite of this, this MUST work well
+    // And another rewrite of this, this MUST work well
 
     // we have the locations of operands
     // we have the allowed locations
@@ -590,7 +603,19 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
             }
         }
         else if (operands[n].second.type == Operand::reg) {
-            occupied[operands[n].second.value] = true;
+            bool isValid = false;
+            for (auto& m : *vec[n].second) {
+                if (m == operands[n].second.value) {
+                    isValid = true;
+                    break;
+                }
+            }
+            if (isValid) {
+                occupied[operands[n].second.value] = true;
+            }
+            else {
+                operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::reg, uint64_t()));
+            }
         }
     }
 
@@ -626,7 +651,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
         auto& life = variableLifetimes[operands[n].first];
 
         // now see if the variable will still exist after the instruction
-        if (life.lastUse != index) {
+        if (life.lastUse > index) {
             // if it will check if it's value will be removed
             for (auto& m : combination.results) {
                 if (m.first.type == Operand::replace and m.first.value == n) {
@@ -666,10 +691,10 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
         std::string target;
         switch (n.where.type) {
             case Operand::sta:
-                MoveValue(operands[n.number].first, "%" + std::to_string(n.where.offset), operands[n.number].first, req.instructionSize);
+                MoveValue(operands[n.number].first, "%" + std::to_string(n.where.offset), operands[n.number].first, req.instructionSize, index);
                 break;
             case Operand::reg:
-                MoveValue(operands[n.number].first, "%" + std::to_string(n.where.value), operands[n.number].first, req.instructionSize);
+                MoveValue(operands[n.number].first, "%" + std::to_string(n.where.value), operands[n.number].first, req.instructionSize, index);
                 break;
             default:
                 CodeGeneratorError("Unimplemented: invalid operand move!");
@@ -679,7 +704,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
         }
     }
 
-    // and after all this add the instruction itself
+    // and after all this, add the instruction itself
 
     // move the operands into places
     switch (types.size()) {
@@ -697,7 +722,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     if (not req.combinations.empty()) {
         // there are no operands, just ensure any needed values are set and call
         for (auto& n : combination.registerValues) {
-            MoveValue("$" + std::to_string(n.second), "%" + std::to_string(n.first), "$" + std::to_string(n.second), req.instructionSize);
+            MoveValue("$" + std::to_string(n.second), "%" + std::to_string(n.first), "$" + std::to_string(n.second), req.instructionSize, index);
         }
     }
 

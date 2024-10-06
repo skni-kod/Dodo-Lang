@@ -49,9 +49,9 @@ struct VariableType {
 
     VariableType(uint8_t size, uint8_t type, uint8_t subtype = Subtype::value);
 
-    explicit VariableType(const std::string& typeName, uint8_t subtype = Subtype::value);
-
     explicit VariableType(const ParserType& type, uint8_t subtype = Subtype::value);
+
+    explicit VariableType(const std::string& var);
 
     bool operator==(const VariableType& var);
 

@@ -25,6 +25,7 @@ ipch
 
 # dodo-lang specific
 cmake-build-debug/
+cmake-build-release/
 .idea/
 *.user
 *.filters
