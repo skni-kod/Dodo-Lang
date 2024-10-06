@@ -21,6 +21,6 @@ i32 main() {
     let i64 h = 3;
     mut i16 test = 20;
     let u8 k = y + 32;
-    test /= k;
+    test /= k + h;
     return test;
 }

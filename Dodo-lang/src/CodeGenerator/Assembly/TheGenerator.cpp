@@ -307,32 +307,41 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                 // if the value is already there
                 return;
             }
-            if (GetOperandType(reg.content.value) != Operand::imm and variableLifetimes[reg.content.value].lastUse > index) {
+            // TODO: add better contidions for move
+            if (GetOperandType(reg.content.value) != Operand::imm and variableLifetimes[reg.content.value].lastUse >= index) {
                 // in this case the value needs to be moved back to it's correct place if it's not already there
-                stackLocation = FindStackVariableByName(reg.content.value);
-                if (not stackLocation) {
-                    stackLocation = AddStackVariable(reg.content.value);
-                    if (Options::targetArchitecture == "X86_64") {
-                        Instruction ins;
-                        ins.type = x86_64::mov;
-                        ins.op1 = {Operand::sta, stackLocation->offset};
-                        ins.op2 = {Operand::reg, targetNumber};
-                        ins.sizeAfter = ins.sizeAfter = stackLocation->size;
-                        ins.postfix1 = AddInstructionPostfix(stackLocation->size);
-                        finalInstructions.push_back(ins);
-                    }
+                auto& life = variableLifetimes[reg.content.value];
+                if (life.assignStatus == VariableStatistics::reg and life.assigned != targetNumber) {
+                    // the variable is in the wrong register, move it to it's correct one
+                    // TODO: think about the case where something is in the assigned one
+                    MoveValue(reg.content.value, "%" + std::to_string(life.assigned), reg.content.value, reg.content.value[1] - '0', index);
                 }
-                else if (stackLocation->content.value != reg.content.value) {
-                    if (Options::targetArchitecture == "X86_64") {
-                        Instruction ins;
-                        ins.type = x86_64::mov;
-                        ins.op1 = {Operand::sta, stackLocation->offset};
-                        ins.op2 = {Operand::reg, targetNumber};
-                        ins.sizeAfter = ins.sizeAfter = stackLocation->size;
-                        ins.postfix1 = AddInstructionPostfix(stackLocation->size);
-                        finalInstructions.push_back(ins);
+                else {
+                    stackLocation = FindStackVariableByName(reg.content.value);
+                    if (not stackLocation) {
+                        stackLocation = AddStackVariable(reg.content.value);
+                        if (Options::targetArchitecture == "X86_64") {
+                            Instruction ins;
+                            ins.type = x86_64::mov;
+                            ins.op1 = {Operand::sta, stackLocation->offset};
+                            ins.op2 = {Operand::reg, targetNumber};
+                            ins.sizeAfter = ins.sizeAfter = stackLocation->size;
+                            ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                            finalInstructions.push_back(ins);
+                        }
                     }
-                    stackLocation->content.value = contentToSet;
+                    else if (stackLocation->content.value != reg.content.value) {
+                        if (Options::targetArchitecture == "X86_64") {
+                            Instruction ins;
+                            ins.type = x86_64::mov;
+                            ins.op1 = {Operand::sta, stackLocation->offset};
+                            ins.op2 = {Operand::reg, targetNumber};
+                            ins.sizeAfter = ins.sizeAfter = stackLocation->size;
+                            ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                            finalInstructions.push_back(ins);
+                        }
+                        stackLocation->content.value = contentToSet;
+                    }
                 }
             }
         }
@@ -396,6 +405,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
             }
             finalInstructions.push_back(ins);
         }
+
         // in this case variable does not exist and needs to be converted from base variable
         else {
             // first find the main variable
@@ -414,6 +424,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                         CodeGeneratorError("Bug: searched variable was not created!");
                     }
                     baseType = VariableType(n.first);
+                    break;
                 }
             }
             if (baseLocation.type == Operand::none) {
@@ -471,6 +482,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                         ins.op1 = {Operand::sta, temp->offset};
                     }
                     finalInstructions.push_back(ins);
+                    SetContent(ins.op1, contentToSet);
                 }
             }
             else {
@@ -622,6 +634,16 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     // find the registers for things that require them
     for (auto& n : operandsToMove) {
         if (n.where.type == Operand::reg) {
+            auto& life = variableLifetimes[operands[n.number].first];
+            if (life.assignStatus == VariableStatistics::reg) {
+                if (operands[n.number].second.type != Operand::reg or operands[n.number].second.value != life.assigned) {
+                    if (not occupied[life.assigned]) {
+                        occupied[life.assigned] = true;
+                        n.where.value = life.assigned;
+                        continue;
+                    }
+                }
+            }
             bool found = false;
             for (auto& m : *vec[n.number].second) {
                 // find the first valid register

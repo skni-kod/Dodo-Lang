@@ -247,7 +247,7 @@ void RunLinearAnalysis() {
             for (auto& m: reg.assigned) {
                 auto& current = lifetimeVector[m].second;
                 // check if the already assigned variable was used during the needed time
-                if (current.firstUse >= var.lastUse or current.lastUse <= var.firstUse) {
+                if (current.firstUse > var.lastUse or current.lastUse < var.firstUse) {
                     continue;
                 }
                 // if it got here then it was, move on
