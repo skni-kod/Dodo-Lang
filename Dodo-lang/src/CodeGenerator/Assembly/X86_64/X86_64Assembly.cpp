@@ -201,6 +201,22 @@ namespace x86_64 {
             case Bytecode::addLabel:
 
                 break;
+            case Bytecode::moveValue:
+            {
+                auto target = generatorMemory.findThing(bytecode.target);
+                if (target.type == Operand::reg) {
+                    MoveValue(bytecode.source, "%" + std::to_string(target.number),
+                              "%" + std::to_string(target.number), bytecode.type.size, index);
+                }
+                else if (target.type == Operand::reg) {
+                    MoveValue(bytecode.source, "@" + std::to_string(target.offset),
+                              "@" + std::to_string(target.offset), bytecode.type.size, index);
+                }
+                else {
+                    CodeGeneratorError("Unimplemented: Invalid operand target for move!");
+                }
+            }
+                break;
             default:
                 CodeGeneratorError("Invalid bytecode code!");
                 break;

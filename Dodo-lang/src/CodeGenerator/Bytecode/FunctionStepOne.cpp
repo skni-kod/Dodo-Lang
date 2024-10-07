@@ -57,10 +57,12 @@ VariableContainerVector earlyVariables;
 struct VarInstanceStruct {
     uint32_t instanceNumber = 0;
     uint32_t assignmentNumber = 0;
+    uint32_t newAssignmentNumber = 0;
 
     uint32_t addInstance() {
         return ++instanceNumber;
         assignmentNumber = 0;
+        newAssignmentNumber = 0;
     }
 };
 
@@ -71,12 +73,13 @@ std::string AddVariableInstance(std::string identifier) {
         auto& ins = variableInstances[identifier];
         ins.instanceNumber++;
         ins.assignmentNumber = 0;
-        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+        ins.newAssignmentNumber = 0;
+        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.newAssignmentNumber);
     }
     else {
         variableInstances.insert(identifier, {});
         auto& ins = variableInstances[identifier];
-        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.newAssignmentNumber);
     }
 }
 
@@ -92,12 +95,22 @@ std::string GetVariableInstance(std::string identifier) {
 std::string ReassignVariableInstance(std::string identifier, const VariableType& type) {
     if (variableInstances.isKey(identifier)) {
         auto& ins = variableInstances[identifier];
-        ins.assignmentNumber++;
+        ins.newAssignmentNumber++;
+        ins.assignmentNumber = ins.newAssignmentNumber;
         earlyVariables.add({type, GetVariableInstance(identifier), true});
-        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+        return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.newAssignmentNumber);
     }
     CodeGeneratorError("Invalid variable reference!");
     return "";
+}
+
+void RollbackVariableInstance(std::string identifier, uint64_t assignmentNumber) {
+    if (variableInstances.isKey(identifier)) {
+        auto& ins = variableInstances[identifier];
+        ins.assignmentNumber = assignmentNumber;
+        return;
+    }
+    CodeGeneratorError("Invalid variable for rollback!");
 }
 
 
@@ -140,7 +153,7 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
 
 VariableType NegotiateOperationType(const ParserValue& expression) {
     if (expression.nodeType == ParserValue::Node::variable) {
-        return earlyVariables.find(*expression.value).type;
+        return earlyVariables.find(GetVariableInstance(*expression.value)).type;
     }
 
     if (expression.nodeType == ParserValue::Node::constant) {
@@ -275,6 +288,30 @@ void BytecodePushLevel() {
 }
 
 void BytecodePopLevel() {
+    // first it needs to be found if the base instance of every variable exists
+    for (auto& var : earlyVariables.variables.back()) {
+        if (var.name.ends_with("0")) {
+            continue;
+        }
+
+        // now find the base
+        std::string searched = var.name.substr(0, var.name.find_last_of('-') + 1);
+        bool found = false;
+        // go from the nearly top level down
+        for (int64_t n = earlyVariables.variables.size() - 2; n >= 0 and not found; n--) {
+            // also search for the newest instance of that variable
+            for (int64_t m = earlyVariables.variables[n].size() - 1; m >= 0; m--) {
+                if (earlyVariables.variables[n][m].name.starts_with(searched)) {
+                    bytecodes.emplace_back(Bytecode::moveValue, var.name,
+                                           earlyVariables.variables[n][m].name, earlyVariables.variables[n][m].type);
+                    RollbackVariableInstance(var.name.substr(0, var.name.find_last_of('#')),
+                                             std::stoull(earlyVariables.variables[n][m].name.substr(earlyVariables.variables[n][m].name.find_last_of('-') + 1, earlyVariables.variables[n][m].name.size() - 1 - earlyVariables.variables[n][m].name.find_last_of('-'))));
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
     earlyVariables.popLevel();
     bytecodes.emplace_back(Bytecode::popLevel);
 }

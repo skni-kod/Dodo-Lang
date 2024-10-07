@@ -22,7 +22,7 @@ namespace Options {
         GNU_AS, NASM
     };
     inline uint8_t assemblyFlavor = AssemblyFlavor::GNU_AS;
-    inline uint8_t spaceOnLeft = 8;
+    inline uint8_t spaceOnLeft = 12;
 }
 
 namespace Optimizations {

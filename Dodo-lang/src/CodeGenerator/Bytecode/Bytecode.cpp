@@ -147,6 +147,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::addLabel:
             out << "Add label: " << code.source << "\n";
             break;
+        case Bytecode::moveValue:
+            out << "Move value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
+            break;
         default:
             CodeGeneratorError("Invalid bytecode code!");
             break;

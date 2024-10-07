@@ -45,7 +45,9 @@ struct Bytecode {
         // none
         none,
         // s
-        addLabel
+        addLabel,
+        // t = s
+        moveValue
 
     };
 

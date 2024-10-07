@@ -435,7 +435,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
             uint8_t targetSize = std::stoull(source.substr(1, 1));
 
             // now that base variable is found convert it
-            if (baseLocation.type != ParserType::floatingPoint and targetType != ParserType::floatingPoint) {
+            if (baseType.type != ParserType::floatingPoint and targetType != ParserType::floatingPoint) {
                 // both are integers, it's simple in that case
                 Instruction ins;
                 ins.sizeAfter = targetSize;
@@ -492,6 +492,12 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
     }
 }
 
+void FillDesignatedRegisters() {
+    // TODO: add predesignated stack offsets or something, as this might cause problems with variable keeping
+    for (auto& n : generatorMemory.registers) {
+
+    }
+}
 
 void GenerateInstruction(InstructionRequirements req, uint64_t index) {
 
@@ -680,7 +686,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                     // replace var on stack or in register
                     if (operands[n].second.type == Operand::reg) {
                         // it's a register
-
+                        // TODO: add a check if the copy could be moved away from assigned location and only if not move the original
                         // just move a copy to stack for now, I will optimize this once it works
                         auto* stackLoc = AddStackVariable(operands[n].first);
                         operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::sta, stackLoc->offset));
@@ -713,7 +719,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
         std::string target;
         switch (n.where.type) {
             case Operand::sta:
-                MoveValue(operands[n.number].first, "%" + std::to_string(n.where.offset), operands[n.number].first, req.instructionSize, index);
+                MoveValue(operands[n.number].first, "@" + std::to_string(n.where.offset), operands[n.number].first, req.instructionSize, index);
                 break;
             case Operand::reg:
                 MoveValue(operands[n.number].first, "%" + std::to_string(n.where.value), operands[n.number].first, req.instructionSize, index);
