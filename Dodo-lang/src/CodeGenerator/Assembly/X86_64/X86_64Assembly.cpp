@@ -318,6 +318,9 @@ namespace x86_64 {
                     MoveValue(bytecode.source, "@" + std::to_string(target.offset),
                               temp, bytecode.type.size, index);
                 }
+                else if (target.type == Operand::none) {
+                    SetContent(generatorMemory.findThing(bytecode.source), bytecode.target);
+                }
                 else {
                     CodeGeneratorError("Unimplemented: Invalid operand target for move!");
                 }

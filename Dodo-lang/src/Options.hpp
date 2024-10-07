@@ -43,6 +43,7 @@ namespace Optimizations {
     // mixed
     // groups main variable instances to always be in the same register during the entire lifetime, making them interchangeable
     // this allows for much better use of registers in conditional statements compared to keeping a copy od the one from before
+    // actually now it must be on for the compiler to work
     inline bool groupVariableInstances = true;
 }
 
