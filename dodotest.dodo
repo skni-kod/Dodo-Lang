@@ -18,10 +18,8 @@ type f64 : FLOATING_POINT(8);
 
 i32 main() {
     mut i8 k = 0;
-    if (k > 0) {
-        return 1;
+    while (k < 100) {
+        k += 1;
     }
-    else {
-        return 0;
-    }
+    return k;
 }

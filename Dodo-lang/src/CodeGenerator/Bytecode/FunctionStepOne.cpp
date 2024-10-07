@@ -288,12 +288,37 @@ void BytecodePushLevel() {
 }
 
 void BytecodePopLevel() {
-    // first it needs to be found if the base instance of every variable exists
-    for (auto& var : earlyVariables.variables.back()) {
-        if (var.name.ends_with("0")) {
-            continue;
+    // an alternative approach which should give much better results
+    if (Optimizations::groupVariableInstances) {
+        for (auto& var : earlyVariables.variables.back()) {
+            std::string searched = var.name.substr(0, var.name.find_last_of('-') + 1);
+            bool found = false;
+            // go from the nearly top level down
+            for (int64_t n = earlyVariables.variables.size() - 2; n >= 0 and not found; n--) {
+                // also search for the newest instance of that variable
+                for (int64_t m = earlyVariables.variables[n].size() - 1; m >= 0; m--) {
+                    if (earlyVariables.variables[n][m].name.starts_with(searched)) {
+                        // now that part's different
+                        // define a new variable on lower level to transfer the value to
+                        std::string oldName = var.name;
+                        std::string name = ReassignVariableInstance(oldName.substr(0, var.name.find_last_of('#')), var.type);
+                        auto& newVar = earlyVariables.find(name);
+                        bytecodes.emplace_back(Bytecode::moveValue, oldName, name, newVar.type);
+                        earlyVariables.variables[n].emplace_back(newVar);
+                        found = true;
+                        break;
+                    }
+                }
+            }
         }
 
+        earlyVariables.popLevel();
+        bytecodes.emplace_back(Bytecode::popLevel);
+        return;
+    }
+
+    // first it needs to be found if the base instance of every variable exists
+    for (auto& var : earlyVariables.variables.back()) {
         // now find the base
         std::string searched = var.name.substr(0, var.name.find_last_of('-') + 1);
         bool found = false;

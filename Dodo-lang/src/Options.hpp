@@ -36,7 +36,14 @@ namespace Optimizations {
 
     // in bytecode optimization function before conversion
     inline bool optimizeBytecode = false;
-    inline bool replaceKnownValueVariables = true;
+    inline bool replaceKnownValueVariables = false;
+
+    // when generating bytecode
+
+    // mixed
+    // groups main variable instances to always be in the same register during the entire lifetime, making them interchangeable
+    // this allows for much better use of registers in conditional statements compared to keeping a copy od the one from before
+    inline bool groupVariableInstances = true;
 }
 
 #endif //DODO_LANG_OPTIONS_HPP
