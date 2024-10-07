@@ -291,6 +291,8 @@ void SetContent(DataLocation location, const std::string& content) {
     CodeGeneratorError("Unimplemented: Non stack/register content set!");
 }
 
+std::vector<std::pair<uint64_t, std::string>> storesToCheck;
+
 void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index) {
     uint64_t targetNumber;
     internal::StackEntry* stackLocation = nullptr;
@@ -307,7 +309,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                 // if the value is already there
                 return;
             }
-            // TODO: add better contidions for move
+            // TODO: add better conditions for move, they are producing useless stores
             if (GetOperandType(reg.content.value) != Operand::imm and variableLifetimes[reg.content.value].lastUse >= index) {
                 // in this case the value needs to be moved back to it's correct place if it's not already there
                 auto& life = variableLifetimes[reg.content.value];
@@ -315,6 +317,19 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                     // the variable is in the wrong register, move it to it's correct one
                     // TODO: think about the case where something is in the assigned one
                     MoveValue(reg.content.value, "%" + std::to_string(life.assigned), reg.content.value, reg.content.value[1] - '0', index);
+                    if (Optimizations::checkPotentialUselessStores and variableLifetimes[reg.content.value].lastUse == index) {
+                        if (Options::targetArchitecture == "X86_64") {
+                            for (int64_t n = finalInstructions.size(); n >= 0; n--) {
+                                if (finalInstructions[n].op1.type == Operand::reg and finalInstructions[n].op1.number == life.assigned  and
+                                    finalInstructions[n].op2.type == Operand::reg and finalInstructions[n].op2.number == targetNumber) {
+                                    storesToCheck.emplace_back(n, generatorMemory.registers[life.assigned].content.value);
+                                }
+                            }
+                        }
+                        else {
+                            CodeGeneratorError("Unimplemented: non x86-64 suspicious value find!");
+                        }
+                    }
                 }
                 else {
                     stackLocation = FindStackVariableByName(reg.content.value);
@@ -327,6 +342,9 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                             ins.op2 = {Operand::reg, targetNumber};
                             ins.sizeAfter = ins.sizeAfter = stackLocation->size;
                             ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                            if (Optimizations::checkPotentialUselessStores and variableLifetimes[reg.content.value].lastUse == index) {
+                                storesToCheck.emplace_back(finalInstructions.size(), FindStackVariableByOffset(stackLocation->offset)->content.value);
+                            }
                             finalInstructions.push_back(ins);
                         }
                     }
@@ -338,6 +356,9 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
                             ins.op2 = {Operand::reg, targetNumber};
                             ins.sizeAfter = ins.sizeAfter = stackLocation->size;
                             ins.postfix1 = AddInstructionPostfix(stackLocation->size);
+                            if (Optimizations::checkPotentialUselessStores and variableLifetimes[reg.content.value].lastUse == index) {
+                                storesToCheck.emplace_back(finalInstructions.size(), FindStackVariableByOffset(stackLocation->offset)->content.value);
+                            }
                             finalInstructions.push_back(ins);
                         }
                         stackLocation->content.value = contentToSet;
@@ -374,7 +395,7 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
             if (targetType == Operand::reg) {
                 ins.sizeAfter = ins.sizeBefore = operationSize;
                 ins.op1 = {Operand::reg, targetNumber};
-                generatorMemory.registers[targetNumber].content.value = contentToSet;
+                SetContent(ins.op1, contentToSet);
             }
             else if (targetType == Operand::sta) {
                 ins.sizeAfter = ins.sizeBefore = stackLocation->size;
@@ -492,10 +513,48 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
     }
 }
 
-void FillDesignatedRegisters() {
+void FillDesignatedPlaces(uint64_t index) {
     // TODO: add predesignated stack offsets or something, as this might cause problems with variable keeping
-    for (auto& n : generatorMemory.registers) {
+    // loop might be useless but it makes it more reliable
+    bool secondRun = false;
+    while (true) {
+        uint64_t changes = 0;
+        for (auto& n : variableLifetimes.map) {
+            if (n.second.firstUse <= index and n.second.lastUse >= index) {
+                // this variable exists, it needs to be ensured that it's in place
+                auto data = generatorMemory.findThing(n.first);
+                if (data.type == Operand::none) {
+                    CodeGeneratorError("Unimplemented: Move of non existent variable to designated register, might be unreachable!");
+                    return;
+                }
 
+                // if it's fine check if the data is in the right place
+                if (n.second.assignStatus == VariableStatistics::reg) {
+                    if (generatorMemory.registers[n.second.assigned].content.value != n.first) {
+                        MoveValue(n.first, "%" + std::to_string(n.second.assigned), n.first, n.first[1] - '0', index);
+                        changes++;
+                    }
+                }
+                else if (n.second.assignStatus == VariableStatistics::sta) {
+                    if (FindStackVariableByName(n.first) == nullptr) {
+                        auto* sta = AddStackVariable(n.first);
+                        sta->content.value = "!";
+                        MoveValue(n.first, "@" + std::to_string(sta->offset), n.first, n.first[1] - '0', index);
+                        changes++;
+                    }
+                }
+                else {
+                    CodeGeneratorError("Unimplemented: non stack/register designed place move!");
+                }
+            }
+        }
+        if (changes == 0) {
+            break;
+        }
+        if (secondRun) {
+            std::cout << "You were right!\n";
+        }
+        secondRun = true;
     }
 }
 
@@ -571,6 +630,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                     auto* stackLoc = FindStackVariableByName(operands[n].first);
                     if (stackLoc == nullptr) {
                         stackLoc = AddStackVariable(operands[n].first);
+                        stackLoc->content.value = "!";
                     }
                     operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::sta, stackLoc->offset));
                 }
@@ -592,6 +652,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                 else if (vec[n].first == Operand::sta) {
                     // move to stack
                     auto* stackLoc = AddStackVariable(operands[n].first);
+                    stackLoc->content.value = "!";
                     operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::sta, stackLoc->offset));
                 }
             }
@@ -612,6 +673,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                     else if (vec[n].first == Operand::sta) {
                         // move to stack
                         auto* stackLoc = AddStackVariable(operands[n].first);
+                        stackLoc->content.value = "!";
                         operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::sta, stackLoc->offset));
                     }
                 }
@@ -640,13 +702,15 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     // find the registers for things that require them
     for (auto& n : operandsToMove) {
         if (n.where.type == Operand::reg) {
-            auto& life = variableLifetimes[operands[n.number].first];
-            if (life.assignStatus == VariableStatistics::reg) {
-                if (operands[n.number].second.type != Operand::reg or operands[n.number].second.value != life.assigned) {
-                    if (not occupied[life.assigned]) {
-                        occupied[life.assigned] = true;
-                        n.where.value = life.assigned;
-                        continue;
+            if (operands[n.number].second.type != Operand::imm) {
+                auto& life = variableLifetimes[operands[n.number].first];
+                if (life.assignStatus == VariableStatistics::reg) {
+                    if (operands[n.number].second.type != Operand::reg or operands[n.number].second.value != life.assigned) {
+                        if (not occupied[life.assigned]) {
+                            occupied[life.assigned] = true;
+                            n.where.value = life.assigned;
+                            continue;
+                        }
                     }
                 }
             }
@@ -687,14 +751,52 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                     if (operands[n].second.type == Operand::reg) {
                         // it's a register
                         // TODO: add a check if the copy could be moved away from assigned location and only if not move the original
+                        DataLocation& current = operands[n].second;
+                        if (life.assignStatus == VariableStatistics::reg) {
+                            if (current.number != life.assigned) {
+                                operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(life.assigned)));
+                                continue;
+                            }
+                            else {
+                                // find a free register, starting from back to reduce the risk of multiple moves
+                                bool found = false;
+                                for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k++) {
+                                    auto& reg = generatorMemory.registers[k];
+                                    if (reg.content.value == "!" and not occupied[k]) {
+                                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
+                                        found = true;
+                                        occupied[k] = true;
+                                        break;
+                                    }
+                                }
+                                if (found) {
+                                    continue;
+                                }
+                                for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k++) {
+                                    auto& reg = generatorMemory.registers[k];
+                                    if (reg.content.value.starts_with("$") and not occupied[k]) {
+                                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
+                                        found = true;
+                                        occupied[k] = true;
+                                        break;
+                                    }
+                                }
+                                if (found) {
+                                    continue;
+                                }
+                            }
+                        }
+
                         // just move a copy to stack for now, I will optimize this once it works
                         auto* stackLoc = AddStackVariable(operands[n].first);
+                        stackLoc->content.value = "!";
                         operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::sta, stackLoc->offset));
                     }
                     else if (operands[n].second.type == Operand::sta) {
                         // it's on stack
                         // just copy it to another place on stack for now
                         auto* stackLoc = AddStackVariable(operands[n].first);
+                        stackLoc->content.value = "!";
                         operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::sta, stackLoc->offset));
                     }
                     else {
@@ -707,6 +809,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
 
                     // just move a copy to stack for now, I will optimize this once it works
                     auto* stackLoc = AddStackVariable(operands[n].first);
+                    stackLoc->content.value = "!";
                     operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::sta, stackLoc->offset));
 
                 }
@@ -782,6 +885,49 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                     CodeGeneratorError("Unimplemented!");
 
             }
+        }
+    }
+
+    // checking potential useless moves
+    if (Optimizations::checkPotentialUselessStores) {
+        if (Options::targetArchitecture == "X86_64") {
+            for (auto& n : storesToCheck) {
+                bool found = false;
+                for (uint64_t m = n.first + 1; m < finalInstructions.size(); m++) {
+                    if (finalInstructions[m].op1 == finalInstructions[n.first].op1) {
+                        found = true;
+                        break;
+                    }
+                    if (finalInstructions[m].op2 == finalInstructions[n.first].op1) {
+                        found = true;
+                        break;
+                    }
+                    if (finalInstructions[m].op3 == finalInstructions[n.first].op1) {
+                        found = true;
+                        break;
+                    }
+                    if (finalInstructions[m].op4 == finalInstructions[n.first].op1) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (not found) {
+                    for (auto& k : storesToCheck) {
+                        if (k.first > n.first) {
+                            k.first--;
+                        }
+                    }
+                    // if it starts eating up variables add this, but attempt proper debug
+                    if (variableLifetimes[generatorMemory.registers[finalInstructions[n.first].op1.number].content.value].lastUse > index) {
+                        continue;
+                    }
+                    SetContent(finalInstructions[n.first].op1, n.second);
+                    finalInstructions.erase(finalInstructions.begin() + n.first);
+                }
+            }
+        }
+        else {
+            CodeGeneratorError("Unimplemented: Non x86_64 useless move optimization!");
         }
     }
 }

@@ -398,6 +398,7 @@ void BytecodeIf(const ParserFunction& function, const IfInstruction& instruction
     }
     BytecodePopLevel();
     bytecodes.emplace_back(Bytecode::addLabel, label);
+
 }
 
 void BytecodeElse(const ParserFunction& function, uint64_t& counter) {
@@ -450,9 +451,10 @@ void BytecodeWhile(const ParserFunction& function, const WhileInstruction& instr
            function.instructions[counter].type != FunctionInstruction::Type::endScope; counter++) {
         HandleInstruction(function, function.instructions[counter], counter);
     }
-    bytecodes.emplace_back(Bytecode::jump, labelBefore, instruction.condition.type);
     BytecodePopLevel();
+    bytecodes.emplace_back(Bytecode::jump, labelBefore, instruction.condition.type);
     bytecodes.emplace_back(Bytecode::addLabel, labelAfter);
+
 }
 
 void BytecodeFor(const ParserFunction& function, const ForInstruction& instruction, uint64_t& counter) {
@@ -483,9 +485,9 @@ void BytecodeFor(const ParserFunction& function, const ForInstruction& instructi
     for (auto& n: instruction.instructions) {
         HandleInstruction(function, n, counter);
     }
+    BytecodePopLevel();
+    BytecodePopLevel();
     bytecodes.emplace_back(Bytecode::jump, labelBefore, instruction.condition.type);
-    BytecodePopLevel();
-    BytecodePopLevel();
     bytecodes.emplace_back(Bytecode::addLabel, labelAfter);
 }
 
@@ -539,15 +541,24 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
 
     // adding size prefixes to things
     for (auto& n : bytecodes) {
-        if (not n.source.empty()) {
-            if (n.source.front() != '$') {
-                n.source = n.type.GetPrefix() + n.source;
-            }
-        }
-        if (not n.target.empty()) {
-            if (n.target.front() != '$') {
-                n.target = n.type.GetPrefix() + n.target;
-            }
+        switch (n.code) {
+            case Bytecode::addLabel:
+            case Bytecode::jumpConditionalFalse:
+            case Bytecode::jumpConditionalTrue:
+            case Bytecode::jump:
+            case Bytecode::callFunction:
+                continue;
+            default:
+                if (not n.source.empty()) {
+                    if (n.source.front() != '$') {
+                        n.source = n.type.GetPrefix() + n.source;
+                    }
+                }
+                if (not n.target.empty()) {
+                    if (n.target.front() != '$') {
+                        n.target = n.type.GetPrefix() + n.target;
+                    }
+                }
         }
     }
 

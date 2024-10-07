@@ -17,12 +17,11 @@ type f64 : FLOATING_POINT(8);
 
 
 i32 main() {
-    let u16 y = 16;
-    let i64 h = 3;
-    mut i16 test = 20;
-    let u8 k = y + 32;
-    if (test > 0) {
-        test /= k + h;
+    mut i8 k = 0;
+    if (k > 0) {
+        return 1;
     }
-    return test + k;
+    else {
+        return 0;
+    }
 }

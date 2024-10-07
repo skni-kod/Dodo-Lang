@@ -95,6 +95,12 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var);
 
 internal::StackEntry* AddStackVariable(std::string name);
 
+internal::StackEntry* FindStackVariableByOffset(std::uint64_t offset);
+
+void SetContent(DataLocation location, const std::string& content);
+
+void FillDesignatedPlaces(uint64_t index);
+
 void UpdateVariables();
 
 #endif //DODO_LANG_THE_GENERATOR_HPP

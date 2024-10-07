@@ -379,6 +379,44 @@ void Instruction::outputX86_64(std::ofstream& out) {
                 op2.print(out, sizeAfter);
                 out << "\n";
                 break;
+            case x86_64::cmp:
+                PrintWithSpaces("cmp", out);
+                op2.print(out, sizeAfter);
+                out << ", ";
+                op1.print(out, sizeAfter);
+                out << "\n";
+                break;
+            case x86_64::jumpLabel:
+                out << ".L" << op1.number << ":\n";
+                break;
+            case x86_64::jmp:
+                PrintWithSpaces("jmp", out);
+                out << ".L" << op1.number << "\n";
+                break;
+            case x86_64::jg:
+                PrintWithSpaces("jg", out);
+                out << ".L" << op1.number << "\n";
+                break;
+            case x86_64::jge:
+                PrintWithSpaces("jge", out);
+                out << ".L" << op1.number << "\n";
+                break;
+            case x86_64::jb:
+                PrintWithSpaces("jb", out);
+                out << ".L" << op1.number << "\n";
+                break;
+            case x86_64::jbe:
+                PrintWithSpaces("jbe", out);
+                out << ".L" << op1.number << "\n";
+                break;
+            case x86_64::je:
+                PrintWithSpaces("je", out);
+                out << ".L" << op1.number << "\n";
+                break;
+            case x86_64::jne:
+                PrintWithSpaces("jne", out);
+                out << ".L" << op1.number << "\n";
+                break;
         }
     }
 }

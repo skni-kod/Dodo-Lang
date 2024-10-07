@@ -32,9 +32,9 @@ struct Bytecode {
         popLevel,
         // jmp s
         jump,
-        // <cond. jump> s
+        // <cond. jump> s, condition in number
         jumpConditionalFalse,
-        // <cond. jump> s
+        // <cond. jump> s, condition in number
         jumpConditionalTrue,
         // cmp s t
         compare,
@@ -44,7 +44,7 @@ struct Bytecode {
         assign,
         // none
         none,
-        // s
+        // type letter + number in s
         addLabel,
         // t = s
         moveValue

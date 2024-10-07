@@ -39,12 +39,24 @@ namespace x86_64 {
         sub,
         //
         syscall,
+        // jmp, label in op1
+        jmp,
+        // label in op1
+        jb,
+        // label in op1
+        jbe,
+        // label in op1
+        jg,
+        // label in op1
+        jge,
+        // label in op1
+        je,
+        // label in op1
+        jne,
         //
-        jump,
-        //
-        jc,
-        //
-        cmp
+        cmp,
+        // (.LC + op1.number + ':')
+        jumpLabel
     };
 }
 

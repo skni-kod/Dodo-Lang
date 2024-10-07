@@ -28,6 +28,9 @@ void AddLifetimeToMain(std::string& child, uint64_t index) {
     main.usageAmount++;
 }
 
+// this ensures that the lifetime of variables is extended until the end of a level
+std::stack <std::vector <std::string>> variablesToExtend;
+
 void CalculateLifetimes() {
     for (uint64_t n = 0; n < bytecodes.size(); n++) {
         switch (bytecodes[n].code) {
@@ -41,12 +44,18 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].source, n);
+                            if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].source, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
                 break;
@@ -65,12 +74,18 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].source, n);
+                            if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                            }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].source, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
                 // handle target
@@ -81,12 +96,18 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].target, n);
+                            if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                            }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].target, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].target, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
                 break;
@@ -99,12 +120,18 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].source, n);
+                            if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].source, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
                 // handle target
@@ -115,12 +142,18 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].target, n);
+                            if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].target, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].target, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
                 break;
@@ -133,16 +166,23 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].source, n);
+                            if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].source, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
                 break;
             case Bytecode::moveArgument:
+            case Bytecode::moveValue:
                 // handle source
                 if (IsVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
@@ -151,12 +191,18 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].source, n);
+                            if (not variablesToExtend.empty()) {
+                                variablesToExtend.top().push_back(*lastMainName);
+                            }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].source, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
                 break;
@@ -177,14 +223,29 @@ void CalculateLifetimes() {
                         temp.lastUse = n;
                         if (not temp.isMainValue) {
                             AddLifetimeToMain(bytecodes[n].source, n);
+                            if (not variablesToExtend.empty()) {
+                                variablesToExtend.top().push_back(*lastMainName);
+                            }
                         }
                     }
                     else {
                         variableLifetimes.insert(bytecodes[n].source, {n});
                         // this is not the original value and as such the original one must still exist to convert from
                         AddLifetimeToMain(bytecodes[n].source, n);
+                        if (not variablesToExtend.empty()) {
+                            variablesToExtend.top().push_back(*lastMainName);
+                        }
                     }
                 }
+                break;
+            case Bytecode::pushLevel:
+                variablesToExtend.emplace();
+                break;
+            case Bytecode::popLevel:
+                for (auto& m : variablesToExtend.top()) {
+                    variableLifetimes[m].lastUse = n;
+                }
+                variablesToExtend.pop();
                 break;
         }
     }

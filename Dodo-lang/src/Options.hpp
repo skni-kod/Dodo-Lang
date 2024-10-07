@@ -32,6 +32,7 @@ namespace Optimizations {
     // when converting bytecode
     inline bool skipUnusedVariables = true;
     inline bool swapExpressionOperands = true;
+    inline bool checkPotentialUselessStores = true;
 
     // in bytecode optimization function before conversion
     inline bool optimizeBytecode = false;

@@ -5,6 +5,47 @@
 #include <fstream>
 
 namespace x86_64 {
+    uint64_t GetJumpType(uint32_t code, uint32_t comparison) {
+        if (code == Bytecode::jumpConditionalTrue) {
+            switch (comparison) {
+                case ParserCondition::greater:
+                    return x86_64::jg;
+                case ParserCondition::greaterEqual:
+                    return x86_64::jge;
+                case ParserCondition::lesser:
+                    return x86_64::jb;
+                case ParserCondition::lesserEqual:
+                    return x86_64::jbe;
+                case ParserCondition::equals:
+                    return x86_64::je;
+                case ParserCondition::notEquals:
+                    return x86_64::jne;
+                default:
+                    CodeGeneratorError("Bug: Invalid jump label request!");
+            }
+        }
+        else {
+            switch (comparison) {
+                case ParserCondition::greater:
+                    return x86_64::jbe;
+                case ParserCondition::greaterEqual:
+                    return x86_64::jb;
+                case ParserCondition::lesser:
+                    return x86_64::jge;
+                case ParserCondition::lesserEqual:
+                    return x86_64::jb;
+                case ParserCondition::equals:
+                    return x86_64::jne;
+                case ParserCondition::notEquals:
+                    return x86_64::je;
+                default:
+                    CodeGeneratorError("Bug: Invalid jump label request!");
+            }
+        }
+        CodeGeneratorError("Bug: Invalid jump label request!");
+        return 0;
+    }
+
     void ConvertBytecode(Bytecode& bytecode, uint64_t index) {
         switch (bytecode.code) {
             case Bytecode::add:
@@ -67,11 +108,11 @@ namespace x86_64 {
                      OpCombination(Operand::reg, {0},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-1" }}),
+                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
                      OpCombination(Operand::reg, {0},
                                    Operand::sta, {},
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-1" }})}
+                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
                 else if (bytecode.type.type == ParserType::signedInteger) {
@@ -122,12 +163,12 @@ namespace x86_64 {
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    {{x86_64::rdx, 0}},
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-1" }}),
+                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
                      OpCombination(Operand::reg, {0},
                                    Operand::sta, {},
                                    {{x86_64::rdx, 0}},
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-1" }})}
+                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
                 else if (bytecode.type.type == ParserType::signedInteger) {
@@ -138,12 +179,12 @@ namespace x86_64 {
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    {{x86_64::rdx, 0}},
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-1" }}),
+                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
                      OpCombination(Operand::reg, {0},
                                    Operand::sta, {},
                                    {{x86_64::rdx, 0}},
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-1" }})}
+                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
                 else {
@@ -166,22 +207,72 @@ namespace x86_64 {
                 GenerateInstruction({x86_64::ret}, index);
                 break;
             case Bytecode::pushLevel:
+                FillDesignatedPlaces(index);
                 generatorMemory.pushLevel();
                 break;
             case Bytecode::popLevel:
+                FillDesignatedPlaces(index);
                 generatorMemory.popLevel();
                 break;
             case Bytecode::jumpConditionalFalse:
-
-                break;
             case Bytecode::jumpConditionalTrue:
-
+                FillDesignatedPlaces(index);
+                {
+                    Instruction ins;
+                    ins.type = GetJumpType(bytecode.code, bytecode.number);
+                    ins.op1.type = Operand::jla;
+                    ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
+                    finalInstructions.push_back(ins);
+                }
                 break;
-            case Bytecode::jump:
 
+            case Bytecode::jump:
+                FillDesignatedPlaces(index);
+                {
+                    Instruction ins;
+                    ins.type = x86_64::jmp;
+                    ins.op1.type = Operand::jla;
+                    ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
+                    finalInstructions.push_back(ins);
+                }
                 break;
             case Bytecode::compare:
-
+                if (Optimizations::swapExpressionOperands) {
+                    if (bytecode.target.starts_with("$")) {
+                        std::swap(bytecode.source, bytecode.target);
+                    }
+                    // TODO: add a condition switch function
+                    switch (bytecode.number) {
+                        case ParserCondition::lesser:
+                            bytecode.number = ParserCondition::greaterEqual;
+                            break;
+                        case ParserCondition::greater:
+                            bytecode.number = ParserCondition::lesserEqual;
+                            break;
+                        case ParserCondition::lesserEqual:
+                            bytecode.number = ParserCondition::greater;
+                            break;
+                        case ParserCondition::greaterEqual:
+                            bytecode.number = ParserCondition::lesser;
+                            break;
+                    }
+                }
+                // compare here
+                FillDesignatedPlaces(index);
+                GenerateInstruction({
+                    x86_64::cmp, bytecode.type.size, bytecode.target, bytecode.source,
+                    {
+                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15}),
+                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand::sta, {}),
+                     OpCombination(Operand::sta, {},
+                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15}),
+                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand::imm, {}),
+                     OpCombination(Operand::sta, {},
+                                   Operand::imm, {})}
+                }, index);
                 break;
             case Bytecode::declare:
             {
@@ -199,18 +290,33 @@ namespace x86_64 {
                 AssignExpressionToVariable(bytecode.source, bytecode.target);
                 break;
             case Bytecode::addLabel:
-
+                FillDesignatedPlaces(index);
+                if (bytecode.source.starts_with(Options::jumpLabelPrefix)) {
+                    Instruction ins;
+                    ins.type = x86_64::jumpLabel;
+                    ins.op1.type = Operand::jla;
+                    ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
+                    finalInstructions.push_back(ins);
+                }
+                else {
+                    CodeGeneratorError("Unsupported: non jump x86_64 label!");
+                }
                 break;
             case Bytecode::moveValue:
             {
                 auto target = generatorMemory.findThing(bytecode.target);
                 if (target.type == Operand::reg) {
+                    std::string temp = generatorMemory.registers[target.number].content.value;
+                    SetContent(target, "!");
                     MoveValue(bytecode.source, "%" + std::to_string(target.number),
-                              "%" + std::to_string(target.number), bytecode.type.size, index);
+                              temp, bytecode.type.size, index);
                 }
-                else if (target.type == Operand::reg) {
+                else if (target.type == Operand::sta) {
+                    auto* sta = FindStackVariableByOffset(target.offset);
+                    std::string temp = sta->content.value;
+                    SetContent(target, "!");
                     MoveValue(bytecode.source, "@" + std::to_string(target.offset),
-                              "@" + std::to_string(target.offset), bytecode.type.size, index);
+                              temp, bytecode.type.size, index);
                 }
                 else {
                     CodeGeneratorError("Unimplemented: Invalid operand target for move!");
