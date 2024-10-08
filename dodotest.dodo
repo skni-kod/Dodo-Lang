@@ -16,10 +16,12 @@ type f32 : FLOATING_POINT(4);
 type f64 : FLOATING_POINT(8);
 
 
-i32 main() {
-    mut i8 k = 0;
-    while (k < 100) {
-        k += 1;
+u8 main() {
+    mut i16 k = 1;
+    mut i64 h = 0;
+    while (k < 4) {
+        k *= 2;
+        h += k;
     }
-    return k;
+    return k / h;
 }

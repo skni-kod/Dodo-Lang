@@ -28,6 +28,7 @@ namespace Options {
 namespace Optimizations {
     // while outputting assembly
     inline bool skipUselessMoves = true;
+    inline bool mergeThreeOperandInstruction = true;
 
     // when converting bytecode
     inline bool skipUnusedVariables = true;

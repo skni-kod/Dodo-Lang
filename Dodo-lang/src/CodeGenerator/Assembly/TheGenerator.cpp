@@ -659,12 +659,26 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
             else if (operands[n].second.type == Operand::none) {
                 // in that case the value does not yet exist, needs to be converted
                 auto& main = FindMain(operands[n].first);
+                auto mainLocation = generatorMemory.findThing(*lastMainName);
                 // if main was used for the last time here, it can be used instead of a new register
                 // but for now only if it's smaller
+                bool valid = true;
                 if (main.lastUse == index and lastMainName->at(1) >= operands[n].first[1]) {
-                    operands[n].second = generatorMemory.findThing(*lastMainName);
+                    if (mainLocation.type != Operand::reg) {
+                        valid = false;
+                    }
+                    else {
+                        bool found = false;
+                        for (auto& m : *vec[n].second) {
+                            if (m == mainLocation.value) {
+                                found = true;
+                            }
+                        }
+                        valid = found;
+                    }
+                    operands[n].second = mainLocation;
                 }
-                else {
+                if (not valid) {
                     if (vec[n].first == Operand::reg) {
                         // needs to be moved to register
                         // no certain location yet
@@ -760,7 +774,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                             else {
                                 // find a free register, starting from back to reduce the risk of multiple moves
                                 bool found = false;
-                                for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k++) {
+                                for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k--) {
                                     auto& reg = generatorMemory.registers[k];
                                     if (reg.content.value == "!" and not occupied[k]) {
                                         operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));

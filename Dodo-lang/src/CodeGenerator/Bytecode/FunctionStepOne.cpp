@@ -290,7 +290,28 @@ void BytecodePushLevel() {
 void BytecodePopLevel() {
     // an alternative approach which should give much better results
     if (Optimizations::groupVariableInstances) {
-        for (auto& var : earlyVariables.variables.back()) {
+        // first we need to figure out which variables are the last instances within the level
+        std::vector <uint64_t> validVariables;
+        // iterate backwards as the last instances will be at the back
+        for (int64_t k = earlyVariables.variables.back().size(); k --> 0;) {
+            auto& var = earlyVariables.variables.back()[k];
+            bool found = false;
+            for (auto& n : validVariables) {
+                if (earlyVariables.variables.back()[n].name.starts_with(var.name.substr(0, var.name.find_last_of('-') + 1))) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                continue;
+            }
+            // if not found add
+            validVariables.push_back(k);
+        }
+
+        // now search through the valid ones
+        for (auto& temp : validVariables) {
+            const auto& var = earlyVariables.variables.back()[temp];
             std::string searched = var.name.substr(0, var.name.find_last_of('-') + 1);
             bool found = false;
             // go from the nearly top level down

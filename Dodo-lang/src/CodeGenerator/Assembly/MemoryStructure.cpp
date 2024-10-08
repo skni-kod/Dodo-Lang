@@ -222,7 +222,7 @@ std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
 }
 */
 
-DataLocation::DataLocation(uint8_t type, uint32_t number, uint32_t size) : type(type), number(number), size(size) {}
+//DataLocation::DataLocation(uint8_t type, uint32_t number, uint32_t size) : type(type), number(number), size(size) {}
 
 DataLocation::DataLocation(uint8_t type, int64_t offset) : type(type), offset(offset) {}
 
@@ -356,11 +356,21 @@ void Instruction::outputX86_64(std::ofstream& out) {
                 // TODO: repeat the meltdown and understand why intel reference is lying about 2 operand with imm
                 PrintWithSpaces("imul" + X86_64GNUASPrefix(sizeAfter), out);
                 if (op3.type != Operand::none) {
-                    op3.print(out, sizeAfter);
-                    out << ", ";
-                    op1.print(out, sizeAfter);
-                    out << ", ";
-                    op2.print(out, sizeAfter);
+                    if (Optimizations::mergeThreeOperandInstruction and op1 == op2) {
+                        op3.print(out, sizeAfter);
+                        out << ", ";
+                        op1.print(out, sizeAfter);
+                    }
+                    else {
+                        if (sizeAfter == 1) {
+                            CodeGeneratorError("Unimplemented: Three operand imul does not support 1 byte values!");
+                        }
+                        op3.print(out, sizeAfter);
+                        out << ", ";
+                        op1.print(out, sizeAfter);
+                        out << ", ";
+                        op2.print(out, sizeAfter);
+                    }
                 }
                 else {
                     op2.print(out, sizeAfter);

@@ -115,12 +115,13 @@ struct DataLocation {
 
     uint8_t type = Operand::none;
     union {
-        struct {
-            uint32_t number = 0;
-            uint32_t size = 0;
-        };
+        //struct {
+        //    uint32_t number = 0;
+        //    uint32_t size = 0;
+        //};
         int64_t offset;
         uint64_t value;
+        uint64_t number;
         ParserFunction* functionPtr;
         LabelContainer label;
     };
