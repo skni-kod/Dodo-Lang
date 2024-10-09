@@ -82,8 +82,8 @@ void GenerateCode() {
         bytecodes.clear();
         finalInstructions.clear();
         lastFunctionName = &current.second.name;
+        generatorMemory.cleanX86_86();
         if (Options::targetArchitecture == "X86_64") {
-            generatorMemory.cleanX86_86();
             out << "\n"
                 << current.second.name << ":" << "\n";
             PrintWithSpaces("pushq", out);
@@ -111,14 +111,16 @@ void GenerateCode() {
 
         // end function
         if (Options::targetArchitecture == "X86_64") {
-            PrintWithSpaces("popq", out);
-            out << "%rbp\n";
-            // fix this
             if (doAddLeave) {
                 out << "leave\n";
             }
+            else {
+                PrintWithSpaces("popq", out);
+                out << "%rbp\n";
+            }
             out << "ret\n";
         }
+        current.second.instructions.clear();
     }
     // add end code here along with the runner code fragment
     if (Options::targetArchitecture == "X86_64") {

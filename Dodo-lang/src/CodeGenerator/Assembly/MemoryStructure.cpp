@@ -107,6 +107,7 @@ void MemoryStructure::cleanX86_86() {
     for (auto& n: registers) {
         n.content.value = "!";
     }
+    stack.clear();
 }
 
 void MemoryStructure::pushLevel() {
@@ -274,6 +275,19 @@ bool DataLocation::operator==(const DataLocation& data) const {
     return false;
 }
 
+std::string DataLocation::forMove() const {
+    switch (type) {
+        case Operand::reg:
+            return "%" + std::to_string(number);
+        case Operand::sta:
+            return "@" + std::to_string(offset);
+        case Operand::imm:
+            return "$" + std::to_string(value);
+        default:
+            CodeGeneratorError("Invalid DataLocation type for string!");
+    }
+}
+
 std::string X86_64GNUASPrefix(uint8_t size) {
     switch (size) {
         case 1:
@@ -429,6 +443,10 @@ void Instruction::outputX86_64(std::ofstream& out) {
                 break;
             case x86_64::returnPoint:
                 out << "." << *lastFunctionName << ".return:\n";
+                break;
+            case x86_64::call:
+                PrintWithSpaces("call", out);
+                out << op1.functionPtr->name << "\n";
                 break;
         }
     }

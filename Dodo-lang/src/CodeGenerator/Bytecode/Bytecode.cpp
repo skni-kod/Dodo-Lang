@@ -150,6 +150,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::moveValue:
             out << "Move value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
             break;
+        case Bytecode::addFromArgument:
+            out << "Add variable named: " << code.target << " from argument located at: " << code.source << "\n";
+            break;
         default:
             CodeGeneratorError("Invalid bytecode code!");
             break;

@@ -1,6 +1,7 @@
 #include "GenerateCodeInternal.hpp"
 #include "Bytecode.hpp"
 #include "GenerateCode.hpp"
+#include "Assembly/MemoryStructure.hpp"
 
 #define MIN_16_BIT_FLOAT_PRECISE 0.000000059604644l
 #define MIN_32_BIT_FLOAT_PRECISE 0.000000000000000000000000000000000000000000001401298l
@@ -363,7 +364,7 @@ void BytecodePopLevel() {
 }
 
 void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) {
-    BytecodePushLevel();
+    //BytecodePushLevel();
     const ParserFunction& function = parserFunctions[instruction.functionName];
     if (not function.arguments.empty()) {
         bytecodes.emplace_back(Bytecode::prepareArguments, instruction.functionName);
@@ -389,11 +390,11 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
     }
 
     bytecodes.emplace_back(Bytecode::callFunction, instruction.functionName, "", VariableType());
-    BytecodePopLevel();
+    //BytecodePopLevel();
 }
 
 std::string BytecodeFunctionCall(const ParserValue& expression) {
-    BytecodePushLevel();
+    //BytecodePushLevel();
     const ParserFunction& function = parserFunctions[*expression.value];
     if (not function.arguments.empty()) {
         bytecodes.emplace_back(Bytecode::prepareArguments, *expression.value);
@@ -410,7 +411,7 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
 
             const auto& type = parserTypes[function.arguments[n].typeName];
             bytecodes.emplace_back(Bytecode::moveArgument,
-                                   CalculateBytecodeExpression(*argument->left, {type.size, type.type}), n);
+                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), n, VariableType(type));
 
             // get the next argument
             argument = argument->left.get();
@@ -422,9 +423,9 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
     }
 
     const auto& type = parserTypes[function.returnType];
-    std::string result = EXPRESSION_SIGN + std::to_string(expressionCounter++);
+    std::string result = "=#" + std::to_string(expressionCounter++) + "-0";
     bytecodes.emplace_back(Bytecode::callFunction, *expression.value, result, VariableType(type.size, type.type));
-    BytecodePopLevel();
+    //BytecodePopLevel();
     return result;
 }
 
@@ -576,10 +577,28 @@ void HandleInstruction(const ParserFunction& function, const FunctionInstruction
     }
 }
 
+void BytecodeAddArguments(const ParserFunction& function) {
+    for (auto& n : function.arguments) {
+        // now just find their types and add bytecodes at right locations, easy-peasy
+        VariableType type(parserTypes[n.typeName]);
+        if (n.locationType == Operand::reg) {
+            bytecodes.emplace_back(Bytecode::addFromArgument, "%" + std::to_string(n.locationValue), n.name + "#0-0", type);
+        }
+        else if (n.locationType == Operand::sta) {
+            bytecodes.emplace_back(Bytecode::addFromArgument, "@" + std::to_string(n.locationValue), n.name + "#0-0", type);
+        }
+        // TODO: add mutability here
+        earlyVariables.add({type, AddVariableInstance(n.name), true});
+    }
+}
+
 void GenerateFunctionStepOne(const ParserFunction& function) {
     expressionCounter = 0;
     earlyVariables.clear();
     variableInstances.map.clear();
+
+    // add arguments
+    BytecodeAddArguments(function);
 
     for (uint64_t n = 0; n < function.instructions.size(); n++) {
         HandleInstruction(function, function.instructions[n], n);
@@ -592,16 +611,15 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
             case Bytecode::jumpConditionalFalse:
             case Bytecode::jumpConditionalTrue:
             case Bytecode::jump:
-            case Bytecode::callFunction:
                 continue;
             default:
-                if (not n.source.empty()) {
-                    if (n.source.front() != '$') {
+                if (not n.source.empty() and n.code != Bytecode::callFunction) {
+                    if (n.source.front() != '$' and n.source.front() != '%' and n.source.front() != '@') {
                         n.source = n.type.GetPrefix() + n.source;
                     }
                 }
                 if (not n.target.empty()) {
-                    if (n.target.front() != '$') {
+                    if (n.target.front() != '$' and n.target.front() != '%' and n.target.front() != '@') {
                         n.target = n.type.GetPrefix() + n.target;
                     }
                 }

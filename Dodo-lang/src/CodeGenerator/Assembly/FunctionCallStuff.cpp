@@ -47,6 +47,22 @@ void AddFunctionHeaders() {
         }
     }
 
+    // go through arguments to make sure that arguments are not moved
+    for (auto& n : parserFunctions[*lastFunctionName].arguments) {
+        if (n.locationType == Operand::reg) {
+            occupied[n.locationValue] = false;
+        }
+    }
+
+    if (not parserFunctions[*lastFunctionName].returnType.empty()) {
+        if (Options::targetArchitecture == "X86_64") {
+            occupied[0] = false;
+        }
+        else {
+            CodeGeneratorError("Unimplemented: Non x86-64 return variable value restore prevention!");
+        }
+    }
+
     // now we need to add occupied registers to the stack, might add checking max size later to optimize
     if (Options::targetArchitecture == "X86_64") {
         if (maxOffset % 8) {

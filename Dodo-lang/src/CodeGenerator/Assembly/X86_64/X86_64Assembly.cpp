@@ -46,6 +46,54 @@ namespace x86_64 {
         return 0;
     }
 
+    std::vector <std::string> argumentNames;
+
+    void CallX86_64Function(ParserFunction* function, const uint64_t& index, std::string& result) {
+        if (argumentNames.size() != function->arguments.size()) {
+            CodeGeneratorError("Bug: Argument amount mismatch in generator!");
+        }
+        for (uint64_t n = 0; n < argumentNames.size(); n++) {
+            // move every argument into place
+            MoveValue(argumentNames[n], DataLocation(function->arguments[n].locationType,
+                int64_t(function->arguments[n].locationValue)).forMove(), argumentNames[n],
+                argumentNames[n][1] - '0', index);
+        }
+        // if function has a return type ensure register a is not used
+        if (not function->returnType.empty() and generatorMemory.registers[0].content.value != "!") {
+            // this will be annoying, I need to do a get out of here function
+            auto& reg = generatorMemory.registers[0];
+            if (not reg.content.value.starts_with("$")) {
+                // we really have a variable here, let's just move it to a different free register or to stack
+                bool found = false;
+                std::string content = reg.content.value;
+                reg.content.value = "!";
+                if (generatorMemory.findThing(content).type == Operand::none) {
+                    for (uint64_t n = generatorMemory.registers.size() - 1; n > 0; n--) {
+                        if (generatorMemory.registers[n].content.value == "!" or generatorMemory.registers[n].content.value.starts_with("$")) {
+                            // found one!
+                            MoveValue("%0", "%" + std::to_string(n), content, content[1] - '0', index);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (not found) {
+                        // move it to stack
+                        MoveValue("%0", "@" + std::to_string(AddStackVariable(content)->offset), content, content[1] - '0', index);
+                    }
+                }
+                reg.content.value = result;
+            }
+        }
+        Instruction ins;
+        ins.type = x86_64::call;
+        ins.op1 = DataLocation(Operand::fun, function);
+        finalInstructions.push_back(ins);
+        if (not function->returnType.empty()) {
+            SetContent({Operand::reg, uint64_t(0)}, result);
+        }
+
+    }
+
     void ConvertBytecode(Bytecode& bytecode, uint64_t index) {
         switch (bytecode.code) {
             case Bytecode::add:
@@ -192,13 +240,13 @@ namespace x86_64 {
                 }
                 break;
             case Bytecode::callFunction:
-
+                CallX86_64Function(&parserFunctions[bytecode.source], index, bytecode.target);
                 break;
             case Bytecode::moveArgument:
-
+                argumentNames.push_back(bytecode.source);
                 break;
             case Bytecode::prepareArguments:
-
+                argumentNames.clear();
                 break;
             case Bytecode::returnValue:
                 // move returned value into register a
@@ -326,8 +374,19 @@ namespace x86_64 {
                 }
             }
                 break;
+            case Bytecode::addFromArgument:
+                if (Optimizations::skipUnusedVariables and variableLifetimes[bytecode.target].usageAmount == 0) {
+                    break;
+                }
+                if (bytecode.source.front() == '%') {
+                    generatorMemory.registers[std::stoull(bytecode.source.substr(1))].content.value = bytecode.target;
+                }
+                else {
+                    CodeGeneratorError("Unimplemented: Stack argument at start of function!");
+                }
+                break;
             default:
-                CodeGeneratorError("Invalid bytecode code!");
+                CodeGeneratorError("Invalid bytecode code in converter!");
                 break;
         }
     }

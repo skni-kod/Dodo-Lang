@@ -22,4 +22,6 @@ void ParserError(const std::string& message);
 
 void RunParsing(const std::vector<ProgramPage>& tokens);
 
+void PrepareFunctionArguments();
+
 #endif //DODO_LANG_PARSER_HPP

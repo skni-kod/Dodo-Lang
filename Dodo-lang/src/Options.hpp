@@ -22,13 +22,14 @@ namespace Options {
         GNU_AS, NASM
     };
     inline uint8_t assemblyFlavor = AssemblyFlavor::GNU_AS;
-    inline uint8_t spaceOnLeft = 12;
+    inline uint8_t spaceOnLeft = 8;
 }
 
 namespace Optimizations {
     // while outputting assembly
     inline bool skipUselessMoves = true;
     inline bool mergeThreeOperandInstruction = true;
+    inline bool skipDoubleJumps = false;
 
     // when converting bytecode
     inline bool skipUnusedVariables = true;

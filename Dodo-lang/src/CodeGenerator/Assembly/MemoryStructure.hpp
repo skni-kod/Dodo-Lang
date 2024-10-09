@@ -9,7 +9,7 @@
 
 namespace Operand {
     enum {
-        none, reg, sta, imm, adr, var, replace, jla
+        none, reg, sta, imm, adr, var, replace, jla, fun
     };
 }
 
@@ -115,10 +115,6 @@ struct DataLocation {
 
     uint8_t type = Operand::none;
     union {
-        //struct {
-        //    uint32_t number = 0;
-        //    uint32_t size = 0;
-        //};
         int64_t offset;
         uint64_t value;
         uint64_t number;
@@ -127,6 +123,8 @@ struct DataLocation {
     };
 
     void print(std::ofstream& out, uint8_t size);
+
+    std::string forMove() const;
 
     bool operator==(const DataLocation& data) const;
 

@@ -58,12 +58,18 @@ struct VariableType {
     std::string GetPrefix() const;
 };
 
+struct DataLocation;
+
 struct FunctionArgument {
     INSERT_SUBTYPE_ENUM
     uint8_t type = Subtype::value;
+    uint8_t locationType = 0;
+    int32_t locationValue = 0;
     bool isMutable = false;
     std::string name;
     std::string typeName;
+
+
 };
 
 struct ParserValue {

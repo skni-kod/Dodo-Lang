@@ -59,6 +59,10 @@ void CalculateLifetimes() {
                     }
                 }
                 break;
+            case Bytecode::addFromArgument:
+                variableLifetimes.insert(bytecodes[n].target, {n});
+                variableLifetimes[bytecodes[n].target].isMainValue = true;
+                break;
             case Bytecode::add:
             case Bytecode::subtract:
             case Bytecode::multiply:
@@ -107,6 +111,24 @@ void CalculateLifetimes() {
                         AddLifetimeToMain(bytecodes[n].target, n);
                         if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
                             variablesToExtend.top().push_back(*lastMainName);
+                        }
+                    }
+                }
+                break;
+            case Bytecode::callFunction:
+                if (not bytecodes[n].target.empty()) {
+                    variableLifetimes.insert(bytecodes[n].target, {n, true});
+                }
+                // also extend all arguments if they are present
+                {
+                    auto& fun = parserFunctions[bytecodes[n].source];
+                    for (uint64_t k = n - 1, arguments = 0; arguments < fun.arguments.size(); k--) {
+                        if (bytecodes[k].code == Bytecode::moveArgument) {
+                            // extend the life of the result
+                            auto& temp = variableLifetimes.find(bytecodes[k].source);
+                            temp.usageAmount++;
+                            temp.lastUse = n;
+                            arguments++;
                         }
                     }
                 }

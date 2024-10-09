@@ -524,7 +524,7 @@ void FillDesignatedPlaces(uint64_t index) {
                 // this variable exists, it needs to be ensured that it's in place
                 auto data = generatorMemory.findThing(n.first);
                 if (data.type == Operand::none) {
-                    CodeGeneratorError("Unimplemented: Move of non existent variable to designated register, might be unreachable!");
+                    CodeGeneratorError("Bug: Move of non existent variable to designated register, should be unreachable!");
                     return;
                 }
 
@@ -896,6 +896,10 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     if (Optimizations::checkPotentialUselessStores) {
         if (Options::targetArchitecture == "X86_64") {
             for (auto& n : storesToCheck) {
+                // if it starts eating up variables add this, but attempt proper debug
+                if (variableLifetimes[n.second].lastUse > index) {
+                    continue;
+                }
                 bool found = false;
                 for (uint64_t m = n.first + 1; m < finalInstructions.size(); m++) {
                     if (finalInstructions[m].op1 == finalInstructions[n.first].op1) {
@@ -921,10 +925,6 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                             k.first--;
                         }
                     }
-                    // if it starts eating up variables add this, but attempt proper debug
-                    if (variableLifetimes[generatorMemory.registers[finalInstructions[n.first].op1.number].content.value].lastUse > index) {
-                        continue;
-                    }
                     SetContent(finalInstructions[n.first].op1, n.second);
                     finalInstructions.erase(finalInstructions.begin() + n.first);
                 }
@@ -934,6 +934,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
             CodeGeneratorError("Unimplemented: Non x86_64 useless move optimization!");
         }
     }
+    storesToCheck.clear();
 }
 
 // in reality this just changes the expression name to the variable, at least it should do that as of the moment I thought it up

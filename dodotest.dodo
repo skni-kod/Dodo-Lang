@@ -15,12 +15,15 @@ type f16 : FLOATING_POINT(2);
 type f32 : FLOATING_POINT(4);
 type f64 : FLOATING_POINT(8);
 
+i16 fun(i8 k) {
+    if (k > 0) {
+        let i16 t = fun(k - 1);
+        return k + t;
+    }
+    return 1;
+}
 
-u8 main() {
-    if (1 < 2) {
-        return 5;
-    }
-    else {
-        return 10;
-    }
+i32 main() {
+    let i8 k = 5;
+    return fun(k);
 }

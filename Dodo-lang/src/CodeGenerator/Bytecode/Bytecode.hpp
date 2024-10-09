@@ -47,7 +47,9 @@ struct Bytecode {
         // type letter + number in s
         addLabel,
         // t = s
-        moveValue
+        moveValue,
+        // t = s
+        addFromArgument
 
     };
 
