@@ -18,6 +18,9 @@ void GenerateFunctionStepTwo(const ParserFunction& function) {
         }
     }
 
+    // now do the register and stack stuff for function calls;
+    AddFunctionHeaders();
+
     if (Options::informationLevel == Options::InformationLevel::full) {
         std::cout << "INFO L3: Instruction generation for this function succeeded using: " << finalInstructions.size() << " instructions before final additions\n";
     }

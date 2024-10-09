@@ -18,9 +18,9 @@ type f64 : FLOATING_POINT(8);
 
 u8 main() {
     if (1 < 2) {
-        return 42;
+        return 5;
     }
     else {
-        return 69;
+        return 10;
     }
 }

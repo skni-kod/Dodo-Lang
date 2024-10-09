@@ -56,7 +56,9 @@ namespace x86_64 {
         //
         cmp,
         // (.LC + op1.number + ':')
-        jumpLabel
+        jumpLabel,
+        returnPoint,
+        leave
     };
 }
 

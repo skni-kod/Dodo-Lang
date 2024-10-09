@@ -25,6 +25,7 @@ void CodeGeneratorError(std::string message) {
 }
 
 
+
 void GenerateCode() {
     doneParsing = true;
     std::ofstream out;
@@ -80,6 +81,7 @@ void GenerateCode() {
         // cleaning up after possible previous thing
         bytecodes.clear();
         finalInstructions.clear();
+        lastFunctionName = &current.second.name;
         if (Options::targetArchitecture == "X86_64") {
             generatorMemory.cleanX86_86();
             out << "\n"
@@ -108,10 +110,14 @@ void GenerateCode() {
         }
 
         // end function
-        if (Options::targetArchitecture == "X86_64" and not finalInstructions.empty() and finalInstructions.back().type != x86_64::ret) {
+        if (Options::targetArchitecture == "X86_64") {
             PrintWithSpaces("popq", out);
-            out << "%rbp\n"
-                << "ret\n";
+            out << "%rbp\n";
+            // fix this
+            if (doAddLeave) {
+                out << "leave\n";
+            }
+            out << "ret\n";
         }
     }
     // add end code here along with the runner code fragment

@@ -7,6 +7,7 @@
 #include "LinearAnalysis.hpp"
 #include "TheGenerator.hpp"
 #include "CodeGeneratorOld/GenerateCode.hpp"
+#include "GenerateCodeInternal.hpp"
 
 namespace internal {
     ContentEntry::ContentEntry(std::string value) : value(value) {}
@@ -305,9 +306,8 @@ void Instruction::outputX86_64(std::ofstream& out) {
     if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS) {
         switch (this->type) {
             case x86_64::ret:
-                PrintWithSpaces("popq", out);
-                out << "%rbp\n";
-                out << "ret\n";
+                PrintWithSpaces("jmp", out);
+                out << "." << *lastFunctionName << ".return\n";
                 break;
             case x86_64::mov:
                 if (Optimizations::skipUselessMoves and op1 == op2) {
@@ -426,6 +426,9 @@ void Instruction::outputX86_64(std::ofstream& out) {
             case x86_64::jne:
                 PrintWithSpaces("jne", out);
                 out << ".L" << op1.number << "\n";
+                break;
+            case x86_64::returnPoint:
+                out << "." << *lastFunctionName << ".return:\n";
                 break;
         }
     }
