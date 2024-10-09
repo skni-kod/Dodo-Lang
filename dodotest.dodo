@@ -17,11 +17,10 @@ type f64 : FLOATING_POINT(8);
 
 
 u8 main() {
-    mut i16 k = 1;
-    mut i64 h = 0;
-    while (k < 4) {
-        k *= 2;
-        h += k;
+    if (1 < 2) {
+        return 42;
     }
-    return k / h;
+    else {
+        return 69;
+    }
 }

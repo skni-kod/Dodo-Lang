@@ -662,23 +662,25 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                 auto mainLocation = generatorMemory.findThing(*lastMainName);
                 // if main was used for the last time here, it can be used instead of a new register
                 // but for now only if it's smaller
-                bool valid = true;
+                bool isValid = false;
                 if (main.lastUse == index and lastMainName->at(1) >= operands[n].first[1]) {
-                    if (mainLocation.type != Operand::reg) {
-                        valid = false;
-                    }
-                    else {
-                        bool found = false;
-                        for (auto& m : *vec[n].second) {
-                            if (m == mainLocation.value) {
-                                found = true;
+                    if (mainLocation.type == Operand::reg) {
+                        for (auto& k : *vec[n].second) {
+                            if (k == mainLocation.number) {
+                                isValid = true;
+                                break;
                             }
                         }
-                        valid = found;
                     }
+                    else {
+                        // lok out for this
+                        isValid = true;
+                    }
+                }
+                if (isValid) {
                     operands[n].second = mainLocation;
                 }
-                if (not valid) {
+                else {
                     if (vec[n].first == Operand::reg) {
                         // needs to be moved to register
                         // no certain location yet
@@ -716,18 +718,6 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     // find the registers for things that require them
     for (auto& n : operandsToMove) {
         if (n.where.type == Operand::reg) {
-            if (operands[n.number].second.type != Operand::imm) {
-                auto& life = variableLifetimes[operands[n.number].first];
-                if (life.assignStatus == VariableStatistics::reg) {
-                    if (operands[n.number].second.type != Operand::reg or operands[n.number].second.value != life.assigned) {
-                        if (not occupied[life.assigned]) {
-                            occupied[life.assigned] = true;
-                            n.where.value = life.assigned;
-                            continue;
-                        }
-                    }
-                }
-            }
             bool found = false;
             for (auto& m : *vec[n.number].second) {
                 // find the first valid register
