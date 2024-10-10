@@ -533,6 +533,7 @@ void FillDesignatedPlaces(uint64_t index) {
                     if (generatorMemory.registers[n.second.assigned].content.value != n.first) {
                         MoveValue(n.first, "%" + std::to_string(n.second.assigned), n.first, n.first[1] - '0', index);
                         changes++;
+                        SetContent(data, "!");
                     }
                 }
                 else if (n.second.assignStatus == VariableStatistics::sta) {
@@ -541,6 +542,7 @@ void FillDesignatedPlaces(uint64_t index) {
                         sta->content.value = "!";
                         MoveValue(n.first, "@" + std::to_string(sta->offset), n.first, n.first[1] - '0', index);
                         changes++;
+                        SetContent(data, "!");
                     }
                 }
                 else {

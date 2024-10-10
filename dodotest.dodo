@@ -17,13 +17,12 @@ type f64 : FLOATING_POINT(8);
 
 i16 fun(i8 k) {
     if (k > 0) {
-        let i16 t = fun(k - 1);
-        return k + t;
+        return k + fun(k - 1);
     }
-    return 1;
+    return 0;
 }
 
 i32 main() {
     let i8 k = 5;
-    return fun(k);
+    return fun(fun(fun(fun(fun(fun(1))))));
 }

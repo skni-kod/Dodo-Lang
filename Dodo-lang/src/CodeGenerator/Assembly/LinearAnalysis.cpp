@@ -124,10 +124,12 @@ void CalculateLifetimes() {
                     auto& fun = parserFunctions[bytecodes[n].source];
                     for (uint64_t k = n - 1, arguments = 0; arguments < fun.arguments.size(); k--) {
                         if (bytecodes[k].code == Bytecode::moveArgument) {
-                            // extend the life of the result
-                            auto& temp = variableLifetimes.find(bytecodes[k].source);
-                            temp.usageAmount++;
-                            temp.lastUse = n;
+                            if (IsVariable(bytecodes[k].source)) {
+                                // extend the life of the result
+                                auto& temp = variableLifetimes.find(bytecodes[k].source);
+                                temp.usageAmount++;
+                                temp.lastUse = n;
+                            }
                             arguments++;
                         }
                     }

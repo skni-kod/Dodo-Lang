@@ -22,8 +22,6 @@ struct Bytecode {
         callFunction,
         // s -> (...[n])
         moveArgument,
-        // s()
-        prepareArguments,
         // return s
         returnValue,
         // push

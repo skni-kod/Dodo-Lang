@@ -56,7 +56,7 @@ namespace x86_64 {
             // move every argument into place
             MoveValue(argumentNames[n], DataLocation(function->arguments[n].locationType,
                 int64_t(function->arguments[n].locationValue)).forMove(), argumentNames[n],
-                argumentNames[n][1] - '0', index);
+                parserTypes[function->arguments[n].typeName].size, index);
         }
         // if function has a return type ensure register a is not used
         if (not function->returnType.empty() and generatorMemory.registers[0].content.value != "!") {
@@ -241,12 +241,10 @@ namespace x86_64 {
                 break;
             case Bytecode::callFunction:
                 CallX86_64Function(&parserFunctions[bytecode.source], index, bytecode.target);
+                argumentNames.clear();
                 break;
             case Bytecode::moveArgument:
                 argumentNames.push_back(bytecode.source);
-                break;
-            case Bytecode::prepareArguments:
-                argumentNames.clear();
                 break;
             case Bytecode::returnValue:
                 // move returned value into register a
@@ -258,7 +256,7 @@ namespace x86_64 {
                 FillDesignatedPlaces(index);
                 generatorMemory.pushLevel();
                 break;
-            case Bytecode::popLevel:
+            case Bytecode::popLevel:// rax = k + fun(k - 1) == k + t
                 FillDesignatedPlaces(index);
                 generatorMemory.popLevel();
                 break;

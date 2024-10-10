@@ -112,9 +112,6 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Move: " << code.source << " as function argument number: " << code.number << " using type: "
                 << code.type << "\n";
             break;
-        case Bytecode::prepareArguments:
-            out << "Prepare arguments for function: " << code.source << "\n";
-            break;
         case Bytecode::returnValue:
             out << "Return value of: " << code.source << " using type: " << code.type << "\n";
             break;

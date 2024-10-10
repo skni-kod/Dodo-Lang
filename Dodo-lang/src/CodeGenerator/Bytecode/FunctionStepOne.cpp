@@ -254,9 +254,8 @@ VariableType NegotiateOperationType(const ParserValue& first, const ParserValue&
 
 void BytecodeReturn(const ReturnInstruction& instruction, const ParserFunction& function) {
     const auto& type = parserTypes[function.returnType];
-    bytecodes.emplace_back(Bytecode::returnValue, CalculateBytecodeExpression(instruction.expression, VariableType(type,
-                                                                                                                   VariableType::Subtype::value)),
-                           VariableType(type, VariableType::Subtype::value));
+    auto source = CalculateBytecodeExpression(instruction.expression, VariableType(type, VariableType::Subtype::value));
+    bytecodes.emplace_back(Bytecode::returnValue, source, VariableType(type));
 }
 
 void BytecodeDeclare(const DeclarationInstruction& instruction) {
@@ -367,7 +366,6 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
     //BytecodePushLevel();
     const ParserFunction& function = parserFunctions[instruction.functionName];
     if (not function.arguments.empty()) {
-        bytecodes.emplace_back(Bytecode::prepareArguments, instruction.functionName);
         const auto* argument = &instruction.arguments;
         for (uint64_t n = 0; n < function.arguments.size(); n++) {
             if (argument == nullptr) {
@@ -397,7 +395,6 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
     //BytecodePushLevel();
     const ParserFunction& function = parserFunctions[*expression.value];
     if (not function.arguments.empty()) {
-        bytecodes.emplace_back(Bytecode::prepareArguments, *expression.value);
         const auto* argument = &expression;
         for (uint64_t n = 0; n < function.arguments.size(); n++) {
             if (argument == nullptr) {
@@ -426,6 +423,7 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
     std::string result = "=#" + std::to_string(expressionCounter++) + "-0";
     bytecodes.emplace_back(Bytecode::callFunction, *expression.value, result, VariableType(type.size, type.type));
     //BytecodePopLevel();
+    AddVariableInstance(EXPRESSION_SIGN);
     return result;
 }
 
