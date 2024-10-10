@@ -228,6 +228,13 @@ void CalculateLifetimes() {
                         }
                     }
                 }
+                // now find the last function call to put into bytecode
+                for (uint64_t k = n; n < bytecodes.size(); k++) {
+                    if (bytecodes[k].code == Bytecode::callFunction) {
+                        bytecodes[n].number = k;
+                        break;
+                    }
+                }
                 break;
             case Bytecode::moveValue:
             case Bytecode::assign:
@@ -279,7 +286,8 @@ std::vector<std::pair<std::string, VariableStatistics>> lifetimeVector;
 
 bool LifetimeVectorSorter(const std::pair<std::string, VariableStatistics>& l,
                           const std::pair<std::string, VariableStatistics>& r) {
-    if (r.second.usageAmount > l.second.usageAmount) {
+    if (float(r.second.usageAmount) / float(r.second.lastUse - r.second.firstUse + 1) >
+        float(l.second.usageAmount) / float(l.second.lastUse - l.second.firstUse + 1)) {
         return false;
     }
     return true;
@@ -351,7 +359,8 @@ void RunNaiveLinearAnalysis() {
 
 bool GroupSorter(const std::tuple<std::vector <std::string>, uint64_t, uint64_t, uint64_t>& l,
                           const std::tuple<std::vector <std::string>, uint64_t, uint64_t, uint64_t>& r) {
-    if (std::get<3>(r) > std::get<3>(l)) {
+    if (float(std::get<3>(r)) / float(std::get<2>(r) - std::get<1>(r) + 1) >
+        float(std::get<3>(l)) / float(std::get<2>(l) - std::get<1>(l) + 1)) {
         return false;
     }
     return true;

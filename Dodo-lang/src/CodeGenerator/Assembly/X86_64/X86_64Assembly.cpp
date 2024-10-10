@@ -54,6 +54,30 @@ namespace x86_64 {
         }
         for (uint64_t n = 0; n < argumentNames.size(); n++) {
             // move every argument into place
+            // but if the variable still exists after and the target is the same as source copy it elsewhere
+            if (not argumentNames[n].starts_with("$") and variableLifetimes[argumentNames[n]].lastUse > index and
+            generatorMemory.findThing(argumentNames[n]) == DataLocation(function->arguments[n].locationType, int64_t(function->arguments[n].locationValue))) {
+                // great, now it needs to be moved, let's do it, I really need to make dedicated functions for those
+                auto location = generatorMemory.findThing(argumentNames[n]);
+                if (location.type == Operand::reg) {
+                    bool found = false;
+                    for (uint64_t k = generatorMemory.registers.size() - 1; k > 0; k--) {
+                        if (generatorMemory.registers[k].content.value == "!" or generatorMemory.registers[k].content.value.starts_with("$")) {
+                            // found one!
+                            MoveValue(argumentNames[n], "%" + std::to_string(n), argumentNames[n], argumentNames[n][1] - '0', index);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (not found) {
+                        // move it to stack
+                        MoveValue("%0", "@" + std::to_string(AddStackVariable(argumentNames[n])->offset), argumentNames[n], argumentNames[n][1] - '0', index);
+                    }
+                }
+                else {
+                    CodeGeneratorError("Unimplemented: stack argument pass copying");
+                }
+            }
             MoveValue(argumentNames[n], DataLocation(function->arguments[n].locationType,
                 int64_t(function->arguments[n].locationValue)).forMove(), argumentNames[n],
                 parserTypes[function->arguments[n].typeName].size, index);

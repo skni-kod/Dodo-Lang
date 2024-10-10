@@ -109,8 +109,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             }
             break;
         case Bytecode::moveArgument:
-            out << "Move: " << code.source << " as function argument number: " << code.number << " using type: "
-                << code.type << "\n";
+            out << "Move: " << code.source << " as a function argument, using type: " << code.type << "\n";
             break;
         case Bytecode::returnValue:
             out << "Return value of: " << code.source << " using type: " << code.type << "\n";

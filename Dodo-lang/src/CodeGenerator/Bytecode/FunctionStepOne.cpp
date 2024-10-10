@@ -379,8 +379,7 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
 
             const auto& type = parserTypes[function.arguments[n].typeName];
             bytecodes.emplace_back(Bytecode::moveArgument,
-                                   CalculateBytecodeExpression(*argument->left, {type.size, type.type}), n,
-                                   VariableType(type.size, type.type));
+                                   CalculateBytecodeExpression(*argument->left, {type.size, type.type}), VariableType(type.size, type.type));
 
             // get the next argument
             argument = argument->left.get();
@@ -408,7 +407,7 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
 
             const auto& type = parserTypes[function.arguments[n].typeName];
             bytecodes.emplace_back(Bytecode::moveArgument,
-                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), n, VariableType(type));
+                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), VariableType(type));
 
             // get the next argument
             argument = argument->left.get();
