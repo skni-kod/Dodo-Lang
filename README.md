@@ -27,15 +27,9 @@ The project is being developed as a SKNI "KOD" project.
 - variable mutability/immutability and value modification
 - function calls with arguments and value returns
 - signed and unsigned integers operations and conversions
-- simple conditional statements
+- conditional statements
 - while and for loops
-
-## Goals in progress:
-
-- a rebuild of code generation system to create a platform independent code that would then be optimized and converted to assembly for given target:
-  
-  - as of now the generator is capable of producing general intermediate code, after it's generated a linear analysis is performed to optimize register usage in variable storage,
-  - next step that is currently in works is creating an universal generator that goes instruction after instruction and used passed instruction requirements to create highly optimized assembly level code that, after minor additions like total stack offset for function calls, will be converted to target assembly and later even to multiple different syntaxes
+- an optimized assembly generator with lineara analysis and memory content simulation
 
 ## Short term plans:
 
