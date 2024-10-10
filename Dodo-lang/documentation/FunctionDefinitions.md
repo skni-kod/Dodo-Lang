@@ -9,16 +9,15 @@ As of now there are only a few possible instructions that can be used inside fun
 - variable assignment
 - function calls
 - return statements
+- mathematical expressions in all of them
 
 ### Variable declaration
 
-Local variables are stored on stack. They are by default immutable and require explicit marking to change that. When defining a variable programmer has the option to assign it's value. If no value is supplied the variable is given value of 0. The value can be passed in the same way as all standard expressions.
-
-The stack offsets of variables are calculated at compile time. There are features in place to ensure efficient stack space usage such as packing variable into free slots between others and variable function call stack pointer offset. The stack is also often used when converting values to larger sizes, but this usage is temporary and ceased as soon as it's not required.
+Local variables have their designated spaces assigned during the linear analysis. They are assigned to registers starting at r8 in x86-64 and stack for excess variables. As of now, during the grouping analysis the variables with the highest frequency of use compared to their lifetime being assigned to registers and the less accessed ones are put on the stack.
 
 ### Variable assignment
 
-Values are assigned the same way as in declaration, however with the difference that the target must be mutable and there is the option to use double operators such as "+=" that during parsing are converted from "var <op>= <exp>" to var = "var <op> (<exp>)";
+Values of the same type as the mainline variable replace it after the assignment. If the value needs to be converted from the mainline type it's not grouped in analysis and is stored in another place.
 
 ### Function calls
 
@@ -26,7 +25,7 @@ Function calls without any assignment ignore the return value and work the same 
 
 ### Return statements
 
-They return the value from function or entire program. Values are calculated exactly the same as in variable declarations.
+They return the value from function or entire program. Values are calculated exactly the same as in variable declarations with the result put into the correct return register and then a jump to return label occurs.
 
 ### Syntax
 
@@ -56,6 +55,8 @@ i32 Function1() {
 // and be defined in any order without headers
 i32 Function4(i32 var6, mut u32 var7) {
     // arguments are also mutable and immutable
+    // but right now argument immutability is not respected in the generator 
+    // and that will change
     var7 += 42;
     return var6 + var7 / var6;
 }

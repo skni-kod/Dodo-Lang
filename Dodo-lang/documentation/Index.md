@@ -6,11 +6,12 @@ The conception of the language is for it to treat all it's types as complex obje
 
 ## Pages:
 
-### - [Function Definitions](./FunctionDefinitions.md)
-### - [Function Calls](./FunctionCalls.md)
-### - [Type Definitons](./TypeDefinitions.md)
-### - [Value conversion rules ***(outdated)***](./ValueConversions.md)
-### - [Mathematical Expressions](./MathematicalExpressions.md)
+### - [Function definitions](./FunctionDefinitions.md)
+### - [Function calls](./FunctionCalls.md)
+### - [Type definitons](./TypeDefinitions.md)
+### - [Value conversion rules](./ValueConversions.md)
+### - [Memory behaviour](./MemoryBehaviour.md)
+### - [Mathematical expressions](./MathematicalExpressions.md)
 
 <br></br>
 ### - [Return to README](../../README.md)

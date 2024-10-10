@@ -6,7 +6,6 @@
 #include "Assembly/X86_64/X86_64Assembly.hpp"
 #include "LinearAnalysis.hpp"
 #include "TheGenerator.hpp"
-#include "CodeGeneratorOld/GenerateCode.hpp"
 #include "GenerateCodeInternal.hpp"
 
 namespace internal {

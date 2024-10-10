@@ -1,14 +1,15 @@
 ## Function calls
 
-Function calls are performed similarly to other languages.
+Function calls are performed similarly to other languages, with differences in value preservation.
 
 ### Calling convention
 
-Passing of arguments is done differently than most modern languages and is a subject to future changes if such a need arises. Arguments are passed in their order from function prototype, with the first one always starting after an offset aligned to 16. Then after all the arguments are added the positive offset from function's base pointer is calculated, so there is no need to move the values into the heap after the function.
+Passing of arguments in x86-64 is done according to System V AMD ABI. As of now only integer arguments are implemented. The difference is the approach to preservation of register values. Instead of the caller being responsible for it, the callee is required to save the state on any non argument and if the function returns a value, register A is also overwritten, the saved values are returned to the non argument and non value return registers.
+Right now, only register passing in supported but stack passing will be added at a later time since 6 arguments is plenty for now.
 
 ### Value return
 
-Value is returned in the register %r/e/ax/l with the appropriate size used for given return type
+Value is returned in the register %r/e/ax/l with the appropriate size used for given return type, the remaining content of the register is unknown, so for example when return value is sized 4 bytes, the first 4 bits are the value, but the last 4 are unknown and could be zeroes or something else.
 
 ### Syntax
 

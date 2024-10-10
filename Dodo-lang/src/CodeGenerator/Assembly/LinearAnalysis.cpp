@@ -420,7 +420,7 @@ void RunGroupingLinearAnalysis() {
     for (uint64_t groupNumber = 0, convertedNumber = 0; groupNumber < groups.size() or convertedNumber < convertedSize;) {
         float groupRatio = 0, convertedRatio = 0;
         if (groupNumber < groups.size()) {
-            groupRatio = float(std::get<3>(groups[groupNumber])) / float(std::get<2>(groups[groupNumber]) - std::get<1>(groups[groupNumber]));
+            groupRatio = float(std::get<3>(groups[groupNumber])) / float(std::get<2>(groups[groupNumber]) - std::get<1>(groups[groupNumber]) + 1.f);
         }
         if (convertedNumber < convertedSize) {
             convertedRatio = float(lifetimeVector[convertedNumber].second.usageAmount) / float(lifetimeVector[convertedNumber].second.lastUse - lifetimeVector[convertedNumber].second.firstUse + 1);
