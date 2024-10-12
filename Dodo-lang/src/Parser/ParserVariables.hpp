@@ -10,6 +10,11 @@
 #include "Parser.hpp"
 #include "Generator.tpp"
 
+#define INSERT_TYPE_ENUM \
+enum Type { \
+    unsignedInteger, signedInteger, floatingPoint, none \
+};
+
 #define INSERT_SUBTYPE_ENUM \
 enum Subtype { \
     value, pointer, reference, none, globalValue, globalPointer \
@@ -20,6 +25,14 @@ enum Condition { \
     equals, notEquals, greater, greaterEqual, lesser, lesserEqual \
 };
 
+namespace Value {
+    INSERT_TYPE_ENUM
+}
+
+namespace Subtype {
+    INSERT_SUBTYPE_ENUM
+}
+
 bool IsType(const std::string& token);
 
 bool IsObject(const std::string& token);
@@ -28,9 +41,7 @@ bool IsObject(const std::string& token);
 bool IsDeclarable(const std::string& token);
 
 struct ParserType {
-    enum Type {
-        unsignedInteger, signedInteger, floatingPoint
-    };
+    INSERT_TYPE_ENUM
     uint8_t type: 2;                         // allowed values 0-2
     uint8_t size: 6;                         // allowed values 1-8 (maybe more in future)
     ParserType(uint8_t type, uint8_t size); // assumes valid input

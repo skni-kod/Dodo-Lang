@@ -399,7 +399,7 @@ namespace x86_64 {
                 }
 
                 MoveValue(bytecode.source, (var.assignStatus == VariableStatistics::AssignStatus::reg ?
-                                            "%" + std::to_string(var.assigned) :
+                                            "%" + std::to_string(var.regNumber) :
                                             "@" + std::to_string(AddStackVariable(bytecode.target)->offset)), bytecode.target, bytecode.type.size, index);
                 break;
             }

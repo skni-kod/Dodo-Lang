@@ -1,10 +1,14 @@
 #include "LinearAnalysis.hpp"
 #include "../Bytecode/Bytecode.hpp"
 #include "MemoryStructure.hpp"
+#include "TheGenerator.hpp"
 
 VariableStatistics::VariableStatistics(uint64_t number, bool isMain) : firstUse(number), lastUse(number), isMainValue(isMain) {}
 
-bool IsVariable(const std::string& input) {
+bool IsLocalVariable(const std::string& input) {
+    if (input.contains("glob.")) {
+        return false;
+    }
     return input.front() == 'u' or input.front() == 'i' or input.front() == 'f';
 };
 
@@ -37,7 +41,7 @@ void CalculateLifetimes() {
             case Bytecode::declare:
                 variableLifetimes.insert(bytecodes[n].target, {n});
                 variableLifetimes[bytecodes[n].target].isMainValue = true;
-                if (IsVariable(bytecodes[n].source)) {
+                if (IsLocalVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
@@ -71,7 +75,7 @@ void CalculateLifetimes() {
                 variableLifetimes.insert(bytecodes[n].type.GetPrefix() +
                         "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
                 // handle source
-                if (IsVariable(bytecodes[n].source)) {
+                if (IsLocalVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
@@ -93,7 +97,7 @@ void CalculateLifetimes() {
                     }
                 }
                 // handle target
-                if (IsVariable(bytecodes[n].target)) {
+                if (IsLocalVariable(bytecodes[n].target)) {
                     if (variableLifetimes.isKey(bytecodes[n].target)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].target);
                         temp.usageAmount++;
@@ -124,7 +128,7 @@ void CalculateLifetimes() {
                     auto& fun = parserFunctions[bytecodes[n].source];
                     for (uint64_t k = n - 1, arguments = 0; arguments < fun.arguments.size(); k--) {
                         if (bytecodes[k].code == Bytecode::moveArgument) {
-                            if (IsVariable(bytecodes[k].source)) {
+                            if (IsLocalVariable(bytecodes[k].source)) {
                                 // extend the life of the result
                                 auto& temp = variableLifetimes.find(bytecodes[k].source);
                                 temp.usageAmount++;
@@ -137,7 +141,7 @@ void CalculateLifetimes() {
                 break;
             case Bytecode::compare:
                 // handle source
-                if (IsVariable(bytecodes[n].source)) {
+                if (IsLocalVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
@@ -159,7 +163,7 @@ void CalculateLifetimes() {
                     }
                 }
                 // handle target
-                if (IsVariable(bytecodes[n].target)) {
+                if (IsLocalVariable(bytecodes[n].target)) {
                     if (variableLifetimes.isKey(bytecodes[n].target)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].target);
                         temp.usageAmount++;
@@ -183,7 +187,7 @@ void CalculateLifetimes() {
                 break;
             case Bytecode::returnValue:
                 // handle source
-                if (IsVariable(bytecodes[n].source)) {
+                if (IsLocalVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
@@ -207,7 +211,7 @@ void CalculateLifetimes() {
                 break;
             case Bytecode::moveArgument:
                 // handle source
-                if (IsVariable(bytecodes[n].source)) {
+                if (IsLocalVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
@@ -247,7 +251,7 @@ void CalculateLifetimes() {
                 temp.isMainValue = true;
             }
                 // handle source
-                if (IsVariable(bytecodes[n].source)) {
+                if (IsLocalVariable(bytecodes[n].source)) {
                     if (variableLifetimes.isKey(bytecodes[n].source)) {
                         auto& temp = variableLifetimes.find(bytecodes[n].source);
                         temp.usageAmount++;
@@ -342,7 +346,7 @@ void RunNaiveLinearAnalysis() {
             if (isValid) {
                 reg.assigned.push_back(n);
                 auto& temp = variableLifetimes[lifetimeVector[n].first];
-                temp.assigned = reg.reg;
+                temp.regNumber = reg.reg;
                 temp.assignStatus = VariableStatistics::AssignStatus::reg;
                 found = true;
                 break;
@@ -366,10 +370,51 @@ bool GroupSorter(const std::tuple<std::vector <std::string>, uint64_t, uint64_t,
     return true;
 }
 
+struct AssignStackEntry {
+    int64_t offset = 0;
+    int64_t size = 0;
+    AssignStackEntry(int64_t offset, int64_t size) : offset(offset), size(size) {}
+};
+
+std::vector <AssignStackEntry> assignmentStack;
+
+int64_t AddStackAssignment(int64_t size) {
+    // TODO: add lifetime support to stack
+    // now let's find a place for this thing
+    for (uint64_t n = 1; n < assignmentStack.size(); n++) {
+        auto& b = assignmentStack[n - 1];
+        auto& s = assignmentStack[n];
+        int64_t space = b.offset - (s.offset + s.size);
+        if (space >= size) {
+            // check alignment here
+            int64_t aligned = s.offset + (s.offset + s.size);
+            if (aligned % size != 0) {
+                aligned = (aligned / size - 1) * size;
+            }
+            if (b.offset - aligned >= size) {
+                assignmentStack.emplace(assignmentStack.begin() + n, aligned, size);
+                return aligned;
+            }
+        }
+    }
+    if (assignmentStack.empty()) {
+        assignmentStack.emplace_back(-size, size);
+        return -size;
+    }
+    else {
+        int64_t offset = assignmentStack.back().offset - size;
+        if (offset % size != 0) {
+            offset = (offset / size - 1) * size;
+        }
+        assignmentStack.emplace_back(offset, size);
+        return offset;
+    }
+};
+
 void RunGroupingLinearAnalysis() {
     // this one is a bit more complex
     // first we need to group all the main variables together
-
+    
     // vec, earliest, last, uses
     std::vector <std::tuple<std::vector <std::string>, uint64_t, uint64_t, uint64_t>> groups;
     // go through all the variables and find first assignments of the instances
@@ -456,7 +501,7 @@ void RunGroupingLinearAnalysis() {
                 if (isValid) {
                     reg.assigned.push_back(convertedNumber);
                     auto& temp = variableLifetimes[lifetimeVector[convertedNumber].first];
-                    temp.assigned = reg.reg;
+                    temp.regNumber = reg.reg;
                     temp.assignStatus = VariableStatistics::AssignStatus::reg;
                     found = true;
                     break;
@@ -471,7 +516,10 @@ void RunGroupingLinearAnalysis() {
             }
 
             // if it got here then there was no space in the lovely registers of ours, off to stack with it
-            variableLifetimes[lifetimeVector[convertedNumber].first].assignStatus = VariableStatistics::AssignStatus::sta;
+            
+            auto& temp = variableLifetimes[lifetimeVector[convertedNumber].first];
+            temp.assignStatus = VariableStatistics::AssignStatus::sta;
+            temp.staOffset = AddStackAssignment(GetVariableInfo(lifetimeVector[convertedNumber].first).size);
             convertedNumber++;
         }
         else if (groupNumber < groups.size()) {
@@ -504,7 +552,7 @@ void RunGroupingLinearAnalysis() {
                         pair.second.lastUse = std::get<2>(groups[groupNumber]);
                         lifetimeVector.push_back(pair);
                         auto& temp = variableLifetimes[n];
-                        temp.assigned = reg.reg;
+                        temp.regNumber = reg.reg;
                         temp.assignStatus = VariableStatistics::AssignStatus::reg;
                     }
                     found = true;
@@ -521,7 +569,9 @@ void RunGroupingLinearAnalysis() {
 
             // if it got here then there was no space in the lovely registers of ours, off to stack with it
             for (auto& n : std::get<0>(groups[groupNumber])) {
-                variableLifetimes[n].assignStatus = VariableStatistics::AssignStatus::sta;
+                auto& temp = variableLifetimes[n];
+                temp.assignStatus = VariableStatistics::AssignStatus::sta;
+                temp.staOffset = AddStackAssignment(GetVariableInfo(lifetimeVector[convertedNumber].first).size);
             }
             groupNumber++;
         }
@@ -529,10 +579,17 @@ void RunGroupingLinearAnalysis() {
             CodeGeneratorError("Bug: Error in group analysis loop!");
         }
     }
+    if (assignmentStack.empty()) {
+        minimumSafeStackOffset = 0;
+    }
+    else {
+        minimumSafeStackOffset = assignmentStack.back().offset;
+    }
 }
 
 void RunLinearAnalysis() {
     variableLifetimes.map.clear();
+    assignmentStack.clear();
 
     // first, track first, last and amount of uses for every variable
     CalculateLifetimes();

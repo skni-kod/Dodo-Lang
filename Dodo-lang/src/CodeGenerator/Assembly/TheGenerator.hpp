@@ -103,4 +103,6 @@ void FillDesignatedPlaces(uint64_t index);
 
 void UpdateVariables();
 
+VariableType GetVariableInfo(const std::string& name);
+
 #endif //DODO_LANG_THE_GENERATOR_HPP

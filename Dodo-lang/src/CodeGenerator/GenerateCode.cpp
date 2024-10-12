@@ -121,7 +121,8 @@ void GenerateCode() {
                 PrintWithSpaces("popq", out);
                 out << "%rbp\n";
             }
-            out << "ret\n";
+            PrintWithSpaces("ret", out);
+            out << "\n";
         }
         current.second.instructions.clear();
     }
@@ -134,8 +135,9 @@ void GenerateCode() {
         PrintWithSpaces("movq", out);
         out << "%rax, %rdi\n";
         PrintWithSpaces("movq", out);
-        out << "$60, %rax\n"
-            << "syscall\n";
+        out << "$60, %rax\n";
+        PrintWithSpaces("syscall", out);
+        out << "\n";
     }
 
     std::cout << "INFO L1: Assembly output generation complete!\n";

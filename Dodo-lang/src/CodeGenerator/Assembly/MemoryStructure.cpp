@@ -303,10 +303,12 @@ std::string X86_64GNUASPrefix(uint8_t size) {
 }
 
 void PrintWithSpaces(std::string input, std::ofstream& out) {
+    for (uint16_t n = 0; n < Options::functionIndentation; n++) {
+        out << " ";
+    }
     out << input;
-
-    if (input.size() < Options::spaceOnLeft) {
-        for (uint16_t n = input.size(); n < Options::spaceOnLeft; n++) {
+    if (input.size() < Options::instructionSpace) {
+        for (uint16_t n = input.size(); n < Options::instructionSpace; n++) {
             out << " ";
         }
     }

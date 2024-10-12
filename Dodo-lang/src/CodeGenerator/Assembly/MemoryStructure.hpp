@@ -9,7 +9,9 @@
 
 namespace Operand {
     enum {
-        none, reg, sta, imm, adr, var, replace, jla, fun
+        none = 0, convert = 0, reg, sta, imm,
+        // aadr is assember address
+        aadr, var, replace, jla, fun
     };
 }
 
@@ -107,18 +109,13 @@ struct LabelContainer {
 };
 
 struct DataLocation {
-    /*
-    enum {
-        reg, sta, val, las, lal, laf, hea, empty
-    };
-     */
-
     uint8_t type = Operand::none;
     union {
-        int64_t offset;
+        int64_t offset = 0;
         uint64_t value;
         uint64_t number;
         ParserFunction* functionPtr;
+        ParserVariable* globalPtr;
         LabelContainer label;
     };
 

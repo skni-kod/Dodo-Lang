@@ -14,9 +14,12 @@ namespace {
         std::string name;
         bool isMutable = true;
 
+        VariableContainer() = default;
         VariableContainer(VariableType type, std::string name, bool isMutable = false) : type(type), name(name),
                                                                                          isMutable(isMutable) {}
     };
+    
+    VariableContainer tempContainer;
 
     struct VariableContainerVector {
         std::vector<std::vector<VariableContainer>> variables;
@@ -45,6 +48,20 @@ namespace {
                         return n;
                     }
                 }
+            }
+            if (globalVariables.isKey(name)) {
+                auto& var = globalVariables[name];
+                tempContainer.name = name;
+                tempContainer.type = var.type;
+                tempContainer.isMutable = var.isMutable;
+                return tempContainer;
+            }
+            if (globalVariables.isKey("glob." + name)) {
+                auto& var = globalVariables["glob." + name];
+                tempContainer.name = "glob." + name;
+                tempContainer.type = var.type;
+                tempContainer.isMutable = var.isMutable;
+                return tempContainer;
             }
             CodeGeneratorError("Could not find variable: \"" + name + "\" during bytecode generation!");
             return variables.front().front();
@@ -89,6 +106,12 @@ std::string GetVariableInstance(std::string identifier) {
         auto& ins = variableInstances[identifier];
         return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
     }
+    if (globalVariables.isKey(identifier)) {
+        return identifier;
+    }
+    else if (globalVariables.isKey("glob." + identifier)) {
+        return "glob." + identifier;
+    }
     CodeGeneratorError("Invalid variable reference!");
     return "";
 }
@@ -100,6 +123,12 @@ std::string ReassignVariableInstance(std::string identifier, const VariableType&
         ins.assignmentNumber = ins.newAssignmentNumber;
         earlyVariables.add({type, GetVariableInstance(identifier), true});
         return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.newAssignmentNumber);
+    }
+    if (globalVariables.isKey(identifier)) {
+        return identifier;
+    }
+    else if (globalVariables.isKey("glob." + identifier)) {
+        return "glob." + identifier;
     }
     CodeGeneratorError("Invalid variable reference!");
     return "";

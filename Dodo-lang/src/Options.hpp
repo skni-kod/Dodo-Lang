@@ -23,7 +23,8 @@ namespace Options {
         GNU_AS, NASM
     };
     inline uint8_t assemblyFlavor = AssemblyFlavor::GNU_AS;
-    inline uint8_t spaceOnLeft = 8;
+    inline uint8_t instructionSpace = 8;
+    inline uint8_t functionIndentation = 4;
 }
 
 namespace Optimizations {

@@ -13,7 +13,7 @@ As of now there are only a few possible instructions that can be used inside fun
 
 ### Variable declaration
 
-Local variables have their designated spaces assigned during the linear analysis. They are assigned to registers starting at r8 in x86-64 and stack for excess variables. As of now, during the grouping analysis the variables with the highest frequency of use compared to their lifetime being assigned to registers and the less accessed ones are put on the stack.
+Local variables have their designated spaces regNumber during the linear analysis. They are regNumber to registers starting at r8 in x86-64 and stack for excess variables. As of now, during the grouping analysis the variables with the highest frequency of use compared to their lifetime being regNumber to registers and the less accessed ones are put on the stack.
 
 ### Variable assignment
 

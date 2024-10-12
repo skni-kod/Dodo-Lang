@@ -293,6 +293,165 @@ void SetContent(DataLocation location, const std::string& content) {
 
 std::vector<std::pair<uint64_t, std::string>> storesToCheck;
 
+VariableType GetVariableInfo(const std::string& name) {
+    VariableType value;
+    value.type = GetOperandType(name);
+    uint64_t index = 1;
+    while (name[index] >= '0' and name[index] <= 9) {
+        index++;
+    }
+    std::stoull(name.substr(1, index - 2));
+    switch (name[index]) {
+        case '$':
+            value.subtype = VariableType::Subtype::value;
+            break;
+        case '*':
+            value.subtype = VariableType::Subtype::pointer;
+            break;
+        default:
+            CodeGeneratorError("Invalid subtype signature in variable!");
+    }
+    return value;
+}
+
+// standard structure containing all needed information about a variable
+struct VariableInfo {
+    VariableType value;
+    DataLocation location;
+    std::string identifier;
+    
+    VariableInfo() = default;
+    VariableInfo(VariableType value, DataLocation location) : value(value), location(location) {}
+    explicit VariableInfo(const std::string& name) {
+        identifier = name;
+        
+        // check if it's even a variable
+        if (name.starts_with("$")) {
+            // it's a value
+            location.type = Operand::imm;
+            location.value = std::stoull(name.substr(1));
+            
+            // and type
+            value.type = ParserType::Type::none;
+            return;
+        }
+        if (name.starts_with("%")) {
+            // it's a register
+            location.type = Operand::reg;
+            location.value = std::stoull(name.substr(1));
+
+            // and type, let's check what's in the register
+            auto& content = generatorMemory.registers[location.value].content.value;
+            if (content == "!" or content.starts_with("$")) {
+                // it's nothing, let's assume nothing is there
+                value.type = ParserType::Type::none;
+                return;
+            }
+            
+            // in this case there is something there
+            if (content.contains("glob.")) {
+                CodeGeneratorError("Unimplemented: global variable in register replacement!");
+            }
+            
+            // it's a local variable, return its info
+            value = GetVariableInfo(content);
+            return;
+            
+        }
+        if (name.starts_with("@")) {
+            // it's a register
+            location.type = Operand::sta;
+            location.offset = std::stoll(name.substr(1));
+
+            // and type, let's check what's in the register
+            auto& content = FindStackVariableByOffset(location.offset)->content.value;
+            if (content == "!" or content.starts_with("$")) {
+                // it's nothing, let's assume nothing is there
+                value.type = ParserType::Type::none;
+                return;
+            }
+
+            // in this case there is something there
+            if (content.contains("glob.")) {
+                CodeGeneratorError("Unimplemented: global variable in register replacement!");
+            }
+
+            // it's a local variable, return its info
+            value = GetVariableInfo(content);
+            return;
+
+        }
+        
+        // first off let's see if it's global or not
+        if (name.contains("glob.")) {
+            // it is, to get the variable name we need to cut off the first part
+            std::string realName = name.substr(name.find(".glob"));
+            auto& var = globalVariables[realName];
+            value = var.type;
+            
+            // search for the location in simulated memory
+            location = generatorMemory.findThing(name);
+            
+            if (location.type == Operand::none) {
+                // location wasn't found, so it's on the heap or wherever the assembler decides to put it
+                location.type = Operand::aadr;
+                location.globalPtr = &var;
+            }
+            return;
+        }
+        
+        // now there is the case with the normal variables
+        value = GetVariableInfo(name);
+        // now the location of this thing, if the type is none then the variable needs to be converted
+        // but that must be handled on a case by case basis
+        location = generatorMemory.findThing(name);
+    }
+};
+
+// this function does not care if the variable already exists elsewhere, 
+// if it needs to exist in one place use the MoveVariableElsewhere
+void CopyVariableElsewhere(VariableInfo& source) {
+    // first off see if the variable isn't in it's designated spot
+    auto& life = variableLifetimes[source.identifier];
+     
+}
+
+// a wrapper for CopyVariableInfo to check if the variable exists elsewhere
+void MoveVariableElsewhere(VariableInfo& source) {
+    for (size_t n = 0; n < generatorMemory.registers.size(); n++) {
+        if (generatorMemory.registers[n].content.value == source.identifier and 
+        source.location.type != Operand::reg and source.location.number != n) {
+            // it's duplicated, end the function
+            return;
+        }
+    }
+
+    for (auto & n : generatorMemory.stack) {
+        if (n.content.value == source.identifier and
+            source.location.type != Operand::sta and source.location.offset != n.offset) {
+            // it's duplicated, end the function
+            return;
+        }
+    }
+
+    CopyVariableElsewhere(source);
+}
+
+// new MoveValue implementation with much better functionality support
+void NewMoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint16_t operationSize) {
+    if (source.identifier == target.identifier) {
+        // they are exactly the same, so there is no need for a move
+        return;
+    }
+    
+    if (target.value.type != Value::none) {
+        // there is something in the target location, it needs to be copied elsewhere    
+    }
+    
+    // we no longer case about the target at this point
+    
+}
+
 void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index) {
     uint64_t targetNumber;
     internal::StackEntry* stackLocation = nullptr;
@@ -313,16 +472,16 @@ void MoveValue(std::string source, std::string target, std::string contentToSet,
             if (GetOperandType(reg.content.value) != Operand::imm and variableLifetimes[reg.content.value].lastUse >= index) {
                 // in this case the value needs to be moved back to it's correct place if it's not already there
                 auto& life = variableLifetimes[reg.content.value];
-                if (life.assignStatus == VariableStatistics::reg and life.assigned != targetNumber) {
+                if (life.assignStatus == VariableStatistics::reg and life.regNumber != targetNumber) {
                     // the variable is in the wrong register, move it to it's correct one
                     // TODO: think about the case where something is in the assigned one
-                    MoveValue(reg.content.value, "%" + std::to_string(life.assigned), reg.content.value, reg.content.value[1] - '0', index);
+                    MoveValue(reg.content.value, "%" + std::to_string(life.regNumber), reg.content.value, reg.content.value[1] - '0', index);
                     if (Optimizations::checkPotentialUselessStores and variableLifetimes[reg.content.value].lastUse == index) {
                         if (Options::targetArchitecture == "X86_64") {
                             for (int64_t n = finalInstructions.size(); n >= 0; n--) {
-                                if (finalInstructions[n].op1.type == Operand::reg and finalInstructions[n].op1.number == life.assigned  and
+                                if (finalInstructions[n].op1.type == Operand::reg and finalInstructions[n].op1.number == life.regNumber and
                                     finalInstructions[n].op2.type == Operand::reg and finalInstructions[n].op2.number == targetNumber) {
-                                    storesToCheck.emplace_back(n, generatorMemory.registers[life.assigned].content.value);
+                                    storesToCheck.emplace_back(n, generatorMemory.registers[life.regNumber].content.value);
                                 }
                             }
                         }
@@ -530,8 +689,8 @@ void FillDesignatedPlaces(uint64_t index) {
 
                 // if it's fine check if the data is in the right place
                 if (n.second.assignStatus == VariableStatistics::reg) {
-                    if (generatorMemory.registers[n.second.assigned].content.value != n.first) {
-                        MoveValue(n.first, "%" + std::to_string(n.second.assigned), n.first, n.first[1] - '0', index);
+                    if (generatorMemory.registers[n.second.regNumber].content.value != n.first) {
+                        MoveValue(n.first, "%" + std::to_string(n.second.regNumber), n.first, n.first[1] - '0', index);
                         changes++;
                         SetContent(data, "!");
                     }
@@ -759,8 +918,8 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                         // TODO: add a check if the copy could be moved away from assigned location and only if not move the original
                         DataLocation& current = operands[n].second;
                         if (life.assignStatus == VariableStatistics::reg) {
-                            if (current.number != life.assigned) {
-                                operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(life.assigned)));
+                            if (current.number != life.regNumber) {
+                                operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(life.regNumber)));
                                 continue;
                             }
                             else {

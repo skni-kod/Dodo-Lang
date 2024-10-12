@@ -15,9 +15,13 @@ type f16 : FLOATING_POINT(2);
 type f32 : FLOATING_POINT(4);
 type f64 : FLOATING_POINT(8);
 
+// character types
+type char : UNSIGNED_INTEGER(1);
+type char4 : UNSIGNED_INTEGER(4);
+
 let i32 k = 10;
-let i32 j* = 20;
+let i16* j = 20;
 
 i32 main() {
-    return 5;
+    return k;
 }

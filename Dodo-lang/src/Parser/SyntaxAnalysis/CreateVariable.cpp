@@ -15,7 +15,13 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
 
     current = generator();
     if (current->type != LexicalToken::Type::identifier) {
-        ParserError("Expected an identifier after variable type!");
+        if (current->type == LexicalToken::Type::operand and current->value == "*") {
+            var.type.subtype += ParserVariable::pointer;
+            current = generator();
+        }
+        else {
+            ParserError("Expected an identifier after variable type!");
+        }
     }
     std::string name = current->value;
 
@@ -25,23 +31,13 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
     }
     if (isGlobal) {
         var.type.subtype += ParserVariable::Subtype::globalValue;
+        name = "glob." + name;
     }
     
     switch (current->value[0]) {
         case ';':
             var.expression = ParserValue(ParserValue::Node::constant, 0, 0, false, nullptr, nullptr, std::make_unique<std::string>("0"));
-            return std::pair<std::string, ParserVariable> (std::move(name), std::move(var));
-        case '*':
-            var.type.subtype += ParserVariable::pointer;
-            current = generator();
-            if (current->value != "=" and current->value != ";") {
-                ParserError(R"(Expected a '=' or an ';' after pointer declaration!)");
-            }
-            if (current->value == ";") {
-                var.expression = ParserValue(ParserValue::Node::constant, 0, 0, false, nullptr, nullptr, std::make_unique<std::string>("0"));
-                return std::pair<std::string, ParserVariable> (std::move(name), std::move(var));
-            }
-            break;
+            return {std::move(name), std::move(var)};
         case '=':
             break;
         default:
@@ -50,7 +46,8 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
     
     // now getting the value since there is one
     var.expression = ParseMath(generator);
-    return std::pair<std::string, ParserVariable> (std::move(name), std::move(var));
+
+    return {std::move(name), std::move(var)};
 }
 
 void UpdateGlobalVariables() {
