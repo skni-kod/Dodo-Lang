@@ -1,5 +1,4 @@
 #include "AnalysisInternal.hpp"
-#include "../ParserVariables.hpp"
 
 void CreateFunction(Generator<const LexicalToken*>& generator, const std::string& returnTypeName) {
     const LexicalToken* current = generator();

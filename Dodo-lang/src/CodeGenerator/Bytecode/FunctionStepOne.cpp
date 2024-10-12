@@ -258,13 +258,15 @@ void BytecodeReturn(const ReturnInstruction& instruction, const ParserFunction& 
     bytecodes.emplace_back(Bytecode::returnValue, source, VariableType(type));
 }
 
-void BytecodeDeclare(const DeclarationInstruction& instruction) {
-    auto& type = parserTypes[instruction.typeName];
+void BytecodeDeclare(DeclarationInstruction& instruction) {
     std::string name = AddVariableInstance(instruction.name);
-    earlyVariables.add({{type.size, type.type, instruction.subtype}, name, instruction.isMutable});
-    bytecodes.emplace_back(Bytecode::declare, CalculateBytecodeExpression(instruction.expression,
-                                                                          {type.size, type.type, instruction.subtype}),
-                           name, VariableType(type.size, type.type));
+    auto& type = parserTypes[instruction.content.typeName];
+    instruction.content.type.type = type.type;
+    instruction.content.type.size = type.size;
+    earlyVariables.add({instruction.content.type, name, instruction.content.isMutable});
+    bytecodes.emplace_back(Bytecode::declare, CalculateBytecodeExpression(instruction.content.expression,
+                                                                          instruction.content.type),
+                           name, instruction.content.type);
 }
 
 void BytecodeDeclare(const ForLoopVariable& var) {

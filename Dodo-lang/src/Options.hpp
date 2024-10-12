@@ -14,6 +14,7 @@ namespace Options {
         full
     };
     inline uint8_t informationLevel = InformationLevel::full;
+    inline uint8_t addressSize = 8;
     inline std::string targetArchitecture = "X86_64";
     inline std::string targetSystem = "LINUX";
     inline std::string commentPrefix = "# ";

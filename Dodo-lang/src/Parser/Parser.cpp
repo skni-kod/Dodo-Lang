@@ -63,8 +63,11 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
     // Step 2: checking basic types (might not be required)
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished type parsing with : " << parserTypes.size() << " type definition(s)\n";
+        std::cout << "INFO L2: Finished type parsing with " << parserTypes.size() << " type definition(s)\n";
+        std::cout << "INFO L2: Found " << globalVariables.size() << " global variable(s)\n";
     }
+
+    UpdateGlobalVariables();
 
     // Step 3: checking complex types
 
@@ -77,7 +80,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
     }
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished function parsing with : " << parserFunctions.size()
+        std::cout << "INFO L2: Finished function parsing with " << parserFunctions.size()
                   << " function definition(s)\n";
     }
 }

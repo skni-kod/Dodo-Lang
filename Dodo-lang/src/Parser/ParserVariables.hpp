@@ -12,7 +12,7 @@
 
 #define INSERT_SUBTYPE_ENUM \
 enum Subtype { \
-    value, pointer, reference, none \
+    value, pointer, reference, none, globalValue, globalPointer \
 };
 
 #define INSERT_CONDITION_ENUM \
@@ -31,19 +31,17 @@ struct ParserType {
     enum Type {
         unsignedInteger, signedInteger, floatingPoint
     };
-    std::string name;
     uint8_t type: 2;                         // allowed values 0-2
     uint8_t size: 6;                         // allowed values 1-8 (maybe more in future)
     ParserType(uint8_t type, uint8_t size); // assumes valid input
-    ParserType(uint8_t type, uint8_t size, std::string name); // assumes valid input
     ParserType() = default;
 };
 
 struct VariableType {
-    uint32_t size: 28;
+    uint32_t size: 27;
     INSERT_SUBTYPE_ENUM
     uint8_t type: 2 = ParserType::Type::signedInteger;
-    uint8_t subtype: 2 = Subtype::value;
+    uint8_t subtype: 3 = Subtype::value;
 
     VariableType() = default;
 
@@ -95,13 +93,21 @@ struct ParserValue {
     void fillValue(std::string val);
 };
 
-struct DeclarationInstruction {
-    std::string typeName;
-    std::string name;
-    ParserValue expression;
+struct ParserVariable {
     INSERT_SUBTYPE_ENUM
-    uint8_t subtype = 0;
+    std::string typeName;
+    ParserValue expression;
     bool isMutable = false;
+    VariableType type;
+};
+
+inline MapWrapper <std::string, ParserVariable> globalVariables;
+
+void UpdateGlobalVariables();
+
+struct DeclarationInstruction {
+    std::string name;
+    ParserVariable content;
 };
 
 struct ValueChangeInstruction {

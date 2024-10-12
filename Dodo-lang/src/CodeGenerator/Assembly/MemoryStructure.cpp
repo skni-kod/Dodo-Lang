@@ -447,6 +447,13 @@ void Instruction::outputX86_64(std::ofstream& out) {
                 PrintWithSpaces("call", out);
                 out << op1.functionPtr->name << "\n";
                 break;
+            case x86_64::lea:
+                PrintWithSpaces("lea" + X86_64GNUASPrefix(sizeAfter), out);
+                op2.print(out, sizeAfter);
+                out << ", ";
+                op1.print(out, sizeAfter);
+                out << "\n";
+                break;
         }
     }
 }

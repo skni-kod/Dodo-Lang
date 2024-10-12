@@ -46,36 +46,12 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
 
     // declaration
     if (firstToken->value == "let" or firstToken->value == "mut") {
-        const LexicalToken* current = generator();
-        if (current->type != LexicalToken::identifier) {
-            ParserError("Expected a typeName identifier after variable declaration!");
-        }
-        const std::string& typeName = current->value;
-        current = generator();
-        if (current->type == LexicalToken::identifier) {
-            instruction.variant.declarationInstruction = new DeclarationInstruction();
-            instruction.type = FunctionInstruction::Type::declaration;
-            instruction.variant.declarationInstruction->typeName = typeName;
-            instruction.variant.declarationInstruction->name = current->value;
-            current = generator();
-            if (firstToken->value == "mut") {
-                instruction.variant.declarationInstruction->isMutable = true;
-            }
-            // with value
-            if (current->type == LexicalToken::Type::operand and current->value == "=") {
-                instruction.variant.declarationInstruction->expression = ParseMath(generator);
-            }
-            else if (current->type == LexicalToken::Type::expressionEnd) {
-                if (firstToken->value == "let") {
-                    ParserError("Cannot create an immutable variable without specifying the value!");
-                }
-                instruction.variant.declarationInstruction->expression.nodeType = ParserValue::Node::empty;
-            }
-            return instruction;
-        }
-        else {
-            ParserError("Expected an identifier after variable type name!");
-        }
+        auto result = CreateVariable(generator, firstToken->value, false);
+        instruction.variant.declarationInstruction = new DeclarationInstruction();
+        instruction.type = FunctionInstruction::Type::declaration;
+        instruction.variant.declarationInstruction->name = result.first;
+        instruction.variant.declarationInstruction->content = std::move(result.second);
+        return instruction;
     }
 
     // variable modification

@@ -19,21 +19,26 @@ The project is being developed as a SKNI "KOD" project.
 
 
 ## Currently achieved goals:
-- type declaration
-- functions with various instructions and value returns
-- addition, subtraction, multiplication and division operations with more easily addable
+- custom type declaration
+- fully functional functions with support for value operations
 - complex mathematical expressions parsing
-- variable storage on stack
-- variable mutability/immutability and value modification
-- function calls with arguments and value returns
-- signed and unsigned integers operations and conversions
+- variable mutability/immutability
 - conditional statements
-- while and for loops
-- an optimized assembly generator with lineara analysis and memory content simulation
+- linear analysis of variable lifetimes and usage
+- assigned variable locations in registers and on stack
+- simulated processor memory in code generator
+- a rather high degree of optimization, safe for precalculated constant expressions
+
+## Currently in works:
+- pointers and global variables
 
 ## Short term plans:
+- floating point value support
+- arrays
+- system calls and/or direct assembly injection
 
-- floating point values
-- pointers and arrays
-- syscalls and/or direct assembly injection
-- macro like system
+## Long term goals:
+- preprocessor allowing for different code on different platforms
+- C ABI function calls
+- structures with methods
+- unions and byte fields

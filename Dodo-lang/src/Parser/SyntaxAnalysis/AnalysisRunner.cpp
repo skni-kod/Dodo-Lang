@@ -36,12 +36,27 @@ bool RunSyntaxAnalysis(Generator<const LexicalToken*>& generator) {
             }
             catch (__ParserException& e) {
                 didFail = true;
-                while (current->type != LexicalToken::Type::expressionEnd) {
+                while (current->type != LexicalToken::Type::blockEnd) {
                     current = generator();
                 }
                 continue;
             }
         }
+        // GLOBAL VARIABLES
+        if (current->type == LexicalToken::Type::keyword and (current->value == "let" or current->value == "mut")) {
+            try {
+                // TODO: figure out how to insert it via the function with checks
+                globalVariables.map.insert(CreateVariable(generator, current->value, true));
+                continue;
+            }
+            catch (__ParserException& e) {
+                didFail = true;
+                while (current->type != LexicalToken::Type::expressionEnd) {
+                    current = generator();
+                }
+                continue;
+            }
+        } 
     }
     return didFail;
 }

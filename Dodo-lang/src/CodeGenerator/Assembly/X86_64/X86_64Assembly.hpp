@@ -7,6 +7,8 @@
 
 namespace x86_64 {
     void ConvertBytecode(Bytecode& bytecode, uint64_t index);
+    
+    void AddGlobalVariables(std::ofstream& out);
 
     enum {
         // (mov+p1) move : op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm
@@ -55,6 +57,8 @@ namespace x86_64 {
         jne,
         //
         cmp,
+        // (lea + p1) load effective address of variable in memory op1 = &op2: reg + mem
+        lea,
         // (.LC + op1.number + ':')
         jumpLabel,
         returnPoint,

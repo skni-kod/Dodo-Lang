@@ -9,6 +9,8 @@ void CreateType(Generator<const LexicalToken*>& generator);
 
 void CreateFunction(Generator<const LexicalToken*>& generator, const std::string& returnTypeName);
 
+std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalToken*>& generator, const std::string& firstToken, bool isGlobal);
+
 FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator, const LexicalToken* firstToken);
 
 ParserValue ParseMath(const std::vector<const LexicalToken*>& tokens);

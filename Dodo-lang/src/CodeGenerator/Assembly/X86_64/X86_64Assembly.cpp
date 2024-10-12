@@ -5,6 +5,53 @@
 #include <fstream>
 
 namespace x86_64 {
+    void AddGlobalVariables(std::ofstream& out) {
+        for (auto& n : globalVariables.map) {
+            out << "\nglob." << n.first << ":\n";
+            if (n.second.type.subtype == ParserVariable::Subtype::globalValue) {
+                switch (n.second.type.size) {
+                    case 1:
+                        PrintWithSpaces(".byte", out);
+                        break;
+                    case 2:
+                        PrintWithSpaces(".value", out);
+                        break;
+                    case 4:
+                        PrintWithSpaces(".long", out);
+                        break;
+                    case 8:
+                        PrintWithSpaces(".quad", out);
+                        break;
+                    default:
+                        CodeGeneratorError("Bug: Invalid size in global variables out!");
+                }
+            }
+            else {
+                switch (Options::addressSize) {
+                    case 1:
+                        PrintWithSpaces(".byte", out);
+                        break;
+                    case 2:
+                        PrintWithSpaces(".value", out);
+                        break;
+                    case 4:
+                        PrintWithSpaces(".long", out);
+                        break;
+                    case 8:
+                        PrintWithSpaces(".quad", out);
+                        break;
+                    default:
+                        CodeGeneratorError("Bug: Invalid size in global variables out!");
+                }
+            }
+            
+            if (n.second.expression.nodeType != ParserValue::Node::constant) {
+                CodeGeneratorError("Global variable initial values must be constant values!");
+            }
+            out << *n.second.expression.value << "\n";
+        }
+    }
+    
     uint64_t GetJumpType(uint32_t code, uint32_t comparison) {
         if (code == Bytecode::jumpConditionalTrue) {
             switch (comparison) {

@@ -75,6 +75,9 @@ void GenerateCode() {
     }
 
     // put beginning things here, like message declaration
+    
+    // global variable declaration
+    x86_64::AddGlobalVariables(out);
 
     // Functions:
     for (auto& current: parserFunctions.map) {
