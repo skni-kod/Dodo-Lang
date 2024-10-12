@@ -41,7 +41,7 @@ void GenerateCode() {
 
     // prepare structures here
     // TODO: make this a dedicated function probably
-    if (Options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         generatorMemory.prepareX86_86();
         Options::commentPrefix = "# ";
         Options::jumpLabelPrefix = ".LC";
@@ -60,16 +60,6 @@ void GenerateCode() {
             << ".text\n"
             << ".global _start\n";
     }
-    else if (Options::targetArchitecture == "X86_32") {
-        CodeGeneratorError("X86-32 not yet supported!");
-    }
-        // might change arm names to versions when support comes
-    else if (Options::targetArchitecture == "ARM32") {
-        CodeGeneratorError("ARM32 not yet supported!");
-    }
-    else if (Options::targetArchitecture == "ARM64") {
-        CodeGeneratorError("ARM64 not yet supported!");
-    }
     else {
         CodeGeneratorError("Invalid target architecture!");
     }
@@ -86,7 +76,7 @@ void GenerateCode() {
         finalInstructions.clear();
         lastFunctionName = &current.second.name;
         generatorMemory.cleanX86_86();
-        if (Options::targetArchitecture == "X86_64") {
+        if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
             out << "\n"
                 << current.second.name << ":" << "\n";
             PrintWithSpaces("pushq", out);
@@ -113,7 +103,7 @@ void GenerateCode() {
         }
 
         // end function
-        if (Options::targetArchitecture == "X86_64") {
+        if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
             if (doAddLeave) {
                 out << "leave\n";
             }
@@ -127,7 +117,7 @@ void GenerateCode() {
         current.second.instructions.clear();
     }
     // add end code here along with the runner code fragment
-    if (Options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         out << "\n"
             << "_start:\n";
         PrintWithSpaces("call", out);

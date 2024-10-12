@@ -11,7 +11,7 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
     if (current->type != LexicalToken::Type::identifier) {
         ParserError("Expected a type identifier after variable mutability prefix!");
     }
-    var.typeName = current->value;
+    var.typeOrName = current->value;
 
     current = generator();
     if (current->type != LexicalToken::Type::identifier) {
@@ -52,12 +52,13 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
 
 void UpdateGlobalVariables() {
     for (auto& n : globalVariables.map) {
-        if (not parserTypes.isKey(n.second.typeName)) {
-            ParserError("Invalid typename \"" + n.second.typeName + "\" in global variable named \"" + n.first + "\"!");
+        if (not parserTypes.isKey(n.second.typeOrName)) {
+            ParserError("Invalid typename \"" + n.second.typeOrName + "\" in global variable named \"" + n.first + "\"!");
         }
-        auto& type = parserTypes[n.second.typeName];
+        auto& type = parserTypes[n.second.typeOrName];
         n.second.type.type = type.type;
         n.second.type.size = type.size;
+        n.second.typeOrName = n.first;
     }
 }
 

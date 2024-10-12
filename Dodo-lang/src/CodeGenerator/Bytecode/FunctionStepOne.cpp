@@ -107,10 +107,10 @@ std::string GetVariableInstance(std::string identifier) {
         return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
     }
     if (globalVariables.isKey(identifier)) {
-        return identifier;
+        return AddVariableInstance(identifier);
     }
     else if (globalVariables.isKey("glob." + identifier)) {
-        return "glob." + identifier;
+        return AddVariableInstance("glob." + identifier);
     }
     CodeGeneratorError("Invalid variable reference!");
     return "";
@@ -157,7 +157,6 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
     }
 
     if (expression.nodeType == ParserValue::Node::variable) {
-        const auto& var = earlyVariables.find(GetVariableInstance(*expression.value));
         return GetVariableInstance(*expression.value);
     }
 
@@ -289,7 +288,7 @@ void BytecodeReturn(const ReturnInstruction& instruction, const ParserFunction& 
 
 void BytecodeDeclare(DeclarationInstruction& instruction) {
     std::string name = AddVariableInstance(instruction.name);
-    auto& type = parserTypes[instruction.content.typeName];
+    auto& type = parserTypes[instruction.content.typeOrName];
     instruction.content.type.type = type.type;
     instruction.content.type.size = type.size;
     earlyVariables.add({instruction.content.type, name, instruction.content.isMutable});

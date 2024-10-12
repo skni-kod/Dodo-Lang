@@ -83,11 +83,27 @@ struct InstructionRequirements {
                             std::string op4, std::vector<OpCombination> combinations);
 };
 
+// standard structure containing all needed information about a variable
+struct VariableInfo {
+    VariableType value;
+    DataLocation location;
+    std::string identifier;
+
+    ParserVariable& extractGlobalVariable();
+
+    VariableInfo() = default;
+    VariableInfo(VariableType value, DataLocation location);
+    static VariableInfo FromLocation(DataLocation location);
+    explicit VariableInfo(const std::string& name);
+
+};
+
 void GenerateInstruction(InstructionRequirements req, uint64_t index);
 
 void InsertValue(std::string target, std::string source);
 
 void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index);
+void NewMoveValue(VariableInfo source, VariableInfo target, std::string contentToSet);
 
 uint8_t GetOperandType(const std::string& operand);
 

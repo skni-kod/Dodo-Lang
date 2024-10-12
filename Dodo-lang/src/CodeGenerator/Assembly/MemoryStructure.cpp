@@ -1,15 +1,13 @@
-//
-// Created by fifthzoner on 19/09/24.
-//
 #include "MemoryStructure.hpp"
+
+#include <utility>
 #include "GenerateCode.hpp"
 #include "Assembly/X86_64/X86_64Assembly.hpp"
-#include "LinearAnalysis.hpp"
 #include "TheGenerator.hpp"
 #include "GenerateCodeInternal.hpp"
 
 namespace internal {
-    ContentEntry::ContentEntry(std::string value) : value(value) {}
+    ContentEntry::ContentEntry(std::string value) : value(std::move(value)) {}
 
     const std::string& Register::nameBySize(uint32_t size) {
         for (auto& n: sizeNamePairs) {
@@ -134,7 +132,7 @@ void MemoryStructure::popLevel() {
 
 
 char AddInstructionPostfix(uint32_t size) {
-    if (Options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         switch (size) {
             case 1:
                 return 'b';
@@ -152,7 +150,7 @@ char AddInstructionPostfix(uint32_t size) {
 }
 
 std::string GetSizedRegister(uint32_t number ,uint32_t size) {
-    if (Options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         switch (size) {
             case 1:
                 return generatorMemory.registers[number].sizeNamePairs[0].second;
@@ -169,9 +167,9 @@ std::string GetSizedRegister(uint32_t number ,uint32_t size) {
     return {};
 }
 
-DataLocation MemoryStructure::findThing(std::string name) {
+DataLocation MemoryStructure::findThing(const std::string& name) {
     if (name.front() == '$') {
-        return {Operand::imm, uint64_t(std::stoull(name.substr(1, name.size() - 1)))};
+        return {Operand::imm, static_cast <uint64_t>(std::stoull(name.substr(1, name.size() - 1)))};
     }
     else if (name.front() == '@') {
         int64_t offset = std::stoll(name.substr(1, name.size() - 1));
@@ -183,7 +181,7 @@ DataLocation MemoryStructure::findThing(std::string name) {
         CodeGeneratorError("No such value in stack!");
     }
     else if (name.front() == '%') {
-        return {Operand::reg, uint64_t(std::stoull(name.substr(1, name.size() - 1)))};
+        return {Operand::reg, static_cast <uint64_t>(std::stoull(name.substr(1, name.size() - 1)))};
     }
     for (uint64_t n = 0; n < registers.size(); n++) {
         if (registers[n].content.value == name) {
@@ -195,12 +193,12 @@ DataLocation MemoryStructure::findThing(std::string name) {
             return {Operand::sta, n.offset};
         }
     }
-    return {Operand::none, uint64_t(0)};
+    return {Operand::none, static_cast <uint64_t>(0)};
 }
 
 /*
 std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
-    if (options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         switch (data.type) {
             case DataLocation::reg:
                 return out << '%' << generatorMemory.registers[data.number].nameBySize(data.size);
@@ -231,8 +229,10 @@ DataLocation::DataLocation(uint8_t type, uint64_t value) : type(type), value(val
 
 DataLocation::DataLocation(uint8_t type, ParserFunction* functionPtr) : type(type), functionPtr(functionPtr) {}
 
-void DataLocation::print(std::ofstream& out, uint8_t size) {
-    if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS and Options::targetArchitecture == "X86_64") {
+DataLocation::DataLocation(uint8_t type, ParserVariable* globalPtr) : type(type), globalPtr(globalPtr) {}
+
+void DataLocation::print(std::ofstream& out, uint8_t size) const {
+    if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS and Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         switch (this->type) {
             case Operand::imm:
                 out << '$' << value;
@@ -248,7 +248,10 @@ void DataLocation::print(std::ofstream& out, uint8_t size) {
                     }
                 }
                 CodeGeneratorError("Could not find valid register!");
-                return;
+            case Operand::aadr:
+                out << "$" << globalPtr->typeOrName;
+            default:
+                CodeGeneratorError("Unimplemented: unsupported operand type in print!");
         }
     }
 }
@@ -263,8 +266,10 @@ DataLocation::DataLocation(const std::string& operand) {
         case Operand::sta:
             offset = std::stoll(operand.substr(1, operand.size() - 1));
             return;
+        default:
+            CodeGeneratorError("Invalid operand in data location constructor!");;
     }
-    CodeGeneratorError("Invalid operand in data location constructor!");
+    
 }
 
 bool DataLocation::operator==(const DataLocation& data) const {
@@ -285,9 +290,10 @@ std::string DataLocation::forMove() const {
         default:
             CodeGeneratorError("Invalid DataLocation type for string!");
     }
+    return "";
 }
 
-std::string X86_64GNUASPrefix(uint8_t size) {
+std::string X86_64GNU_ASPrefix(uint8_t size) {
     switch (size) {
         case 1:
             return "b";
@@ -297,12 +303,13 @@ std::string X86_64GNUASPrefix(uint8_t size) {
             return "l";
         case 8:
             return "q";
+        default:
+            CodeGeneratorError("Invalid prefix size!");;
     }
-    CodeGeneratorError("Invalid prefix size!");
     return "";
 }
 
-void PrintWithSpaces(std::string input, std::ofstream& out) {
+void PrintWithSpaces(const std::string& input, std::ofstream& out) {
     for (uint16_t n = 0; n < Options::functionIndentation; n++) {
         out << " ";
     }
@@ -317,7 +324,7 @@ void PrintWithSpaces(std::string input, std::ofstream& out) {
     }
 }
 
-void Instruction::outputX86_64(std::ofstream& out) {
+void Instruction::outputX86_64(std::ofstream& out) const {
     if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS) {
         switch (this->type) {
             case x86_64::ret:
@@ -328,48 +335,48 @@ void Instruction::outputX86_64(std::ofstream& out) {
                 if (Optimizations::skipUselessMoves and op1 == op2) {
                     return;
                 }
-                PrintWithSpaces("mov" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("mov" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
             case x86_64::movzx:
-                PrintWithSpaces("movz" + X86_64GNUASPrefix(sizeBefore) + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("movz" + X86_64GNU_ASPrefix(sizeBefore) + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeBefore);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
             case x86_64::movsx:
-                PrintWithSpaces("movs" + X86_64GNUASPrefix(sizeBefore) + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("movs" + X86_64GNU_ASPrefix(sizeBefore) + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeBefore);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
             case x86_64::add:
-                PrintWithSpaces("add" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("add" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
             case x86_64::sub:
-                PrintWithSpaces("sub" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("sub" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
             case x86_64::mul:
-                PrintWithSpaces("mul" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("mul" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << "\n";
                 break;
             case x86_64::imul:
                 // TODO: repeat the meltdown and understand why intel reference is lying about 2 operand with imm
-                PrintWithSpaces("imul" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("imul" + X86_64GNU_ASPrefix(sizeAfter), out);
                 if (op3.type != Operand::none) {
                     if (Optimizations::mergeThreeOperandInstruction and op1 == op2) {
                         op3.print(out, sizeAfter);
@@ -395,12 +402,12 @@ void Instruction::outputX86_64(std::ofstream& out) {
                 out << "\n";
                 break;
             case x86_64::div:
-                PrintWithSpaces("div" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("div" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << "\n";
                 break;
             case x86_64::idiv:
-                PrintWithSpaces("idiv" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("idiv" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << "\n";
                 break;
@@ -450,12 +457,14 @@ void Instruction::outputX86_64(std::ofstream& out) {
                 out << op1.functionPtr->name << "\n";
                 break;
             case x86_64::lea:
-                PrintWithSpaces("lea" + X86_64GNUASPrefix(sizeAfter), out);
+                PrintWithSpaces("lea" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
+            default:
+                CodeGeneratorError("Unimplemented: Unsupported instruction code!");
         }
     }
 }

@@ -66,6 +66,13 @@ bool VariableType::operator==(const VariableType& var) {
     return false;
 }
 
+bool VariableType::operator!=(const VariableType& var) {
+    if (size != var.size or type != var.type or subtype != var.subtype) {
+        return true;
+    }
+    return false;
+}
+
 std::string VariableType::GetPrefix() const {
     std::string prefix;
     switch (type) {

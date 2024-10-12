@@ -55,7 +55,7 @@ void AddFunctionHeaders() {
     }
 
     if (not parserFunctions[*lastFunctionName].returnType.empty()) {
-        if (Options::targetArchitecture == "X86_64") {
+        if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
             occupied[0] = false;
         }
         else {
@@ -64,7 +64,7 @@ void AddFunctionHeaders() {
     }
 
     // now we need to add occupied registers to the stack, might add checking max size later to optimize
-    if (Options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         if (maxOffset % 8) {
             maxOffset = (maxOffset / 8 - 1) * 8;
         }

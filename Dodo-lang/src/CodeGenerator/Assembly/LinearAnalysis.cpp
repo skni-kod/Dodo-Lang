@@ -5,6 +5,23 @@
 
 VariableStatistics::VariableStatistics(uint64_t number, bool isMain) : firstUse(number), lastUse(number), isMainValue(isMain) {}
 
+DataLocation VariableStatistics::toLocation() {
+    DataLocation data;
+    data.type = assignStatus;
+    if (data.type == Operand::reg) {
+        data.number = regNumber;
+        return data;
+    }
+
+    if (data.type == Operand::sta) {
+        data.offset = staOffset;
+        return data;
+    }
+
+    CodeGeneratorError("Bug: invalid assigned location!");
+    return data;
+}
+
 bool IsLocalVariable(const std::string& input) {
     if (input.contains("glob.")) {
         return false;
@@ -347,7 +364,7 @@ void RunNaiveLinearAnalysis() {
                 reg.assigned.push_back(n);
                 auto& temp = variableLifetimes[lifetimeVector[n].first];
                 temp.regNumber = reg.reg;
-                temp.assignStatus = VariableStatistics::AssignStatus::reg;
+                temp.assignStatus = Operand::reg;
                 found = true;
                 break;
             }
@@ -357,7 +374,7 @@ void RunNaiveLinearAnalysis() {
         }
 
         // if it got here then there was no space in the lovely registers of ours, off to stack with it
-        variableLifetimes[lifetimeVector[n].first].assignStatus = VariableStatistics::AssignStatus::sta;
+        variableLifetimes[lifetimeVector[n].first].assignStatus = Operand::sta;
     }
 }
 
@@ -502,7 +519,7 @@ void RunGroupingLinearAnalysis() {
                     reg.assigned.push_back(convertedNumber);
                     auto& temp = variableLifetimes[lifetimeVector[convertedNumber].first];
                     temp.regNumber = reg.reg;
-                    temp.assignStatus = VariableStatistics::AssignStatus::reg;
+                    temp.assignStatus = Operand::reg;
                     found = true;
                     break;
                 }
@@ -518,7 +535,7 @@ void RunGroupingLinearAnalysis() {
             // if it got here then there was no space in the lovely registers of ours, off to stack with it
             
             auto& temp = variableLifetimes[lifetimeVector[convertedNumber].first];
-            temp.assignStatus = VariableStatistics::AssignStatus::sta;
+            temp.assignStatus = Operand::sta;
             temp.staOffset = AddStackAssignment(GetVariableInfo(lifetimeVector[convertedNumber].first).size);
             convertedNumber++;
         }
@@ -553,7 +570,7 @@ void RunGroupingLinearAnalysis() {
                         lifetimeVector.push_back(pair);
                         auto& temp = variableLifetimes[n];
                         temp.regNumber = reg.reg;
-                        temp.assignStatus = VariableStatistics::AssignStatus::reg;
+                        temp.assignStatus = Operand::reg;
                     }
                     found = true;
                     break;
@@ -570,7 +587,7 @@ void RunGroupingLinearAnalysis() {
             // if it got here then there was no space in the lovely registers of ours, off to stack with it
             for (auto& n : std::get<0>(groups[groupNumber])) {
                 auto& temp = variableLifetimes[n];
-                temp.assignStatus = VariableStatistics::AssignStatus::sta;
+                temp.assignStatus = Operand::sta;
                 temp.staOffset = AddStackAssignment(GetVariableInfo(lifetimeVector[convertedNumber].first).size);
             }
             groupNumber++;
@@ -606,7 +623,7 @@ void RunLinearAnalysis() {
         uint64_t stacks = 0;
         uint64_t regs = 0;
         for (auto& n: variableLifetimes.map) {
-            if (n.second.assignStatus == VariableStatistics::AssignStatus::sta) {
+            if (n.second.assignStatus == Operand::sta) {
                 stacks++;
             }
         }

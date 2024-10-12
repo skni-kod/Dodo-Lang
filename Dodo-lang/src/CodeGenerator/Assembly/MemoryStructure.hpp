@@ -10,8 +10,10 @@
 namespace Operand {
     enum {
         none = 0, convert = 0, reg, sta, imm,
-        // aadr is assember address
-        aadr, var, replace, jla, fun
+        // assember address
+        aadr,
+        // register with pointer
+        rptr, var, replace, jla, fun
     };
 }
 
@@ -88,7 +90,7 @@ struct MemoryStructure {
 
     void cleanX86_86();
 
-    DataLocation findThing(std::string name);
+    DataLocation findThing(const std::string& name);
 
     void pushLevel();
 
@@ -119,7 +121,7 @@ struct DataLocation {
         LabelContainer label;
     };
 
-    void print(std::ofstream& out, uint8_t size);
+    void print(std::ofstream& out, uint8_t size) const;
 
     std::string forMove() const;
 
@@ -134,6 +136,8 @@ struct DataLocation {
     DataLocation(uint8_t type, uint64_t value);
 
     DataLocation(uint8_t type, ParserFunction* functionPtr);
+    
+    DataLocation(uint8_t type, ParserVariable* globalPtr);
 
     DataLocation(const std::string& operand);
 };
@@ -152,7 +156,7 @@ struct Instruction {
         uint32_t expressionType;
     };
 
-    void outputX86_64(std::ofstream& out);
+    void outputX86_64(std::ofstream& out) const;
 };
 
 inline std::vector<Instruction> finalInstructions;
@@ -164,6 +168,6 @@ inline uint64_t currentBytecodeIndex = 0;
 // outdated
 char AddInstructionPostfix(uint32_t size);
 
-void PrintWithSpaces(std::string input, std::ofstream& out);
+void PrintWithSpaces(const std::string& input, std::ofstream& out);
 
 #endif //DODO_LANG_MEMORY_STRUCTURE_HPP

@@ -5,23 +5,21 @@
 #include <unordered_map>
 #include <cstdint>
 #include "MapWrapper.tpp"
+#include "MemoryStructure.hpp"
 
 struct VariableStatistics {
     uint64_t firstUse = 0;
     uint64_t lastUse = 0;
     uint64_t usageAmount: 55 = 0;
-    enum AssignStatus {
-        none = 0, convert = 0, reg, sta, imm,
-        // aadr is assember address
-        aadr, var, replace, jla, fun
-    };
     uint8_t isMainValue: 1 = false;
-    uint8_t assignStatus = AssignStatus::none;
+    uint8_t assignStatus = Operand::none;
     // assigned register if there is one
     union {
         uint64_t regNumber = 0;
         int64_t staOffset;
     };
+    
+    DataLocation toLocation();
     
 
     VariableStatistics(uint64_t number, bool isMain = false);

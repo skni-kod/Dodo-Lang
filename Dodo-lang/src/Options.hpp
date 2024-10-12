@@ -13,9 +13,12 @@ namespace Options {
         // full information about the compilation process
         full
     };
+    enum TargetArchitecture {
+        x86_64, x86_32
+    };
     inline uint8_t informationLevel = InformationLevel::full;
     inline uint8_t addressSize = 8;
-    inline std::string targetArchitecture = "X86_64";
+    inline uint8_t targetArchitecture = TargetArchitecture::x86_64;
     inline std::string targetSystem = "LINUX";
     inline std::string commentPrefix = "# ";
     inline std::string jumpLabelPrefix = ".LC";

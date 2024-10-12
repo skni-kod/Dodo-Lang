@@ -27,7 +27,7 @@ inline void AddX86_64ArgumentPlaces(std::vector <FunctionArgument>& args) {
 }
 
 void PrepareFunctionArguments() {
-    if (Options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         for (auto& n : parserFunctions.map) {
             AddX86_64ArgumentPlaces(n.second.arguments);
         }

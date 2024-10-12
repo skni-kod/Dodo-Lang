@@ -10,7 +10,7 @@ void GenerateFunctionStepTwo(const ParserFunction& function) {
     RunLinearAnalysis();
 
     // for now only x86-64 support
-    if (Options::targetArchitecture == "X86_64") {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         for (uint64_t n = 0; n < bytecodes.size(); n++) {
             currentBytecodeIndex = n;
             x86_64::ConvertBytecode(bytecodes[n], n);

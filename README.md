@@ -25,7 +25,7 @@ The project is being developed as a SKNI "KOD" project.
 - variable mutability/immutability
 - conditional statements
 - linear analysis of variable lifetimes and usage
-- regNumber variable locations in registers and on stack
+- assigned variable locations in registers and on stack
 - simulated processor memory in code generator
 - a rather high degree of optimization, safe for precalculated constant expressions
 

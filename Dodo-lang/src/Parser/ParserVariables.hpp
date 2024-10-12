@@ -49,7 +49,7 @@ struct ParserType {
 };
 
 struct VariableType {
-    uint32_t size: 27;
+    uint32_t size: 27 = 0;
     INSERT_SUBTYPE_ENUM
     uint8_t type: 2 = ParserType::Type::signedInteger;
     uint8_t subtype: 3 = Subtype::value;
@@ -63,6 +63,7 @@ struct VariableType {
     explicit VariableType(const std::string& var);
 
     bool operator==(const VariableType& var);
+    bool operator!=(const VariableType& var);
 
     std::string GetPrefix() const;
 };
@@ -106,7 +107,7 @@ struct ParserValue {
 
 struct ParserVariable {
     INSERT_SUBTYPE_ENUM
-    std::string typeName;
+    std::string typeOrName;
     ParserValue expression;
     bool isMutable = false;
     VariableType type;

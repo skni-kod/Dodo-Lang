@@ -320,6 +320,7 @@ namespace x86_64 {
             case Bytecode::returnValue:
                 // move returned value into register a
                 MoveValue(bytecode.source, "%0", bytecode.source, bytecode.type.size, index);
+                NewMoveValue(VariableInfo(bytecode.source), VariableInfo("%0"), bytecode.source);
                 // insert a return statement
                 GenerateInstruction({x86_64::ret}, index);
                 break;
@@ -398,7 +399,7 @@ namespace x86_64 {
                         return;
                 }
 
-                MoveValue(bytecode.source, (var.assignStatus == VariableStatistics::AssignStatus::reg ?
+                MoveValue(bytecode.source, (var.assignStatus == Operand::reg ?
                                             "%" + std::to_string(var.regNumber) :
                                             "@" + std::to_string(AddStackVariable(bytecode.target)->offset)), bytecode.target, bytecode.type.size, index);
                 break;
