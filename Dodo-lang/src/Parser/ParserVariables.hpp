@@ -17,7 +17,7 @@ enum Type { \
 
 #define INSERT_SUBTYPE_ENUM \
 enum Subtype { \
-    value, pointer, reference, none, globalValue, globalPointer \
+    value, pointer, none \
 };
 
 #define INSERT_CONDITION_ENUM \
@@ -111,6 +111,8 @@ struct ParserVariable {
     ParserValue expression;
     bool isMutable = false;
     VariableType type;
+
+    std::string nameForOutput();
 };
 
 inline MapWrapper <std::string, ParserVariable> globalVariables;

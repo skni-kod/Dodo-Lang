@@ -7,8 +7,8 @@
 namespace x86_64 {
     void AddGlobalVariables(std::ofstream& out) {
         for (auto& n : globalVariables.map) {
-            out << "\nglob." << n.first << ":\n";
-            if (n.second.type.subtype == ParserVariable::Subtype::globalValue) {
+            out << "\n" << n.first << ":\n";
+            if (n.second.type.subtype == ParserVariable::Subtype::value) {
                 switch (n.second.type.size) {
                     case 1:
                         PrintWithSpaces(".byte", out);
@@ -111,23 +111,23 @@ namespace x86_64 {
                     for (uint64_t k = generatorMemory.registers.size() - 1; k > 0; k--) {
                         if (generatorMemory.registers[k].content.value == "!" or generatorMemory.registers[k].content.value.starts_with("$")) {
                             // found one!
-                            MoveValue(argumentNames[n], "%" + std::to_string(n), argumentNames[n], argumentNames[n][1] - '0', index);
+                            MoveValue(VariableInfo(argumentNames[n]), VariableInfo("%" + std::to_string(n)), argumentNames[n], GetVariableType(argumentNames[n]).size);
                             found = true;
                             break;
                         }
                     }
                     if (not found) {
                         // move it to stack
-                        MoveValue("%0", "@" + std::to_string(AddStackVariable(argumentNames[n])->offset), argumentNames[n], argumentNames[n][1] - '0', index);
+                        MoveValue(VariableInfo("%0"), VariableInfo(("@" + std::to_string(AddStackVariable(argumentNames[n])->offset))), argumentNames[n], GetVariableType(argumentNames[n]).size);
                     }
                 }
                 else {
                     CodeGeneratorError("Unimplemented: stack argument pass copying");
                 }
             }
-            MoveValue(argumentNames[n], DataLocation(function->arguments[n].locationType,
-                int64_t(function->arguments[n].locationValue)).forMove(), argumentNames[n],
-                parserTypes[function->arguments[n].typeName].size, index);
+            MoveValue(VariableInfo(argumentNames[n]), VariableInfo::FromLocation(DataLocation(function->arguments[n].locationType,
+                int64_t(function->arguments[n].locationValue))), argumentNames[n],
+                parserTypes[function->arguments[n].typeName].size);
         }
         // if function has a return type ensure register a is not used
         if (not function->returnType.empty() and generatorMemory.registers[0].content.value != "!") {
@@ -142,14 +142,14 @@ namespace x86_64 {
                     for (uint64_t n = generatorMemory.registers.size() - 1; n > 0; n--) {
                         if (generatorMemory.registers[n].content.value == "!" or generatorMemory.registers[n].content.value.starts_with("$")) {
                             // found one!
-                            MoveValue("%0", "%" + std::to_string(n), content, content[1] - '0', index);
+                            MoveValue(VariableInfo("%0"), VariableInfo("%" + std::to_string(n)), content, GetVariableType(content).size);
                             found = true;
                             break;
                         }
                     }
                     if (not found) {
                         // move it to stack
-                        MoveValue("%0", "@" + std::to_string(AddStackVariable(content)->offset), content, content[1] - '0', index);
+                        MoveValue(VariableInfo("%0"), VariableInfo("@" + std::to_string(AddStackVariable(content)->offset)), content, GetVariableType(content).size);
                     }
                 }
                 reg.content.value = result;
@@ -319,8 +319,8 @@ namespace x86_64 {
                 break;
             case Bytecode::returnValue:
                 // move returned value into register a
-                MoveValue(bytecode.source, "%0", bytecode.source, bytecode.type.size, index);
-                NewMoveValue(VariableInfo(bytecode.source), VariableInfo("%0"), bytecode.source);
+                // MoveValue(bytecode.source, "%0", bytecode.source, bytecode.type.size, index);
+                MoveValue(VariableInfo(bytecode.source), VariableInfo("%0"), bytecode.source, bytecode.type.size);
                 // insert a return statement
                 GenerateInstruction({x86_64::ret}, index);
                 break;
@@ -328,7 +328,7 @@ namespace x86_64 {
                 FillDesignatedPlaces(index);
                 generatorMemory.pushLevel();
                 break;
-            case Bytecode::popLevel:// rax = k + fun(k - 1) == k + t
+            case Bytecode::popLevel:
                 FillDesignatedPlaces(index);
                 generatorMemory.popLevel();
                 break;
@@ -399,9 +399,9 @@ namespace x86_64 {
                         return;
                 }
 
-                MoveValue(bytecode.source, (var.assignStatus == Operand::reg ?
+                MoveValue(VariableInfo(bytecode.source), VariableInfo((var.assignStatus == Operand::reg ?
                                             "%" + std::to_string(var.regNumber) :
-                                            "@" + std::to_string(AddStackVariable(bytecode.target)->offset)), bytecode.target, bytecode.type.size, index);
+                                            "@" + std::to_string(AddStackVariable(bytecode.target)->offset))), bytecode.target, bytecode.type.size);
                 break;
             }
             case Bytecode::assign:
@@ -426,15 +426,15 @@ namespace x86_64 {
                 if (target.type == Operand::reg) {
                     std::string temp = generatorMemory.registers[target.number].content.value;
                     SetContent(target, "!");
-                    MoveValue(bytecode.source, "%" + std::to_string(target.number),
-                              temp, bytecode.type.size, index);
+                    MoveValue(VariableInfo(bytecode.source), VariableInfo("%" + std::to_string(target.number)),
+                              temp, bytecode.type.size);
                 }
                 else if (target.type == Operand::sta) {
                     auto* sta = FindStackVariableByOffset(target.offset);
                     std::string temp = sta->content.value;
                     SetContent(target, "!");
-                    MoveValue(bytecode.source, "@" + std::to_string(target.offset),
-                              temp, bytecode.type.size, index);
+                    MoveValue(VariableInfo(bytecode.source), VariableInfo("@" + std::to_string(target.offset)),
+                              temp, bytecode.type.size);
                 }
                 else if (target.type == Operand::none) {
                     SetContent(generatorMemory.findThing(bytecode.source), bytecode.target);

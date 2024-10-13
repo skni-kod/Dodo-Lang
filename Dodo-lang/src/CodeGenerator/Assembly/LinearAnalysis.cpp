@@ -22,10 +22,7 @@ DataLocation VariableStatistics::toLocation() {
     return data;
 }
 
-bool IsLocalVariable(const std::string& input) {
-    if (input.contains("glob.")) {
-        return false;
-    }
+bool IsVariable(const std::string& input) {
     return input.front() == 'u' or input.front() == 'i' or input.front() == 'f';
 };
 
@@ -43,6 +40,20 @@ VariableStatistics& FindMain(std::string& child) {
     return VSDummy;
 }
 
+std::string dummyString;
+
+const std::string& FindMainName(std::string& child) {
+    std::string searched = child.substr(2, child.size() - 2);
+    for (auto& n : variableLifetimes.map) {
+        if (n.first.ends_with(searched) and n.second.isMainValue) {
+            lastMainName = &n.first;
+            return n.first;
+        }
+    }
+    CodeGeneratorError("Bug: Could not find main value to add lifetime!");
+    return dummyString;
+}
+
 void AddLifetimeToMain(std::string& child, uint64_t index) {
     auto& main = FindMain(child);
     main.lastUse = index;
@@ -52,33 +63,65 @@ void AddLifetimeToMain(std::string& child, uint64_t index) {
 // this ensures that the lifetime of variables is extended until the end of a level
 std::stack <std::vector <std::string>> variablesToExtend;
 
+void AddLifetimeOrInsert(std::string& name, uint64_t index) {
+    if (IsVariable(name)) {
+        if (variableLifetimes.isKey(name)) {
+            auto& temp = variableLifetimes.find(name);
+            temp.usageAmount++;
+            temp.lastUse = index;
+            if (not temp.isMainValue) {
+                AddLifetimeToMain(name, index);
+                if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
+                    variablesToExtend.top().push_back(*lastMainName);
+                }
+            }
+        }
+        else {
+            if (name.contains("glob.")) {
+                // it's a global variable, check it's actual type first and add main if it exists
+                auto& global = VariableInfo(name).extractGlobalVariable();
+                if (not name.starts_with(global.typeOrName)) {
+                    // check if the main exists only if the checked variable is of a differrent type
+                    bool found = false;
+                    for (auto& n : variableLifetimes.map) {
+                        if (n.first.starts_with(global.typeOrName) and n.second.isMainValue) {
+                            // it's a main value, in that case 
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (not found) {
+                        // in that case we also need to insert the global variable
+                        variableLifetimes.insert(global.typeOrName + "#0-0", {index, true});
+                    }
+                }
+                else {
+                    variableLifetimes.insert(name, {index, true});
+                    if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
+                        variablesToExtend.top().push_back(*lastMainName);
+                    }
+                    return;
+                }
+                
+            }
+            
+            variableLifetimes.insert(name, {index});
+            // this is not the original value and as such the original one must still exist to convert from
+            AddLifetimeToMain(name, index);
+            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
+                variablesToExtend.top().push_back(*lastMainName);
+            }
+        }
+    }
+}
+
 void CalculateLifetimes() {
     for (uint64_t n = 0; n < bytecodes.size(); n++) {
         switch (bytecodes[n].code) {
             case Bytecode::declare:
                 variableLifetimes.insert(bytecodes[n].target, {n});
                 variableLifetimes[bytecodes[n].target].isMainValue = true;
-                if (IsLocalVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].source);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].source, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                                variablesToExtend.top().push_back(*lastMainName);
-                            }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].source, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].source, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].source, n);
                 break;
             case Bytecode::addFromArgument:
                 variableLifetimes.insert(bytecodes[n].target, {n});
@@ -92,49 +135,9 @@ void CalculateLifetimes() {
                 variableLifetimes.insert(bytecodes[n].type.GetPrefix() +
                         "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
                 // handle source
-                if (IsLocalVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].source);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].source, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                            }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].source, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].source, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].source, n);
                 // handle target
-                if (IsLocalVariable(bytecodes[n].target)) {
-                    if (variableLifetimes.isKey(bytecodes[n].target)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].target);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].target, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                            }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].target, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].target, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].target, n);
                 break;
             case Bytecode::callFunction:
                 if (not bytecodes[n].target.empty()) {
@@ -145,7 +148,7 @@ void CalculateLifetimes() {
                     auto& fun = parserFunctions[bytecodes[n].source];
                     for (uint64_t k = n - 1, arguments = 0; arguments < fun.arguments.size(); k--) {
                         if (bytecodes[k].code == Bytecode::moveArgument) {
-                            if (IsLocalVariable(bytecodes[k].source)) {
+                            if (IsVariable(bytecodes[k].source)) {
                                 // extend the life of the result
                                 auto& temp = variableLifetimes.find(bytecodes[k].source);
                                 temp.usageAmount++;
@@ -158,97 +161,17 @@ void CalculateLifetimes() {
                 break;
             case Bytecode::compare:
                 // handle source
-                if (IsLocalVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].source);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].source, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].source, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].source, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].source, n);
                 // handle target
-                if (IsLocalVariable(bytecodes[n].target)) {
-                    if (variableLifetimes.isKey(bytecodes[n].target)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].target);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].target, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].target, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].target, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].target, n);
                 break;
             case Bytecode::returnValue:
                 // handle source
-                if (IsLocalVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].source);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].source, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].source, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].source, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].source, n);
                 break;
             case Bytecode::moveArgument:
                 // handle source
-                if (IsLocalVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].source);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].source, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                                variablesToExtend.top().push_back(*lastMainName);
-                            }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].source, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].source, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].source, n);
                 // now find the last function call to put into bytecode
                 for (uint64_t k = n; n < bytecodes.size(); k++) {
                     if (bytecodes[k].code == Bytecode::callFunction) {
@@ -268,27 +191,7 @@ void CalculateLifetimes() {
                 temp.isMainValue = true;
             }
                 // handle source
-                if (IsLocalVariable(bytecodes[n].source)) {
-                    if (variableLifetimes.isKey(bytecodes[n].source)) {
-                        auto& temp = variableLifetimes.find(bytecodes[n].source);
-                        temp.usageAmount++;
-                        temp.lastUse = n;
-                        if (not temp.isMainValue) {
-                            AddLifetimeToMain(bytecodes[n].source, n);
-                            if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                                variablesToExtend.top().push_back(*lastMainName);
-                            }
-                        }
-                    }
-                    else {
-                        variableLifetimes.insert(bytecodes[n].source, {n});
-                        // this is not the original value and as such the original one must still exist to convert from
-                        AddLifetimeToMain(bytecodes[n].source, n);
-                        if (not variablesToExtend.empty() and not Optimizations::groupVariableInstances) {
-                            variablesToExtend.top().push_back(*lastMainName);
-                        }
-                    }
-                }
+                AddLifetimeOrInsert(bytecodes[n].source, n);
                 break;
             case Bytecode::pushLevel:
                 variablesToExtend.emplace();
@@ -536,7 +439,7 @@ void RunGroupingLinearAnalysis() {
             
             auto& temp = variableLifetimes[lifetimeVector[convertedNumber].first];
             temp.assignStatus = Operand::sta;
-            temp.staOffset = AddStackAssignment(GetVariableInfo(lifetimeVector[convertedNumber].first).size);
+            temp.staOffset = AddStackAssignment(GetVariableType(lifetimeVector[convertedNumber].first).size);
             convertedNumber++;
         }
         else if (groupNumber < groups.size()) {
@@ -588,7 +491,7 @@ void RunGroupingLinearAnalysis() {
             for (auto& n : std::get<0>(groups[groupNumber])) {
                 auto& temp = variableLifetimes[n];
                 temp.assignStatus = Operand::sta;
-                temp.staOffset = AddStackAssignment(GetVariableInfo(lifetimeVector[convertedNumber].first).size);
+                temp.staOffset = AddStackAssignment(GetVariableType(lifetimeVector[convertedNumber].first).size);
             }
             groupNumber++;
         }

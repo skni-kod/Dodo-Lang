@@ -18,9 +18,6 @@ std::ostream& operator<<(std::ostream& out, const VariableType& type) {
         case VariableType::Subtype::value:
             out << "value of ";
             break;
-        case VariableType::Subtype::reference:
-            out << "reference to ";
-            break;
         case VariableType::Subtype::pointer:
             out << "pointer to ";
             break;
@@ -92,8 +89,6 @@ std::string VariableType::GetPrefix() const {
     switch (subtype) {
         case Subtype::value:
             return prefix + "$";
-        case Subtype::reference:
-            return prefix + "&";
         case Subtype::pointer:
             return prefix + "*";
         default:
@@ -123,9 +118,6 @@ VariableType::VariableType(const std::string& var) {
             break;
         case '*':
             subtype = Subtype::pointer;
-            break;
-        case '&':
-            subtype = Subtype::reference;
             break;
         default:
             CodeGeneratorError("Bug: Invalid variable subtype!");
@@ -386,4 +378,11 @@ void ParserCondition::SetOperand(const std::string& value) {
         return;
     }
     ParserError("Invalid comparison operator!");
+}
+
+std::string ParserVariable::nameForOutput() {
+    if (typeOrName.contains("$")) {
+        return typeOrName.substr(typeOrName.find_first_of("$") + 1);
+    }
+    return typeOrName.substr(typeOrName.find_last_of("*") + 1);
 }

@@ -19,9 +19,10 @@ type f64 : FLOATING_POINT(8);
 type char : UNSIGNED_INTEGER(1);
 type char4 : UNSIGNED_INTEGER(4);
 
-let i32 k = 10;
+let i16 k = 10;
 let i16* j = 20;
 
 i32 main() {
-    return k;
+    let i64 t = k * 5;
+    return t;
 }

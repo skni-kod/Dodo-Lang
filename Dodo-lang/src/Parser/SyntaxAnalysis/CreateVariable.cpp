@@ -30,7 +30,6 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
         ParserError("Expected an operand after variable identifier!");
     }
     if (isGlobal) {
-        var.type.subtype += ParserVariable::Subtype::globalValue;
         name = "glob." + name;
     }
     
@@ -58,7 +57,7 @@ void UpdateGlobalVariables() {
         auto& type = parserTypes[n.second.typeOrName];
         n.second.type.type = type.type;
         n.second.type.size = type.size;
-        n.second.typeOrName = n.first;
+        n.second.typeOrName = VariableType(type).GetPrefix() + n.first;
     }
 }
 

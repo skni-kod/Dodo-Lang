@@ -37,7 +37,7 @@ namespace Optimizations {
     inline bool skipDoubleJumps = false;
 
     // when converting bytecode
-    inline bool skipUnusedVariables = true;
+    inline bool skipUnusedVariables = false;
     inline bool swapExpressionOperands = true;
     inline bool checkPotentialUselessStores = true;
 

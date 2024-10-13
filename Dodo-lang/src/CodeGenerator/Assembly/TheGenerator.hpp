@@ -89,10 +89,10 @@ struct VariableInfo {
     DataLocation location;
     std::string identifier;
 
-    ParserVariable& extractGlobalVariable();
+    [[nodiscard]] ParserVariable& extractGlobalVariable() const;
 
     VariableInfo() = default;
-    VariableInfo(VariableType value, DataLocation location);
+    VariableInfo(VariableType value, DataLocation location, std::string identifier);
     static VariableInfo FromLocation(DataLocation location);
     explicit VariableInfo(const std::string& name);
 
@@ -102,8 +102,8 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index);
 
 void InsertValue(std::string target, std::string source);
 
-void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index);
-void NewMoveValue(VariableInfo source, VariableInfo target, std::string contentToSet);
+//void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index);
+void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize);
 
 uint8_t GetOperandType(const std::string& operand);
 
@@ -119,6 +119,6 @@ void FillDesignatedPlaces(uint64_t index);
 
 void UpdateVariables();
 
-VariableType GetVariableInfo(const std::string& name);
+VariableType GetVariableType(const std::string& name);
 
 #endif //DODO_LANG_THE_GENERATOR_HPP

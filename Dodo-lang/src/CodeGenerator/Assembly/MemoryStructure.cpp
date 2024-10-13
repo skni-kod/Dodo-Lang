@@ -196,33 +196,6 @@ DataLocation MemoryStructure::findThing(const std::string& name) {
     return {Operand::none, static_cast <uint64_t>(0)};
 }
 
-/*
-std::ostream& operator<<(std::ostream& out, const DataLocation& data) {
-    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
-        switch (data.type) {
-            case DataLocation::reg:
-                return out << '%' << generatorMemory.registers[data.number].nameBySize(data.size);
-            case DataLocation::sta:
-                return out << data.offset << "(%rbp)";
-            case DataLocation::hea:
-                CodeGeneratorError("Heap memory not supported!");
-            case DataLocation::las:
-                CodeGeneratorError("Text constants not yet supported!");
-            case DataLocation::lal:
-                return out << ".LC" << data.label.number;
-            case DataLocation::laf:
-                CodeGeneratorError("Function labels not yet supported in output!");
-            case DataLocation::val:
-                return out << data.value;
-        }
-    }
-    CodeGeneratorError("Unsupported target for assembly output!");
-    return out;
-}
-*/
-
-//DataLocation::DataLocation(uint8_t type, uint32_t number, uint32_t size) : type(type), number(number), size(size) {}
-
 DataLocation::DataLocation(uint8_t type, int64_t offset) : type(type), offset(offset) {}
 
 DataLocation::DataLocation(uint8_t type, uint64_t value) : type(type), value(value) {}
@@ -249,7 +222,18 @@ void DataLocation::print(std::ofstream& out, uint8_t size) const {
                 }
                 CodeGeneratorError("Could not find valid register!");
             case Operand::aadr:
-                out << "$" << globalPtr->typeOrName;
+                out << "$" << globalPtr->nameForOutput();
+                return;
+            case Operand::rptr:
+                out << "(";
+                for (auto& n : generatorMemory.registers[number].sizeNamePairs) {
+                    if (n.first == Options::addressSize) {
+                        out << '%' << n.second;
+                        break;
+                    }
+                }
+                out << ")";
+                return;
             default:
                 CodeGeneratorError("Unimplemented: unsupported operand type in print!");
         }

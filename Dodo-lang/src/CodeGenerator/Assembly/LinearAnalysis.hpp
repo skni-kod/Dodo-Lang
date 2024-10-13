@@ -34,6 +34,7 @@ inline int64_t minimumSafeStackOffset = 0;
 void RunLinearAnalysis();
 
 VariableStatistics& FindMain(std::string& child);
+const std::string& FindMainName(std::string& child);
 inline const std::string* lastMainName = nullptr;
 
 #endif //DODO_LANG_LINEAR_ANALYSIS_HPP

@@ -14,9 +14,6 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
             if (current->value == "*") {
                 function.returnValueType = ParserFunction::Subtype::pointer;
             }
-            else if (current->value == "&") {
-                function.returnValueType = ParserFunction::Subtype::reference;
-            }
             else {
                 ParserError("Unexpected operand after function return type!");
             }
@@ -62,9 +59,6 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
         if (current->type == LexicalToken::Type::operand) {
             if (current->value == "*") {
                 argument.type = FunctionArgument::Subtype::pointer;
-            }
-            else if (current->value == "&") {
-                argument.type = FunctionArgument::Subtype::reference;
             }
             else {
                 ParserError("Unexpected operand after function argument type name!");
