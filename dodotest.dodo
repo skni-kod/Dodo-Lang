@@ -22,7 +22,11 @@ type char4 : UNSIGNED_INTEGER(4);
 let i16 k = 10;
 let i16* j = 20;
 
+void ReplaceGlobal(i16 y) {
+    k = y;
+}
+
 i32 main() {
-    let i64 t = k * 5;
-    return t;
+    ReplaceGlobal(50);
+    return k;
 }

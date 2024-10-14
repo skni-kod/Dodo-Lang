@@ -16,6 +16,9 @@ uint8_t GetOperandType(const std::string& operand) {
     if (operand.front() == '$') {
         return Operand::imm;
     }
+    if (operand.front() == '^') {
+        return Operand::rptr;
+    }
     if (operand.front() == 'i' or operand.front() == 'u' or operand.front() == 'f') {
         return Operand::var;
     }
@@ -179,22 +182,20 @@ OpCombination& ChooseOpCombination(InstructionRequirements& req, std::vector<uin
     return opCombDummy;
 }
 
-void MoveValueToStorage() {
-
-}
-
-
 void UpdateVariables() {
     for (auto& n: generatorMemory.registers) {
         uint8_t type = GetOperandType(n.content.value);
-        if (type == Operand::var and variableLifetimes[n.content.value].lastUse < currentBytecodeIndex) {
+        if (type == Operand::var and variableLifetimes[n.content.value].lastUse <= currentBytecodeIndex) {
+            n.content.value = "!";
+        }
+        else if (type == Operand::rptr and variableLifetimes[n.content.value.substr(1)].lastUse <= currentBytecodeIndex) {
             n.content.value = "!";
         }
     }
     for (uint64_t n = 0; n < generatorMemory.stack.size(); n++) {
         uint8_t type = GetOperandType(generatorMemory.stack[n].content.value);
         if (type == Operand::var and
-            variableLifetimes[generatorMemory.stack[n].content.value].lastUse < currentBytecodeIndex) {
+            variableLifetimes[generatorMemory.stack[n].content.value].lastUse <= currentBytecodeIndex) {
             generatorMemory.stack.erase(generatorMemory.stack.begin() + n);
         }
     }
@@ -366,7 +367,25 @@ VariableInfo::VariableInfo(const std::string& name) {
 
         // in this case there is something there
         if (content.contains("glob.")) {
-            CodeGeneratorError("Unimplemented: global variable in register replacement!");
+            //CodeGeneratorError("Unimplemented: global variable in register replacement!");
+            // it is, to get the variable name we need to cut off the first part
+            std::string realName = content.substr(content.find("glob."));
+            if (realName.contains("#")) {
+                realName = realName.substr(0, realName.find_last_of('#'));
+            }
+            auto& var = globalVariables[realName];
+
+            // search for the location in simulated memory
+            location = generatorMemory.findThing(content);
+
+            if (location.type == Operand::none) {
+                // location wasn't found, so it's on the heap or wherever the assembler decides to put it
+                location.type = Operand::aadr;
+                location.globalPtr = &var;
+            }
+            value = GetVariableType(content);
+            identifier = content;
+            return;
         }
 
         // it's a local variable, return its info
@@ -390,7 +409,25 @@ VariableInfo::VariableInfo(const std::string& name) {
 
         // in this case there is something there
         if (content.contains("glob.")) {
-            CodeGeneratorError("Unimplemented: global variable in register replacement!");
+            //CodeGeneratorError("Unimplemented: global variable in register replacement!");
+            // it is, to get the variable name we need to cut off the first part
+            std::string realName = content.substr(content.find("glob."));
+            if (realName.contains("#")) {
+                realName = realName.substr(0, realName.find_last_of('#'));
+            }
+            auto& var = globalVariables[realName];
+
+            // search for the location in simulated memory
+            location = generatorMemory.findThing(content);
+
+            if (location.type == Operand::none) {
+                // location wasn't found, so it's on the heap or wherever the assembler decides to put it
+                location.type = Operand::aadr;
+                location.globalPtr = &var;
+            }
+            value = GetVariableType(content);
+            identifier = content;
+            return;
         }
 
         // it's a local variable, return its info
@@ -544,7 +581,7 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
 }
 
 // this places a global variable in given place
-void PlaceGlobalVariable(VariableInfo source, VariableInfo target) {
+void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressOnly = false) {
     if (target.location.type != Operand::reg) {
         CodeGeneratorError("Unimplemented: Unsupported global variable placement point!");
     }
@@ -561,6 +598,11 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target) {
     ins.op2 = {Operand::aadr, &base};
     finalInstructions.push_back(ins);
 
+    if (addressOnly) {
+        SetContent(target.location, "^" + source.identifier);
+        return;
+    }
+
     // now that the pointer is there we can move the value from it into the register
     if (base.type == source.value) {
         // they are of the same type so just extract the value
@@ -575,6 +617,22 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target) {
     }
 }
 
+// finds the best candidate register to move a value to
+DataLocation FindViableRegister() {
+    for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
+        if (generatorMemory.registers[n].content.value == "!") {
+            return {Operand::reg, n};
+        }
+    }
+    for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
+        if (generatorMemory.registers[n].content.value.starts_with("$")) {
+            return {Operand::reg, n};
+        }
+    }
+    CodeGeneratorError("Unimplemented: Complex register finding!");
+    return {};
+}
+
 // new MoveValue implementation with much better functionality support
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize) {
     if (source.identifier == target.identifier) {
@@ -582,16 +640,27 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
         return;
     }
     
-    if (target.value.type != Value::none) {
+    if (target.value.type != Value::none and not target.identifier.contains("glob.")) {
         // there is something in the target location, it needs to be copied elsewhere 
         MoveVariableElsewhere(target);
     }
 
     // in that case we have things to do
     if (source.identifier.contains("glob.")) {
-        // it's a global variable, these need different handling, let's do it in a different function
-        PlaceGlobalVariable(source, target);
-        return;
+        if (WasGlobalLocalized(source.identifier)) {
+            auto base = VariableInfo(FindMainName(source.identifier));
+            if (source.value == base.value) {
+                source.location = base.location;
+            }
+            else {
+                source.location.type = Operand::convert;
+            }
+        }
+        else {
+            // it's a global variable, these need different handling, let's do it in a different function
+            PlaceGlobalVariable(source, target);
+            return;
+        }
     }
     
     // at this point the original target location can be assumed to be empty and ready for input, hurray!
@@ -601,8 +670,8 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
             Instruction ins;
             ins.type = x86_64::mov;
             ins.sizeBefore = ins.sizeAfter = operationSize;
-            ins.op1 = target.location;
             ins.op2 = source.location;
+            ins.op1 = target.location;
             if (ins.op1.type == Operand::sta and ins.op2.type == Operand::sta) {
                 CodeGeneratorError("Unimplemented: X86-64 stack to stack move!");
             }
@@ -886,33 +955,31 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                                 operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(life.regNumber)));
                                 continue;
                             }
-                            else {
-                                // find a free register, starting from back to reduce the risk of multiple moves
-                                bool found = false;
-                                for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k--) {
-                                    auto& reg = generatorMemory.registers[k];
-                                    if (reg.content.value == "!" and not occupied[k]) {
-                                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
-                                        found = true;
-                                        occupied[k] = true;
-                                        break;
-                                    }
+                            // find a free register, starting from back to reduce the risk of multiple moves
+                            bool found = false;
+                            for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k--) {
+                                auto& reg = generatorMemory.registers[k];
+                                if (reg.content.value == "!" and not occupied[k]) {
+                                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
+                                    found = true;
+                                    occupied[k] = true;
+                                    break;
                                 }
-                                if (found) {
-                                    continue;
+                            }
+                            if (found) {
+                                continue;
+                            }
+                            for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k++) {
+                                auto& reg = generatorMemory.registers[k];
+                                if (reg.content.value.starts_with("$") and not occupied[k]) {
+                                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
+                                    found = true;
+                                    occupied[k] = true;
+                                    break;
                                 }
-                                for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k++) {
-                                    auto& reg = generatorMemory.registers[k];
-                                    if (reg.content.value.starts_with("$") and not occupied[k]) {
-                                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
-                                        found = true;
-                                        occupied[k] = true;
-                                        break;
-                                    }
-                                }
-                                if (found) {
-                                    continue;
-                                }
+                            }
+                            if (found) {
+                                continue;
                             }
                         }
 
@@ -1066,8 +1133,26 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
 void AssignExpressionToVariable(const std::string& exp, const std::string& var) {
     // find all instances of the expression and replace their name with the variable
     // if it's not the same size let it cry
-    if (exp[1] != var[1]) {
-        CodeGeneratorError("Unimplemented: Expression to variable assignment size conversion!");
+    if (var.contains("glob.")) {
+        // in that case we also need to update the global variable
+        // we're moving value into a global variable, we need to get its address into a register
+        // after that it should be a normal move
+        DataLocation where = FindViableRegister();
+        PlaceGlobalVariable(VariableInfo(var), VariableInfo::FromLocation(where), true);
+        Instruction ins;
+        if (Options::targetArchitecture != Options::TargetArchitecture::x86_64) {
+            CodeGeneratorError("Unimplemented: Non x86-64 global assignment!");
+        }
+        VariableInfo source(var);
+        ins.sizeAfter = ins.sizeBefore = source.value.size;
+        ins.type = x86_64::mov;
+        where.type = Operand::rptr;
+        ins.op1 = where;
+        ins.op2 = generatorMemory.findThing(exp);
+        if (ins.op2.type == Operand::none) {
+            CodeGeneratorError("Bug: Move of non existent variable to global!");
+        }
+        finalInstructions.push_back(ins);
     }
     for (auto& n : generatorMemory.registers) {
         if (n.content.value == exp) {

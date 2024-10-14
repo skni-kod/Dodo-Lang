@@ -28,6 +28,16 @@ bool IsVariable(const std::string& input) {
 
 VariableStatistics VSDummy;
 
+bool WasGlobalLocalized(std::string& name) {
+    std::string searched = name.substr(2, name.size() - 2);
+    for (auto& n : variableLifetimes.map) {
+        if (n.first.ends_with(searched) and n.second.isMainValue and n.second.firstUse < currentBytecodeIndex) {
+            return true;
+        }
+    }
+    return false;
+}
+
 VariableStatistics& FindMain(std::string& child) {
     std::string searched = child.substr(2, child.size() - 2);
     for (auto& n : variableLifetimes.map) {

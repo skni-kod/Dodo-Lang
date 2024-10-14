@@ -403,7 +403,8 @@ void Instruction::outputX86_64(std::ofstream& out) const {
                 out << "\n";
                 break;
             case x86_64::jumpLabel:
-                out << ".L" << op1.number << ":\n";
+                PrintWithSpaces(".L" + std::to_string(op1.number) + ":\n", out);
+                out << "\n";
                 break;
             case x86_64::jmp:
                 PrintWithSpaces("jmp", out);
@@ -434,7 +435,8 @@ void Instruction::outputX86_64(std::ofstream& out) const {
                 out << ".L" << op1.number << "\n";
                 break;
             case x86_64::returnPoint:
-                out << "." << *lastFunctionName << ".return:\n";
+                PrintWithSpaces("." + *lastFunctionName + ".return:", out);
+            out << "\n";
                 break;
             case x86_64::call:
                 PrintWithSpaces("call", out);

@@ -107,10 +107,21 @@ std::string GetVariableInstance(std::string identifier) {
         return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
     }
     if (globalVariables.isKey(identifier)) {
-        return AddVariableInstance(identifier);
+        auto& global = globalVariables[identifier];
+        auto temp = AddVariableInstance(identifier);
+        earlyVariables.variables.front().emplace_back(global.type, temp, global.isMutable);
+        return temp;
     }
     else if (globalVariables.isKey("glob." + identifier)) {
-        return AddVariableInstance("glob." + identifier);
+        identifier = "glob." + identifier;
+        if (variableInstances.isKey(identifier)) {
+            auto& ins = variableInstances[identifier];
+            return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
+        }
+        auto& global = globalVariables[identifier];
+        auto temp = AddVariableInstance(identifier);
+        earlyVariables.variables.front().emplace_back(global.type, temp, global.isMutable);
+        return temp;
     }
     CodeGeneratorError("Invalid variable reference!");
     return "";
@@ -124,16 +135,14 @@ std::string ReassignVariableInstance(std::string identifier, const VariableType&
         earlyVariables.add({type, GetVariableInstance(identifier), true});
         return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.newAssignmentNumber);
     }
-    if (globalVariables.isKey(identifier)) {
-        return identifier;
-    }
     else if (globalVariables.isKey("glob." + identifier)) {
-        return "glob." + identifier;
+        return ReassignVariableInstance("glob." + identifier, type);
     }
     CodeGeneratorError("Invalid variable reference!");
     return "";
 }
 
+// not used after optimizations
 void RollbackVariableInstance(std::string identifier, uint64_t assignmentNumber) {
     if (variableInstances.isKey(identifier)) {
         auto& ins = variableInstances[identifier];
@@ -409,7 +418,7 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
 
             const auto& type = parserTypes[function.arguments[n].typeName];
             bytecodes.emplace_back(Bytecode::moveArgument,
-                                   CalculateBytecodeExpression(*argument->left, {type.size, type.type}), VariableType(type.size, type.type));
+                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), VariableType(type.size, type.type));
 
             // get the next argument
             argument = argument->left.get();

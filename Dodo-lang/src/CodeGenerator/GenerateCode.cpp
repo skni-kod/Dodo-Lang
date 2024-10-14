@@ -56,9 +56,12 @@ void GenerateCode() {
         else {
             CodeGeneratorError("Invalid target system!");
         }
-        out << ".data\n"
-            << ".text\n"
-            << ".global _start\n";
+        out << ".section .data\n";
+        // global variable declaration
+        x86_64::AddGlobalVariables(out);
+        out << "\n.section .text\n";
+        // global text declaration
+        out << "\n.global _start\n";
     }
     else {
         CodeGeneratorError("Invalid target architecture!");
@@ -66,8 +69,8 @@ void GenerateCode() {
 
     // put beginning things here, like message declaration
     
-    // global variable declaration
-    x86_64::AddGlobalVariables(out);
+    
+    
 
     // Functions:
     for (auto& current: parserFunctions.map) {
@@ -105,7 +108,8 @@ void GenerateCode() {
         // end function
         if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
             if (doAddLeave) {
-                out << "leave\n";
+                PrintWithSpaces("leave", out);
+                out << "\n";
             }
             else {
                 PrintWithSpaces("popq", out);

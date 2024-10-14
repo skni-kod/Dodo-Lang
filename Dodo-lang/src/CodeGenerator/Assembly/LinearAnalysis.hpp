@@ -33,6 +33,7 @@ inline int64_t minimumSafeStackOffset = 0;
 
 void RunLinearAnalysis();
 
+bool WasGlobalLocalized(std::string& name);
 VariableStatistics& FindMain(std::string& child);
 const std::string& FindMainName(std::string& child);
 inline const std::string* lastMainName = nullptr;
