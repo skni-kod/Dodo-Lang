@@ -16,10 +16,7 @@ uint8_t GetOperandType(const std::string& operand) {
     if (operand.front() == '$') {
         return Operand::imm;
     }
-    if (operand.front() == '^') {
-        return Operand::rptr;
-    }
-    if (operand.front() == 'i' or operand.front() == 'u' or operand.front() == 'f') {
+    if (operand.front() == 'i' or operand.front() == 'u' or operand.front() == 'f' or operand.front() == '^') {
         return Operand::var;
     }
     return Operand::none;
@@ -188,9 +185,6 @@ void UpdateVariables() {
         if (type == Operand::var and variableLifetimes[n.content.value].lastUse <= currentBytecodeIndex) {
             n.content.value = "!";
         }
-        else if (type == Operand::rptr and variableLifetimes[n.content.value.substr(1)].lastUse <= currentBytecodeIndex) {
-            n.content.value = "!";
-        }
     }
     for (uint64_t n = 0; n < generatorMemory.stack.size(); n++) {
         uint8_t type = GetOperandType(generatorMemory.stack[n].content.value);
@@ -287,7 +281,10 @@ std::vector<std::pair<uint64_t, std::string>> storesToCheck;
 
 VariableType GetVariableType(const std::string& name) {
     VariableType value;
-    switch (name.front()) {
+    if (name.front() == '^') {
+        value.isAddress = 1;
+    }
+    switch (name[value.isAddress]) {
         case 'u':
             value.type = Value::unsignedInteger;
             break;
@@ -300,20 +297,15 @@ VariableType GetVariableType(const std::string& name) {
         default:
             CodeGeneratorError("Bug: Invalid variable prefix!");
     }
-    uint64_t index = 1;
+    uint64_t index = 1 + value.isAddress;
     while (name[index] >= '0' and name[index] <= '9') {
         index++;
     }
-    value.size = std::stoull(name.substr(1, index - 1));
-    switch (name[index]) {
-        case '$':
-            value.subtype = VariableType::Subtype::value;
-            break;
-        case '*':
-            value.subtype = VariableType::Subtype::pointer;
-            break;
-        default:
-            CodeGeneratorError("Invalid subtype signature in variable!");
+    value.size = std::stoull(name.substr(1 + value.isAddress, index - 1));
+    while (name[index] == '*') {
+        value.subtype++;
+        index++;
+        value.isAddress = true;
     }
     return value;
 }
@@ -614,7 +606,7 @@ void X86_64PureMove(DataLocation source, DataLocation target, uint64_t size, boo
     ins.sizeAfter = ins.sizeBefore = size;
     ins.op2 = source;
     if (source.type == Operand::sta) {
-        if (target.type == Operand::sta or target.type == Operand::rptr) {
+        if (target.type == Operand::sta or source.extractAddress) {
             if (not findRouteRegister) {
                 CodeGeneratorError("Bug: unexpected stack to stack move");
             }
@@ -718,20 +710,25 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
         // they are of the same type so just extract the value
         ins.sizeAfter = ins.sizeBefore = source.value.size;
         ins.op1 = target.location;
-        ins.op2 = {Operand::rptr, target.location.number};
+        ins.op2 = {Operand::reg, target.location.number, true};
         finalInstructions.push_back(ins);
         SetContent(target.location, source.identifier);
     }
     else {
-        X86_64PlaceConvertedValue({base.type, {Operand::rptr, target.location.number}, source.identifier}, {source.value, target.location, target.identifier});
+        X86_64PlaceConvertedValue({base.type, {Operand::reg, target.location.number, true}, source.identifier}, {source.value, target.location, target.identifier});
     }
 }
 
 // new MoveValue implementation with much better functionality support
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize) {
-    if (source.identifier == target.identifier) {
+    if (source.identifier == contentToSet) {
         // they are exactly the same, so there is no need for a move
         return;
+    }
+
+    auto contentType = VariableType(contentToSet);
+    if (contentType != source.value) {
+        CodeGeneratorError("Bug: Invalid type combination in value move!");
     }
     
     if (target.value.type != Value::none and not target.identifier.contains("glob.")) {
@@ -763,9 +760,19 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
         if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
             Instruction ins;
             ins.type = x86_64::mov;
-            ins.sizeBefore = ins.sizeAfter = operationSize;
-            ins.op2 = source.location;
-            ins.op1 = target.location;
+            if (source.value.isAddress) {
+                // in that case we're moving a pointer
+                ins.sizeBefore = ins.sizeAfter = Options::addressSize;
+                ins.op2 = source.location;
+                ins.op2.extractAddress = false;
+                ins.op1 = target.location;
+                ins.op1.extractAddress = false;
+            }
+            else {
+                ins.sizeBefore = ins.sizeAfter = operationSize;
+                ins.op2 = source.location;
+                ins.op1 = target.location;
+            }
             if (ins.op1.type == Operand::sta and ins.op2.type == Operand::sta) {
                 CodeGeneratorError("Unimplemented: X86-64 stack to stack move!");
             }
@@ -1240,7 +1247,8 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var) 
         VariableInfo source(var);
         ins.sizeAfter = ins.sizeBefore = source.value.size;
         ins.type = x86_64::mov;
-        where.type = Operand::rptr;
+        where.type = Operand::reg;
+        where.extractAddress = true;
         ins.op1 = where;
         ins.op2 = generatorMemory.findThing(exp);
         if (ins.op2.type == Operand::none) {

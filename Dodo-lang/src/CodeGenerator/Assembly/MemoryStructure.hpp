@@ -11,9 +11,7 @@ namespace Operand {
     enum {
         none = 0, convert = 0, reg, sta, imm,
         // assember address
-        aadr,
-        // register with pointer
-        rptr, sptr, var, replace, jla, fun
+        aadr, var, replace, jla, fun
     };
 }
 
@@ -112,6 +110,7 @@ struct LabelContainer {
 
 struct DataLocation {
     uint8_t type = Operand::none;
+    uint8_t extractAddress = false;
     union {
         int64_t offset = 0;
         uint64_t value;
@@ -129,15 +128,15 @@ struct DataLocation {
 
     DataLocation() = default;
 
-    DataLocation(uint8_t type, uint32_t number, uint32_t size);
+    DataLocation(uint8_t type, uint32_t number, uint32_t size, bool isAddress = false);
 
-    DataLocation(uint8_t type, int64_t offset);
+    DataLocation(uint8_t type, int64_t offset, bool isAddress = false);
 
-    DataLocation(uint8_t type, uint64_t value);
+    DataLocation(uint8_t type, uint64_t value, bool isAddress = false);
 
-    DataLocation(uint8_t type, ParserFunction* functionPtr);
+    DataLocation(uint8_t type, ParserFunction* functionPtr, bool isAddress = false);
     
-    DataLocation(uint8_t type, ParserVariable* globalPtr);
+    DataLocation(uint8_t type, ParserVariable* globalPtr, bool isAddress = false);
 
     DataLocation(const std::string& operand);
 };

@@ -49,16 +49,17 @@ struct ParserType {
 };
 
 struct VariableType {
-    uint32_t size: 27 = 0;
+    uint32_t size: 21 = 0;
     INSERT_SUBTYPE_ENUM
     uint8_t type: 2 = ParserType::Type::signedInteger;
-    uint8_t subtype: 3 = Subtype::value;
+    uint8_t isAddress: 1 = false;
+    uint8_t subtype = Subtype::value;
 
     VariableType() = default;
 
-    VariableType(uint8_t size, uint8_t type, uint8_t subtype = Subtype::value);
+    VariableType(uint8_t size, uint8_t type, uint8_t subtype = Subtype::value, uint8_t isAddress = false);
 
-    explicit VariableType(const ParserType& type, uint8_t subtype = Subtype::value);
+    explicit VariableType(const ParserType& type, uint8_t subtype = Subtype::value, uint8_t isAddress = false);
 
     explicit VariableType(const std::string& var);
 

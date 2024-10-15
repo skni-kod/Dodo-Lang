@@ -185,30 +185,24 @@ DataLocation MemoryStructure::findThing(const std::string& name) {
     }
     for (uint64_t n = 0; n < registers.size(); n++) {
         if (registers[n].content.value == name) {
-            if (GetVariableType(name).subtype == Subtype::value) {
-                return {Operand::reg, n};
-            }
-            return {Operand::rptr, n};
+            return {Operand::reg, n};
         }
     }
     for (auto& n : stack) {
         if (n.content.value == name) {
-            if (GetVariableType(name).subtype == Subtype::value) {
-                return {Operand::sptr, n.offset};
-            }
-            return {Operand::sptr, n.offset};
+            return {Operand::sta, n.offset};
         }
     }
     return {Operand::none, static_cast <uint64_t>(0)};
 }
 
-DataLocation::DataLocation(uint8_t type, int64_t offset) : type(type), offset(offset) {}
+DataLocation::DataLocation(uint8_t type, int64_t offset, bool isAddress) : type(type), offset(offset), extractAddress(isAddress) {}
 
-DataLocation::DataLocation(uint8_t type, uint64_t value) : type(type), value(value) {}
+DataLocation::DataLocation(uint8_t type, uint64_t value, bool isAddress) : type(type), value(value), extractAddress(isAddress) {}
 
-DataLocation::DataLocation(uint8_t type, ParserFunction* functionPtr) : type(type), functionPtr(functionPtr) {}
+DataLocation::DataLocation(uint8_t type, ParserFunction* functionPtr, bool isAddress) : type(type), functionPtr(functionPtr), extractAddress(isAddress) {}
 
-DataLocation::DataLocation(uint8_t type, ParserVariable* globalPtr) : type(type), globalPtr(globalPtr) {}
+DataLocation::DataLocation(uint8_t type, ParserVariable* globalPtr, bool isAddress) : type(type), globalPtr(globalPtr), extractAddress(isAddress) {}
 
 void DataLocation::print(std::ofstream& out, uint8_t size) const {
     if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS and Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
@@ -220,25 +214,20 @@ void DataLocation::print(std::ofstream& out, uint8_t size) const {
                 out << offset << "(%rbp)";
                 return;
             case Operand::reg:
+                if (extractAddress) {
+                    out << "(";
+                }
                 for (auto& n : generatorMemory.registers[number].sizeNamePairs) {
                     if (n.first == size) {
                         out << '%' << n.second;
-                        return;
                     }
                 }
-                CodeGeneratorError("Could not find valid register!");
+                if (extractAddress) {
+                    out << ")";
+                }
+                break;
             case Operand::aadr:
                 out << "$" << globalPtr->nameForOutput();
-                return;
-            case Operand::rptr:
-                out << "(";
-                for (auto& n : generatorMemory.registers[number].sizeNamePairs) {
-                    if (n.first == Options::addressSize) {
-                        out << '%' << n.second;
-                        break;
-                    }
-                }
-                out << ")";
                 return;
             default:
                 CodeGeneratorError("Unimplemented: unsupported operand type in print!");

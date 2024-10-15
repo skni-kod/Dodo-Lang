@@ -3,6 +3,7 @@
 #include "Generator.tpp"
 #include "SyntaxAnalysis/AnalysisInternal.hpp"
 #include "GenerateCode.hpp"
+#include "Assembly/TheGenerator.hpp"
 
 bool IsType(const std::string& token) {
     return parserTypes.isKey(token);
@@ -46,23 +47,24 @@ std::ostream& operator<<(std::ostream& out, const VariableType& type) {
 }
 
 
-VariableType::VariableType(uint8_t size, uint8_t type, uint8_t subtype) : size(size), type(type), subtype(subtype) {}
+VariableType::VariableType(uint8_t size, uint8_t type, uint8_t subtype, uint8_t isAddress) : size(size), type(type), subtype(subtype), isAddress(isAddress) {}
 
-VariableType::VariableType(const ParserType& type, uint8_t subtype) {
+VariableType::VariableType(const ParserType& type, uint8_t subtype, uint8_t isAddress) {
     this->subtype = subtype;
     this->size = type.size;
     this->type = type.type;
+    this->isAddress = isAddress;
 }
 
 bool VariableType::operator==(const VariableType& var) {
-    if (size == var.size and type == var.type and subtype == var.subtype) {
+    if (size == var.size and type == var.type and subtype == var.subtype and isAddress == var.isAddress) {
         return true;
     }
     return false;
 }
 
 bool VariableType::operator!=(const VariableType& var) {
-    if (size != var.size or type != var.type or subtype != var.subtype) {
+    if (size != var.size or type != var.type or subtype != var.subtype or isAddress != var.isAddress) {
         return true;
     }
     return false;
@@ -70,6 +72,9 @@ bool VariableType::operator!=(const VariableType& var) {
 
 std::string VariableType::getPrefix() const {
     std::string prefix;
+    if (isAddress) {
+        prefix = "^";
+    }
     switch (type) {
         case ParserType::unsignedInteger:
             prefix += 'u';
@@ -96,30 +101,7 @@ std::string VariableType::getPrefix() const {
 }
 
 VariableType::VariableType(const std::string& var) {
-    switch (var.front()) {
-        case 'u':
-            type = ParserType::unsignedInteger;
-            break;
-        case 'i':
-            type = ParserType::signedInteger;
-            break;
-        case 'f':
-            type = ParserType::floatingPoint;
-            break;
-        default:
-            CodeGeneratorError("Bug: Invalid variable type!");
-    }
-    size = var[1] - '0';
-    switch (var[2]) {
-        case '$':
-            subtype = Subtype::value;
-            break;
-        case '*':
-            subtype = Subtype::pointer;
-            break;
-        default:
-            CodeGeneratorError("Bug: Invalid variable subtype!");
-    }
+    *this = GetVariableType(var);
 }
 
 FunctionInstruction::~FunctionInstruction() {
