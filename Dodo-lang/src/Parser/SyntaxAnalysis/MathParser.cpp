@@ -34,21 +34,35 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
 
     // a negative value of variable or constant
     if (size == 2) {
-        if (tokens[range.first]->type != LexicalToken::Type::operand or tokens[range.first]->value != "-") {
-            ParserError("Unexpected two token pair in mathematical expression: " + tokens[range.first]->value + " "
-                        + tokens[range.first + 1]->value + "!");
-        }
         if (tokens[range.first + 1]->type == LexicalToken::Type::identifier) {
-            ParserValue value;
-            value.nodeType = ParserValue::Node::operation;
-            value.operationType = ParserValue::Operation::subtraction;
-            value.left = std::make_unique<ParserValue>();
-            value.left->nodeType = ParserValue::Node::constant;
-            value.left->fillValue("0");
-            value.right = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first + 1, range.second}));
-            return std::move(value);
+            if (tokens[range.first]->value == "-") {
+                ParserValue value;
+                value.nodeType = ParserValue::Node::operation;
+                value.operationType = ParserValue::Operation::subtraction;
+                value.left = std::make_unique<ParserValue>();
+                value.left->nodeType = ParserValue::Node::constant;
+                value.left->fillValue("0");
+                value.right = std::make_unique<ParserValue>(ParseMathInternal(tokens, {range.first + 1, range.second}));
+                return std::move(value);
+            }
+            else if (tokens[range.first]->value == "&") {
+                // address extraction
+                ParserValue value;
+                value.nodeType = ParserValue::Node::operation;
+                value.operationType = ParserValue::Operation::getAddress;
+                value.value = std::make_unique<std::string>(tokens[range.first + 1]->value);
+                return std::move(value);
+            }
+            else if (tokens[range.first]->value == "*") {
+                // address extraction
+                ParserValue value;
+                value.nodeType = ParserValue::Node::operation;
+                value.operationType = ParserValue::Operation::getValue;
+                value.value = std::make_unique<std::string>(tokens[range.first + 1]->value);
+                return std::move(value);
+            }
         }
-        else if (tokens[range.first + 1]->type == LexicalToken::Type::literal) {
+        else if (tokens[range.first + 1]->type == LexicalToken::Type::literal and tokens[range.first]->value == "-") {
             if (not IsNumeric(tokens[range.first + 1])) {
                 ParserError("Invalid literal type in negative sign operation: " + tokens[range.first + 1]->value + "!");
             }
@@ -62,6 +76,9 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
             }
             return std::move(value);
         }
+
+        ParserError("Unexpected two token pair in mathematical expression: " + tokens[range.first]->value + " "
+                        + tokens[range.first + 1]->value + "!");
     }
 
     if (size > 2 and tokens[range.first]->value == "(" and tokens[range.second - 1]->value == ")") {

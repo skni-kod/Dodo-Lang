@@ -29,9 +29,9 @@ bool IsVariable(const std::string& input) {
 VariableStatistics VSDummy;
 
 bool WasGlobalLocalized(std::string& name) {
-    std::string searched = name.substr(2, name.size() - 2);
+    std::string searched = name.substr(3);
     for (auto& n : variableLifetimes.map) {
-        if (n.first.ends_with(searched) and n.second.isMainValue and n.second.firstUse < currentBytecodeIndex) {
+        if (n.first.ends_with(searched) and n.second.isMainValue and generatorMemory.findThing(n.first).type != Operand::none) {
             return true;
         }
     }
@@ -39,7 +39,7 @@ bool WasGlobalLocalized(std::string& name) {
 }
 
 VariableStatistics& FindMain(std::string& child) {
-    std::string searched = child.substr(2, child.size() - 2);
+    std::string searched = child.substr(3);
     for (auto& n : variableLifetimes.map) {
         if (n.first.ends_with(searched) and n.second.isMainValue) {
             lastMainName = &n.first;
@@ -53,7 +53,7 @@ VariableStatistics& FindMain(std::string& child) {
 std::string dummyString;
 
 const std::string& FindMainName(std::string& child) {
-    std::string searched = child.substr(2, child.size() - 2);
+    std::string searched = child.substr(3);
     for (auto& n : variableLifetimes.map) {
         if (n.first.ends_with(searched) and n.second.isMainValue) {
             lastMainName = &n.first;
@@ -142,12 +142,26 @@ void CalculateLifetimes() {
             case Bytecode::multiply:
             case Bytecode::divide:
                 // create the expression
-                variableLifetimes.insert(bytecodes[n].type.GetPrefix() +
+                variableLifetimes.insert(bytecodes[n].type.getPrefix() +
                         "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 // handle target
                 AddLifetimeOrInsert(bytecodes[n].target, n);
+                break;
+            case Bytecode::getAddress:
+                // create the expression
+                variableLifetimes.insert(VariableType(bytecodes[n].type.size, bytecodes[n].type.type, bytecodes[n].type.subtype + 1).getPrefix() +
+                                    "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
+                // handle source
+                AddLifetimeOrInsert(bytecodes[n].source, n);
+                break;
+            case Bytecode::getValue:
+                // create the expression
+                variableLifetimes.insert(VariableType(bytecodes[n].type.size, bytecodes[n].type.type, bytecodes[n].type.subtype - 1).getPrefix() +
+                                        "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
+                // handle source
+                AddLifetimeOrInsert(bytecodes[n].source, n);
                 break;
             case Bytecode::callFunction:
                 if (not bytecodes[n].target.empty()) {

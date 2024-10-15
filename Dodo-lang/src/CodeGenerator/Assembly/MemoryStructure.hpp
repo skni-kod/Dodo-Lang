@@ -13,7 +13,7 @@ namespace Operand {
         // assember address
         aadr,
         // register with pointer
-        rptr, var, replace, jla, fun
+        rptr, sptr, var, replace, jla, fun
     };
 }
 

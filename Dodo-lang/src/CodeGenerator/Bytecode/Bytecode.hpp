@@ -20,6 +20,10 @@ struct Bytecode {
         divide,
         // t = s()
         callFunction,
+        // &s -> n
+        getAddress,
+        // *s -> n
+        getValue,
         // s -> (...[n])
         moveArgument,
         // return s

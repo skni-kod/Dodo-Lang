@@ -20,13 +20,8 @@ type char : UNSIGNED_INTEGER(1);
 type char4 : UNSIGNED_INTEGER(4);
 
 let i16 k = 10;
-let i16* j = 20;
 
-void ReplaceGlobal(i16 y) {
-    k = y;
-}
-
-i32 main() {
-    ReplaceGlobal(50);
-    return k;
+i32 Main() {
+    let i32* r = &k;
+    return 6;
 }

@@ -14,18 +14,16 @@ ParserType::ParserType(uint8_t type, uint8_t size) {
 }
 
 std::ostream& operator<<(std::ostream& out, const VariableType& type) {
-    switch (type.subtype) {
-        case VariableType::Subtype::value:
-            out << "value of ";
-            break;
-        case VariableType::Subtype::pointer:
+    if (type.subtype == Subtype::value) {
+        out << "value of ";
+    }
+    else {
+        if (type.subtype == 1) {
             out << "pointer to ";
-            break;
-        default:
-            if (doneParsing) {
-                CodeGeneratorError("Invalid variable subtype!");
-            }
-            ParserError("Invalid variable subtype!");
+        }
+        else {
+            out << "multiple level pointer to ";
+        }
     }
     switch (type.type) {
         case ParserType::Type::unsignedInteger:
@@ -70,7 +68,7 @@ bool VariableType::operator!=(const VariableType& var) {
     return false;
 }
 
-std::string VariableType::GetPrefix() const {
+std::string VariableType::getPrefix() const {
     std::string prefix;
     switch (type) {
         case ParserType::unsignedInteger:
@@ -86,15 +84,15 @@ std::string VariableType::GetPrefix() const {
             CodeGeneratorError("Invalid type somehow");
     }
     prefix += std::to_string(size);
-    switch (subtype) {
-        case Subtype::value:
-            return prefix + "$";
-        case Subtype::pointer:
-            return prefix + "*";
-        default:
-            CodeGeneratorError("Invalid type somehow");
+    if (subtype == Subtype::value) {
+        return prefix + "$";
     }
-    return "";
+    else {
+        for (uint64_t n = 0; n < subtype; n++) {
+            prefix += "*";
+        }
+        return prefix;
+    }
 }
 
 VariableType::VariableType(const std::string& var) {

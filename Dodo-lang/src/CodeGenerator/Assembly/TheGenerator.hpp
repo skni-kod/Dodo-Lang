@@ -105,6 +105,10 @@ void InsertValue(std::string target, std::string source);
 //void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index);
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize);
 
+void X86_64GetVariableAddress(VariableInfo source, VariableInfo target);
+
+DataLocation FindViableRegister(DataLocation reserved = DataLocation(Operand::none, uint64_t(0)));
+
 uint8_t GetOperandType(const std::string& operand);
 
 void AssignExpressionToVariable(const std::string& exp, const std::string& var);

@@ -580,6 +580,117 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
     }
 }
 
+// finds the best candidate register to move a value to
+DataLocation FindViableRegister(DataLocation reserved) {
+    for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
+        if (generatorMemory.registers[n].content.value == "!") {
+            if (reserved.type == Operand::reg and n == reserved.number) {
+                continue;
+            }
+            return {Operand::reg, n};
+        }
+    }
+    for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
+        if (generatorMemory.registers[n].content.value.starts_with("$")) {
+            if (reserved.type == Operand::reg and n == reserved.number) {
+                continue;
+            }
+            return {Operand::reg, n};
+        }
+    }
+    CodeGeneratorError("Unimplemented: Complex register finding!");
+    return {};
+}
+
+// does a move only, only check if operand types are right and if stack locations are of the correct size
+// route register refers to a register used to facilitate stack to stack transfers
+// DOES NOT set content in controllable ways
+void X86_64PureMove(DataLocation source, DataLocation target, uint64_t size, bool findRouteRegister = false) {
+    if (size > 8) {
+        CodeGeneratorError("Unimplemented: Multimoves!");
+    }
+    Instruction ins;
+    ins.type = x86_64::mov;
+    ins.sizeAfter = ins.sizeBefore = size;
+    ins.op2 = source;
+    if (source.type == Operand::sta) {
+        if (target.type == Operand::sta or target.type == Operand::rptr) {
+            if (not findRouteRegister) {
+                CodeGeneratorError("Bug: unexpected stack to stack move");
+            }
+            auto where = FindViableRegister();
+            X86_64PureMove(source, where, size);
+            SetContent(where, FindStackVariableByOffset(source.offset)->content.value);
+            ins.op2 = where;
+        }
+    }
+    ins.op1 = target;
+
+    finalInstructions.push_back(ins);
+}
+
+// moves a variable to it's assigned stack position
+void MoveAssignedToStack(VariableInfo& var) {
+    // it assumes the calculated location is correct
+    auto& life = variableLifetimes[var.identifier];
+    for (uint64_t n = 0; n < generatorMemory.stack.size(); n++) {
+        if (generatorMemory.stack[n].offset < life.staOffset) {
+            internal::StackEntry temp(life.staOffset, 1, var.value.size, internal::ContentEntry(var.identifier));
+            generatorMemory.stack.emplace(generatorMemory.stack.begin() + n, std::move(temp));
+            var.location.type = Operand::sta;
+            var.location.offset = life.staOffset;
+            return;
+        }
+    }
+
+    // if it gets here then there is no variable with more negative offset so just push it on the back
+    internal::StackEntry temp(life.staOffset, 1, var.value.size, internal::ContentEntry(var.identifier));
+    generatorMemory.stack.emplace_back(std::move(temp));
+    var.location.type = Operand::sta;
+    var.location.offset = life.staOffset;
+}
+
+// gets the address of the source variable into the designated location
+void X86_64GetVariableAddress(VariableInfo source, VariableInfo target) {
+    if (source.identifier.contains("glob.")) {
+        X86_64PureMove({Operand::aadr, &source.extractGlobalVariable()}, target.location, Options::addressSize);
+        SetContent(target.location, "^" + source.identifier);
+        return;
+    }
+
+    // if it's not a global variable then we need to ensure it actually exists in the stack
+    if (source.location.type != Operand::sta) {
+        auto& life = variableLifetimes[source.identifier];
+        if (life.assignStatus != Operand::sta) {
+            CodeGeneratorError("Bug: Variable that has it's address taken wasn't assigned to stack!");
+        }
+
+        // in that case it's correctly assigned to the stack but not there, that's unacceptable
+        // but let's check if it didn't just grab the wrong variable instance
+        if (FindStackVariableByOffset(life.staOffset) != nullptr) {
+            source.location.type = Operand::sta;
+            source.location.offset = life.staOffset;
+        }
+        else {
+            // we need to move the variable to the stack
+            MoveAssignedToStack(source);
+        }
+    }
+
+    // now we are sure the value is in stack, we can finally get the address
+    Instruction ins;
+    ins.type = x86_64::lea;
+    ins.op1 = target.location;
+    ins.op2 = source.location;
+    ins.sizeAfter = ins.sizeBefore = Options::addressSize;
+    if (target.location.type != Operand::reg) {
+        CodeGeneratorError("Bug: Tried to load variable address not into register!");
+    }
+
+    finalInstructions.push_back(ins);
+    SetContent(target.location, "^" + source.identifier);
+}
+
 // this places a global variable in given place
 void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressOnly = false) {
     if (target.location.type != Operand::reg) {
@@ -590,16 +701,15 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
     // get the vase variable
     auto& base = source.extractGlobalVariable();
 
-    // put the pointer into the requested register
+    // put the pointer into a register
     Instruction ins;
     ins.type = x86_64::mov;
     ins.sizeAfter = ins.sizeBefore = Options::addressSize;
-    ins.op1 = target.location;
+    ins.op1 = FindViableRegister();
     ins.op2 = {Operand::aadr, &base};
     finalInstructions.push_back(ins);
-
+    SetContent(ins.op1, "^" + source.identifier);
     if (addressOnly) {
-        SetContent(target.location, "^" + source.identifier);
         return;
     }
 
@@ -617,22 +727,6 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
     }
 }
 
-// finds the best candidate register to move a value to
-DataLocation FindViableRegister() {
-    for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
-        if (generatorMemory.registers[n].content.value == "!") {
-            return {Operand::reg, n};
-        }
-    }
-    for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
-        if (generatorMemory.registers[n].content.value.starts_with("$")) {
-            return {Operand::reg, n};
-        }
-    }
-    CodeGeneratorError("Unimplemented: Complex register finding!");
-    return {};
-}
-
 // new MoveValue implementation with much better functionality support
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize) {
     if (source.identifier == target.identifier) {
@@ -648,7 +742,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
     // in that case we have things to do
     if (source.identifier.contains("glob.")) {
         if (WasGlobalLocalized(source.identifier)) {
-            auto base = VariableInfo(FindMainName(source.identifier));
+            auto base = VariableInfo::FromLocation(generatorMemory.findThing(FindMainName(source.identifier)));
             if (source.value == base.value) {
                 source.location = base.location;
             }
@@ -1138,7 +1232,7 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var) 
         // we're moving value into a global variable, we need to get its address into a register
         // after that it should be a normal move
         DataLocation where = FindViableRegister();
-        PlaceGlobalVariable(VariableInfo(var), VariableInfo::FromLocation(where), true);
+        X86_64GetVariableAddress(VariableInfo(var), VariableInfo::FromLocation(where));
         Instruction ins;
         if (Options::targetArchitecture != Options::TargetArchitecture::x86_64) {
             CodeGeneratorError("Unimplemented: Non x86-64 global assignment!");

@@ -178,19 +178,19 @@ namespace x86_64 {
                     {
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::sta, {},
                                    Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::sta, {},
                                    Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                 }, index);
                 break;
             case Bytecode::subtract:
@@ -199,19 +199,19 @@ namespace x86_64 {
                     {
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::sta, {},
                                    Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::sta, {},
                                    Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                 }, index);
                 break;
             case Bytecode::multiply:
@@ -226,11 +226,11 @@ namespace x86_64 {
                     {
                      OpCombination(Operand::reg, {0},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
                                            {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
                      OpCombination(Operand::reg, {0},
                                    Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
                                            {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
@@ -244,11 +244,11 @@ namespace x86_64 {
                      OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::sta, {},
                                    Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                     }, index);
                     }
                     else {
@@ -258,10 +258,10 @@ namespace x86_64 {
                     {
                      OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
                      OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                     }, index);
                     }
                 }
@@ -281,12 +281,12 @@ namespace x86_64 {
                      OpCombination(Operand::reg, {0},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
                                            {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
                      OpCombination(Operand::reg, {0},
                                    Operand::sta, {},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
                                            {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
@@ -297,18 +297,37 @@ namespace x86_64 {
                      OpCombination(Operand::reg, {0},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
                                            {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
                      OpCombination(Operand::reg, {0},
                                    Operand::sta, {},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.GetPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
                                            {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
                 else {
                     CodeGeneratorError("Unimplemented: Invalid type for division!");
                 }
+                break;
+            case Bytecode::getAddress:
+                {
+                    auto& life = variableLifetimes[bytecode.source];
+                    if (life.assignStatus == Operand::reg) {
+                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(DataLocation(Operand::reg, life.regNumber)));
+                        SetContent(DataLocation(Operand::reg, life.regNumber),
+                            VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
+                    }
+                    else {
+                        auto where = FindViableRegister();
+                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(where));
+                        SetContent(where,
+                            VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
+                    }
+                }
+                break;
+            case Bytecode::getValue:
+                
                 break;
             case Bytecode::callFunction:
                 CallX86_64Function(&parserFunctions[bytecode.source], index, bytecode.target);

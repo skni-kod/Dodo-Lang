@@ -125,7 +125,7 @@ void GenerateCode() {
         out << "\n"
             << "_start:\n";
         PrintWithSpaces("call", out);
-        out << "main\n";
+        out << "Main\n";
         PrintWithSpaces("movq", out);
         out << "%rax, %rdi\n";
         PrintWithSpaces("movq", out);

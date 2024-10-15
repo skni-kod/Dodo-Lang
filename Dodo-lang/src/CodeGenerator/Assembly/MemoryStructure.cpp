@@ -185,12 +185,18 @@ DataLocation MemoryStructure::findThing(const std::string& name) {
     }
     for (uint64_t n = 0; n < registers.size(); n++) {
         if (registers[n].content.value == name) {
-            return {Operand::reg, n};
+            if (GetVariableType(name).subtype == Subtype::value) {
+                return {Operand::reg, n};
+            }
+            return {Operand::rptr, n};
         }
     }
     for (auto& n : stack) {
         if (n.content.value == name) {
-            return {Operand::sta, n.offset};
+            if (GetVariableType(name).subtype == Subtype::value) {
+                return {Operand::sptr, n.offset};
+            }
+            return {Operand::sptr, n.offset};
         }
     }
     return {Operand::none, static_cast <uint64_t>(0)};

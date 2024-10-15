@@ -16,8 +16,10 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
     current = generator();
     if (current->type != LexicalToken::Type::identifier) {
         if (current->type == LexicalToken::Type::operand and current->value == "*") {
-            var.type.subtype += ParserVariable::pointer;
-            current = generator();
+            while (current->value == "*") {
+                var.type.subtype++;
+                current = generator();
+            }
         }
         else {
             ParserError("Expected an identifier after variable type!");
@@ -57,7 +59,7 @@ void UpdateGlobalVariables() {
         auto& type = parserTypes[n.second.typeOrName];
         n.second.type.type = type.type;
         n.second.type.size = type.size;
-        n.second.typeOrName = VariableType(type).GetPrefix() + n.first;
+        n.second.typeOrName = VariableType(type).getPrefix() + n.first;
     }
 }
 

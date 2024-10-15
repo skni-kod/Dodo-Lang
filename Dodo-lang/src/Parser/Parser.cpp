@@ -75,7 +75,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
 
     // Step 4: preparing function arguments and checking if main exists
     PrepareFunctionArguments();
-    if (not parserFunctions.isKey("main")) {
+    if (not parserFunctions.isKey("Main")) {
         ParserError("No main function found!");
     }
 

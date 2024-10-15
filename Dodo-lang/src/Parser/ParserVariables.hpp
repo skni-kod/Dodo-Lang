@@ -65,7 +65,7 @@ struct VariableType {
     bool operator==(const VariableType& var);
     bool operator!=(const VariableType& var);
 
-    std::string GetPrefix() const;
+    std::string getPrefix() const;
 };
 
 struct DataLocation;
@@ -88,7 +88,7 @@ struct ParserValue {
     };
     enum Operation {
         // !!! keep this updated with Bytecode list, maybe do a macro
-        addition, subtraction, multiplication, division, functionCall
+        addition, subtraction, multiplication, division, functionCall, getAddress, getValue
     };
     enum Value {
         signedInteger, unsignedInteger, floatingPoint

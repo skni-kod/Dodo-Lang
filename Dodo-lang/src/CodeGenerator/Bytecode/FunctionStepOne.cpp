@@ -173,6 +173,14 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
         if (expression.operationType == ParserValue::Operation::functionCall) {
             return BytecodeFunctionCall(expression);
         }
+        else if (expression.operationType == ParserValue::Operation::getAddress) {
+            bytecodes.emplace_back(Bytecode::getAddress, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype - 1));
+            return AddVariableInstance(EXPRESSION_SIGN);
+        }
+        else if (expression.operationType == ParserValue::Operation::getValue) {
+            bytecodes.emplace_back(Bytecode::getValue, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype + 1));
+            return AddVariableInstance(EXPRESSION_SIGN);
+        }
         else {
             std::string left = CalculateBytecodeExpression(*expression.left, type);
             std::string right = CalculateBytecodeExpression(*expression.right, type);
@@ -651,12 +659,12 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
             default:
                 if (not n.source.empty() and n.code != Bytecode::callFunction) {
                     if (n.source.front() != '$' and n.source.front() != '%' and n.source.front() != '@') {
-                        n.source = n.type.GetPrefix() + n.source;
+                        n.source = n.type.getPrefix() + n.source;
                     }
                 }
                 if (not n.target.empty()) {
                     if (n.target.front() != '$' and n.target.front() != '%' and n.target.front() != '@') {
-                        n.target = n.type.GetPrefix() + n.target;
+                        n.target = n.type.getPrefix() + n.target;
                     }
                 }
         }

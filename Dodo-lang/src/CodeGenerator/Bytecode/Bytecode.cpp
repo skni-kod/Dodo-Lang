@@ -84,20 +84,20 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "Invalid instruction\n";
             break;
         case Bytecode::add:
-            out << "Add: " << code.source << " to: " << code.target << ", store result as: " << EXPRESSION_SIGN << "#"
-                << code.number << " using type: " << code.type << "\n";
+            out << "Add: " << code.source << " to: " << code.target << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN << "#"
+                << code.number << "-0 using type: " << code.type << "\n";
             break;
         case Bytecode::subtract:
-            out << "Subtract: " << code.source << " from: " << code.target << ", store result as: " << EXPRESSION_SIGN
-                << "#" << code.number << " using type: " << code.type << "\n";
+            out << "Subtract: " << code.source << " from: " << code.target << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
+                << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
         case Bytecode::multiply:
-            out << "Multiply: " << code.target << " by: " << code.source << ", store result as: " << EXPRESSION_SIGN
-                << "#" << code.number << " using type: " << code.type << "\n";
+            out << "Multiply: " << code.target << " by: " << code.source << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
+                << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
         case Bytecode::divide:
-            out << "Divide: " << code.target << " by: " << code.source << ", store result as: " << EXPRESSION_SIGN
-                << "#" << code.number << " using type: " << code.type << "\n";
+            out << "Divide: " << code.target << " by: " << code.source << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
+                << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
         case Bytecode::callFunction:
             if (code.target.empty()) {
@@ -107,6 +107,14 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
                 out << "Call function: " << code.source << "( ... ) of type: " << code.type << " and store result in: "
                     << code.target << "\n";
             }
+            break;
+        case Bytecode::getAddress:
+            out << "Extract address of: " << code.source  << " and store result as: " << VariableType(code.type.size, code.type.type, code.type.subtype + 1).getPrefix() << EXPRESSION_SIGN
+                << "#" << code.number << "-0 using type: " << code.type << "\n";
+            break;
+        case Bytecode::getValue:
+            out << "Extract value at: " << code.source  << " and store result as: " << VariableType(code.type.size, code.type.type, code.type.subtype - 1).getPrefix() << EXPRESSION_SIGN
+                << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
         case Bytecode::moveArgument:
             out << "Move: " << code.source << " as a function argument, using type: " << code.type << "\n";
