@@ -55,7 +55,15 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
     }
 
     // variable modification
-    if (firstToken->type == LexicalToken::Type::identifier) {
+    if (firstToken->type == LexicalToken::Type::identifier or (firstToken->type == LexicalToken::Type::operand and firstToken->value == "*")) {
+        bool pointerValue = false;
+        if (firstToken->type == LexicalToken::Type::operand) {
+            pointerValue = true;
+            const LexicalToken* current = generator();
+            if (current->type != LexicalToken::identifier) {
+                ParserError("Expected an identifier after pointed value change operand!");
+            }
+        }
         // get the = or the + before += and such
         const LexicalToken* current = generator();
         if (current->type != LexicalToken::Type::operand) {

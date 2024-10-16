@@ -216,14 +216,18 @@ void DataLocation::print(std::ofstream& out, uint8_t size) const {
             case Operand::reg:
                 if (extractAddress) {
                     out << "(";
+                    for (auto& n : generatorMemory.registers[number].sizeNamePairs) {
+                        if (n.first == Options::addressSize) {
+                            out << '%' << n.second;
+                        }
+                    }
+                    out << ")";
+                    return;
                 }
                 for (auto& n : generatorMemory.registers[number].sizeNamePairs) {
                     if (n.first == size) {
                         out << '%' << n.second;
                     }
-                }
-                if (extractAddress) {
-                    out << ")";
                 }
                 break;
             case Operand::aadr:

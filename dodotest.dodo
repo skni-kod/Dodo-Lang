@@ -23,5 +23,6 @@ let i16 k = 10;
 
 i32 Main() {
     let i32* r = &k;
-    return *k;
+    *r = 255;
+    return *r;
 }

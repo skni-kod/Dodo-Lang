@@ -16,8 +16,11 @@ uint8_t GetOperandType(const std::string& operand) {
     if (operand.front() == '$') {
         return Operand::imm;
     }
-    if (operand.front() == 'i' or operand.front() == 'u' or operand.front() == 'f' or operand.front() == '^') {
+    if (operand.front() == 'i' or operand.front() == 'u' or operand.front() == 'f') {
         return Operand::var;
+    }
+    if (operand.front() == '^') {
+        return Operand::adr;
     }
     return Operand::none;
 }
@@ -642,6 +645,29 @@ void MoveAssignedToStack(VariableInfo& var) {
     var.location.offset = life.staOffset;
 }
 
+// places the value from a pointer into the target, does not set content!
+void X86_64DereferencePointer(VariableInfo source, VariableInfo target) {
+    if (source.value.subtype == Subtype::value and not source.value.isAddress) {
+        CodeGeneratorError("Bug: tried to dereference a non-pointer!");
+    }
+    if (source.location.type != Operand::reg) {
+        CodeGeneratorError("Bug: tried to dereference a variable from a non register location!");
+    }
+    if (target.location.type != Operand::reg) {
+        CodeGeneratorError("Bug: tried to dereference a variable into a non register location!");
+    }
+    
+    // ensure there is nothing in the target
+    if (target.value.type != ParserType::none and not target.identifier.contains("glob.")) {
+        MoveVariableElsewhere(target);
+        SetContent(target.location, "!");
+    }
+
+    target.value = source.value;
+    // now we just need to dereference the variable itself
+    X86_64PlaceConvertedValue(VariableInfo(source.value, {Operand::reg, source.location.number, true}, source.identifier), target);
+}
+
 // gets the address of the source variable into the designated location
 void X86_64GetVariableAddress(VariableInfo source, VariableInfo target) {
     if (source.identifier.contains("glob.")) {
@@ -721,19 +747,20 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
 
 // new MoveValue implementation with much better functionality support
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize) {
-    if (source.identifier == contentToSet) {
+    if (target.identifier == contentToSet) {
         // they are exactly the same, so there is no need for a move
         return;
     }
 
     auto contentType = VariableType(contentToSet);
-    if (contentType != source.value) {
+    if (contentType.isAddress != source.value.isAddress) {
         CodeGeneratorError("Bug: Invalid type combination in value move!");
     }
     
     if (target.value.type != Value::none and not target.identifier.contains("glob.")) {
         // there is something in the target location, it needs to be copied elsewhere 
         MoveVariableElsewhere(target);
+        SetContent(target.location, "!");
     }
 
     // in that case we have things to do
