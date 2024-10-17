@@ -60,6 +60,7 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
         if (firstToken->type == LexicalToken::Type::operand) {
             pointerValue = true;
             const LexicalToken* current = generator();
+            firstToken = current;
             if (current->type != LexicalToken::identifier) {
                 ParserError("Expected an identifier after pointed value change operand!");
             }
@@ -83,6 +84,7 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
         instruction.variant.valueChangeInstruction = new ValueChangeInstruction();
         instruction.type = FunctionInstruction::Type::valueChange;
         instruction.variant.valueChangeInstruction->name = firstToken->value;
+        instruction.variant.valueChangeInstruction->pointerValue = pointerValue;
 
         if (current->value == "=") {
             instruction.variant.valueChangeInstruction->expression = ParseMath(generator);

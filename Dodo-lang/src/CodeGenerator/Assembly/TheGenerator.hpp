@@ -107,6 +107,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
 
 void X86_64GetVariableAddress(VariableInfo source, VariableInfo target);
 void X86_64DereferencePointer(VariableInfo source, VariableInfo target);
+void SetValueAtAddress(VariableInfo source, uint64_t addressRegister, uint64_t size);
 
 DataLocation FindViableRegister(DataLocation reserved = DataLocation(Operand::none, uint64_t(0)));
 

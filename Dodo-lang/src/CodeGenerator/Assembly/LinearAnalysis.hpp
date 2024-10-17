@@ -38,4 +38,7 @@ VariableStatistics& FindMain(std::string& child);
 const std::string& FindMainName(std::string& child);
 inline const std::string* lastMainName = nullptr;
 
+std::string GetNextVariableAssignment(const std::string& var);
+std::string GetPreviousVariableAssignment(const std::string& var);
+
 #endif //DODO_LANG_LINEAR_ANALYSIS_HPP

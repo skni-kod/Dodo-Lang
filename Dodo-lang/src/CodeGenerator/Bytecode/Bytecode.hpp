@@ -42,7 +42,7 @@ struct Bytecode {
         compare,
         // tp t = s
         declare,
-        // t = s
+        // t = s, 1 in number means to change value pointed to
         assign,
         // none
         none,

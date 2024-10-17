@@ -437,7 +437,28 @@ namespace x86_64 {
                 break;
             }
             case Bytecode::assign:
-                AssignExpressionToVariable(bytecode.source, bytecode.target);
+                if (bytecode.number == 1) {
+                    // in that case we need to set the variable at it's address
+                    DataLocation where;
+                    if (generatorMemory.findThing(GetPreviousVariableAssignment(bytecode.target)).type != Operand::reg) {
+                        where = FindViableRegister();
+                        MoveValue(VariableInfo(GetPreviousVariableAssignment(bytecode.target)), VariableInfo::FromLocation(where), bytecode.target, Options::addressSize);
+                    }
+                    else {
+                        where = generatorMemory.findThing(GetPreviousVariableAssignment(bytecode.target));
+                    }
+                    // move the value into the location
+                    SetValueAtAddress(VariableInfo(bytecode.source), where.number, bytecode.type.size);
+                    AssignExpressionToVariable(bytecode.target, GetPreviousVariableAssignment(bytecode.target));
+                }
+                else {
+                    if (bytecode.source.starts_with("$")) {
+                        MoveValue(VariableInfo(bytecode.source), VariableInfo(GetPreviousVariableAssignment(bytecode.target)), bytecode.target, bytecode.type.size);
+                    }
+                    else {
+                        AssignExpressionToVariable(bytecode.source, bytecode.target);
+                    }
+                }
                 break;
             case Bytecode::addLabel:
                 FillDesignatedPlaces(index);

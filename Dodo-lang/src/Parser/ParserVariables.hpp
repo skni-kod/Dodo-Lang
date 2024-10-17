@@ -128,14 +128,11 @@ struct DeclarationInstruction {
 struct ValueChangeInstruction {
     std::string name;
     ParserValue expression;
-    INSERT_SUBTYPE_ENUM
-    uint8_t subtype = 0;
+    bool pointerValue = false;
 };
 
 struct ReturnInstruction {
     ParserValue expression;
-    INSERT_SUBTYPE_ENUM
-    uint8_t subtype = 0;
 };
 
 // no return value catching

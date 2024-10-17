@@ -70,10 +70,26 @@ void AddLifetimeToMain(std::string& child, uint64_t index) {
     main.usageAmount++;
 }
 
+std::string GetNextVariableAssignment(const std::string& var) {
+    // first get the current number
+    uint64_t number = std::stoull(var.substr(var.find_last_of('-') + 1)) + 1;
+    std::string result = var.substr(0, var.find_last_of('-') + 1);
+    result += std::to_string(number);
+    return result;
+}
+
+std::string GetPreviousVariableAssignment(const std::string& var) {
+    // first get the current number
+    uint64_t number = std::stoull(var.substr(var.find_last_of('-') + 1)) - 1;
+    std::string result = var.substr(0, var.find_last_of('-') + 1);
+    result += std::to_string(number);
+    return result;
+}
+
 // this ensures that the lifetime of variables is extended until the end of a level
 std::stack <std::vector <std::string>> variablesToExtend;
 
-void AddLifetimeOrInsert(std::string& name, uint64_t index) {
+void AddLifetimeOrInsert(std::string name, uint64_t index) {
     if (IsVariable(name)) {
         if (variableLifetimes.isKey(name)) {
             auto& temp = variableLifetimes.find(name);
@@ -205,7 +221,6 @@ void CalculateLifetimes() {
                 }
                 break;
             case Bytecode::moveValue:
-            case Bytecode::assign:
                 // handle target
             {
                 variableLifetimes.insert(bytecodes[n].target, {n});
@@ -216,6 +231,21 @@ void CalculateLifetimes() {
             }
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
+                break;
+            case Bytecode::assign:
+                // handle target
+            {
+                variableLifetimes.insert(bytecodes[n].target, {n});
+                variableLifetimes[bytecodes[n].target].isMainValue = true;
+                if (bytecodes[n].source.starts_with("$")) {
+                    // value is assigned so extend the life of the previous
+                    AddLifetimeOrInsert(GetPreviousVariableAssignment(bytecodes[n].target), n);
+                }
+                else {
+                    AddLifetimeOrInsert(bytecodes[n].source, n);
+                }
+            }
+
                 break;
             case Bytecode::pushLevel:
                 variablesToExtend.emplace();

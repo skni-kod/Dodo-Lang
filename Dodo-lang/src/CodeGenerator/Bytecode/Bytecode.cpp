@@ -146,7 +146,12 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
                 << code.source << "\n";
             break;
         case Bytecode::assign:
-            out << "Assign value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
+            if (code.number) {
+                out << "Assign value of: " << code.source << " to the value pointed at by: " << code.target << " using type: " << code.type << "\n";
+            }
+            else {
+                out << "Assign value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
+            }
             break;
         case Bytecode::addLabel:
             out << "Add label: " << code.source << "\n";

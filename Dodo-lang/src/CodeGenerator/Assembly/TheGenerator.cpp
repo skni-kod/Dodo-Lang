@@ -745,6 +745,10 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
     }
 }
 
+void SetValueAtAddress(VariableInfo source, uint64_t addressRegister, uint64_t size) {
+    X86_64PureMove(source.location, {Operand::reg, addressRegister, true}, size);
+}
+
 // new MoveValue implementation with much better functionality support
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize) {
     if (target.identifier == contentToSet) {
@@ -757,7 +761,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
         CodeGeneratorError("Bug: Invalid type combination in value move!");
     }
     
-    if (target.value.type != Value::none and not target.identifier.contains("glob.")) {
+    if (target.value.type != Value::none and not target.identifier.contains("glob.") and target.location.type == Operand::reg) {
         // there is something in the target location, it needs to be copied elsewhere 
         MoveVariableElsewhere(target);
         SetContent(target.location, "!");
@@ -813,6 +817,11 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
     }
 
     // conversion here
+    if (source.location.type == Operand::imm) {
+        X86_64PureMove(source.location, target.location, target.value.size);
+        SetContent(target.location, contentToSet);
+        return;
+    }
     X86_64PlaceConvertedValue(VariableInfo(FindMainName(source.identifier)), {source.value, target.location, source.identifier});
     SetContent(target.location, contentToSet);
 }
@@ -1261,6 +1270,10 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
 void AssignExpressionToVariable(const std::string& exp, const std::string& var) {
     // find all instances of the expression and replace their name with the variable
     // if it's not the same size let it cry
+    if (exp.starts_with("$")) {
+        // in that case we just need to increment all the instances of the variable
+        return;
+    }
     if (var.contains("glob.")) {
         // in that case we also need to update the global variable
         // we're moving value into a global variable, we need to get its address into a register
@@ -1284,13 +1297,13 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var) 
         finalInstructions.push_back(ins);
     }
     for (auto& n : generatorMemory.registers) {
-        if (n.content.value == exp) {
-            n.content.value = var;
+        if (n.content.value == var) {
+            n.content.value = exp;
         }
     }
     for (auto& n : generatorMemory.stack) {
-        if (n.content.value == exp) {
-            n.content.value = var;
+        if (n.content.value == var) {
+            n.content.value = exp;
         }
     }
 }

@@ -327,6 +327,13 @@ void BytecodeAssign(const ValueChangeInstruction& instruction) {
     auto& type = earlyVariables.find(GetVariableInstance(instruction.name)).type;
     bytecodes.emplace_back(Bytecode::assign, CalculateBytecodeExpression(instruction.expression, type), "", type);
     bytecodes.back().target = ReassignVariableInstance(instruction.name, type);
+    if (instruction.pointerValue) {
+        bytecodes.back().number = 1;
+        if (bytecodes.back().type.subtype == 0) {
+            CodeGeneratorError("Cannot assign to the address pointed at by a non-pointer!");
+        }
+        bytecodes.back().type.subtype--;
+    }
 }
 
 void BytecodePushLevel() {
@@ -664,7 +671,14 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
                 }
                 if (not n.target.empty()) {
                     if (n.target.front() != '$' and n.target.front() != '%' and n.target.front() != '@') {
-                        n.target = n.type.getPrefix() + n.target;
+                        if (n.code == Bytecode::assign and n.number == 1) {
+                            auto type = n.type;
+                            type.subtype++;
+                            n.target = type.getPrefix() + n.target;
+                        }
+                        else {
+                            n.target = n.type.getPrefix() + n.target;
+                        }
                     }
                 }
         }
