@@ -314,15 +314,11 @@ namespace x86_64 {
                 {
                     auto& life = variableLifetimes[VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"];
                     if (life.assignStatus == Operand::reg) {
-                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(DataLocation(Operand::reg, life.regNumber)));
-                        SetContent(DataLocation(Operand::reg, life.regNumber),
-                            VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
+                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(DataLocation(Operand::reg, life.regNumber)), VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
                     }
                     else {
                         auto where = FindViableRegister();
-                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(where));
-                        SetContent(where,
-                            VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
+                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(where), VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
                     }
                 }
                 break;

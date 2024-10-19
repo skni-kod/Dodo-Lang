@@ -105,7 +105,7 @@ void InsertValue(std::string target, std::string source);
 //void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index);
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize);
 
-void X86_64GetVariableAddress(VariableInfo source, VariableInfo target);
+void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::string contentToSet);
 void X86_64DereferencePointer(VariableInfo source, VariableInfo target);
 void SetValueAtAddress(VariableInfo source, uint64_t addressRegister, uint64_t size);
 

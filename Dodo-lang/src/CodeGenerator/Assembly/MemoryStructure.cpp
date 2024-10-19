@@ -256,7 +256,7 @@ DataLocation::DataLocation(const std::string& operand) {
 }
 
 bool DataLocation::operator==(const DataLocation& data) const {
-    if (type == data.type and value == data.value) {
+    if (type == data.type and value == data.value and extractAddress == data.extractAddress) {
         return true;
     }
     return false;

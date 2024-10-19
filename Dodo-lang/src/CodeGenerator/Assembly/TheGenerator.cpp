@@ -229,6 +229,19 @@ internal::StackEntry* FindStackVariableByOffset(std::uint64_t offset) {
 
 // adds a variable slot on the stack, pass a variable with prefix
 internal::StackEntry* AddStackVariable(std::string name) {
+    auto& life = variableLifetimes[name];
+    if (life.assignStatus == Operand::sta) {
+        auto size = GetVariableType(name).size;
+        for (uint64_t n = 0; n < generatorMemory.stack.size(); n++) {
+            if (generatorMemory.stack[n].offset < life.staOffset) {
+                generatorMemory.stack.insert(generatorMemory.stack.begin() + n, {variableLifetimes[name].staOffset, 1, size, internal::ContentEntry("!")});
+                return &generatorMemory.stack[n];
+            }
+        }
+        generatorMemory.stack.emplace_back(variableLifetimes[name].staOffset, 1, size, internal::ContentEntry("!"));
+        return &generatorMemory.stack.back();
+    }
+    
     int64_t size = std::stoll(name.substr(1, 1));
 
     // TODO: add amount later if necessary
@@ -651,7 +664,10 @@ void X86_64DereferencePointer(VariableInfo source, VariableInfo target) {
         CodeGeneratorError("Bug: tried to dereference a non-pointer!");
     }
     if (source.location.type != Operand::reg) {
-        CodeGeneratorError("Bug: tried to dereference a variable from a non register location!");
+        auto where = FindViableRegister();
+        MoveValue(source, VariableInfo::FromLocation(where), source.identifier, Options::addressSize);
+        source.location = where;
+        source.location.extractAddress = true;
     }
     if (target.location.type != Operand::reg) {
         CodeGeneratorError("Bug: tried to dereference a variable into a non register location!");
@@ -669,10 +685,10 @@ void X86_64DereferencePointer(VariableInfo source, VariableInfo target) {
 }
 
 // gets the address of the source variable into the designated location
-void X86_64GetVariableAddress(VariableInfo source, VariableInfo target) {
+void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::string contentToSet) {
     if (source.identifier.contains("glob.")) {
         X86_64PureMove({Operand::aadr, &source.extractGlobalVariable()}, target.location, Options::addressSize);
-        SetContent(target.location, "^" + source.identifier);
+        SetContent(target.location, contentToSet);
         return;
     }
 
@@ -706,7 +722,7 @@ void X86_64GetVariableAddress(VariableInfo source, VariableInfo target) {
     }
 
     finalInstructions.push_back(ins);
-    SetContent(target.location, "^" + source.identifier);
+    SetContent(target.location, contentToSet);
 }
 
 // this places a global variable in given place
@@ -749,9 +765,20 @@ void SetValueAtAddress(VariableInfo source, uint64_t addressRegister, uint64_t s
     X86_64PureMove(source.location, {Operand::reg, addressRegister, true}, size);
 }
 
+const std::string& ContentAtLocation(DataLocation location) {
+    switch (location.type) {
+        case Operand::reg:
+            return generatorMemory.registers[location.value].content.value;
+        case Operand::sta:
+            return FindStackVariableByOffset(location.offset)->content.value;
+    }
+    CodeGeneratorError("Unimplemented: Non stack/register content set!");
+    return "";
+}
+
 // new MoveValue implementation with much better functionality support
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize) {
-    if (target.identifier == contentToSet) {
+    if (ContentAtLocation(target.location) == contentToSet) {
         // they are exactly the same, so there is no need for a move
         return;
     }
@@ -1279,7 +1306,7 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var) 
         // we're moving value into a global variable, we need to get its address into a register
         // after that it should be a normal move
         DataLocation where = FindViableRegister();
-        X86_64GetVariableAddress(VariableInfo(var), VariableInfo::FromLocation(where));
+        X86_64GetVariableAddress(VariableInfo(var), VariableInfo::FromLocation(where), "^" + var);
         Instruction ins;
         if (Options::targetArchitecture != Options::TargetArchitecture::x86_64) {
             CodeGeneratorError("Unimplemented: Non x86-64 global assignment!");

@@ -3,7 +3,7 @@
 #include "MemoryStructure.hpp"
 #include "TheGenerator.hpp"
 
-VariableStatistics::VariableStatistics(uint64_t number, bool isMain) : firstUse(number), lastUse(number), isMainValue(isMain) {}
+VariableStatistics::VariableStatistics(uint64_t number, bool isMain, bool isPointedTo) : firstUse(number), lastUse(number), isMainValue(isMain), isPointedTo(isPointedTo) {}
 
 DataLocation VariableStatistics::toLocation() {
     DataLocation data;
@@ -171,6 +171,7 @@ void CalculateLifetimes() {
                                     "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
+                variableLifetimes[bytecodes[n].source].isPointedTo = true;
                 break;
             case Bytecode::getValue:
                 // create the expression
@@ -178,6 +179,7 @@ void CalculateLifetimes() {
                                         "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
+                variableLifetimes[bytecodes[n].source].isPointedTo = true;
                 break;
             case Bytecode::callFunction:
                 if (not bytecodes[n].target.empty()) {
@@ -406,8 +408,12 @@ void RunGroupingLinearAnalysis() {
             uint64_t earliest = current.second.firstUse;
             uint64_t last = current.second.lastUse;
             uint64_t uses = 0;
+            bool isPointedTo = false;
             for (auto& n : variableLifetimes.map) {
                 if (n.first.starts_with(searched)) {
+                    if (n.second.isPointedTo) {
+                        isPointedTo = true;
+                    }
                     if (n.second.lastUse > last) {
                         last = n.second.lastUse;
                     }
@@ -421,6 +427,11 @@ void RunGroupingLinearAnalysis() {
             std::get<1>(groups.back()) = earliest;
             std::get<2>(groups.back()) = last;
             std::get<3>(groups.back()) = uses;
+            if (isPointedTo) {
+                for (auto& n : std::get<0>(groups.back())) {
+                    variableLifetimes[n].isPointedTo = true;
+                }
+            }
         }
     }
     // now all groups are ready, they need to be sorted
@@ -448,6 +459,17 @@ void RunGroupingLinearAnalysis() {
     for (uint64_t groupNumber = 0, convertedNumber = 0; groupNumber < groups.size() or convertedNumber < convertedSize;) {
         float groupRatio = 0, convertedRatio = 0;
         if (groupNumber < groups.size()) {
+            if (variableLifetimes[std::get<0>(groups[groupNumber]).front()].isPointedTo) {
+                auto type = GetVariableType(std::get<0>(groups[groupNumber]).front());
+                int64_t offset = AddStackAssignment(type.subtype == Subtype::value ? type.size : Options::addressSize);
+                for (auto& n : std::get<0>(groups[groupNumber])) {
+                    auto& temp = variableLifetimes[n];
+                    temp.assignStatus = Operand::sta;
+                    temp.staOffset = offset;
+                }
+                groupNumber++;
+                continue;
+            }
             groupRatio = float(std::get<3>(groups[groupNumber])) / float(std::get<2>(groups[groupNumber]) - std::get<1>(groups[groupNumber]) + 1.f);
         }
         if (convertedNumber < convertedSize) {
@@ -493,7 +515,8 @@ void RunGroupingLinearAnalysis() {
             
             auto& temp = variableLifetimes[lifetimeVector[convertedNumber].first];
             temp.assignStatus = Operand::sta;
-            temp.staOffset = AddStackAssignment(GetVariableType(lifetimeVector[convertedNumber].first).size);
+            auto type = GetVariableType(lifetimeVector[convertedNumber].first);
+            temp.staOffset = AddStackAssignment(type.subtype == Subtype::value ? type.size : Options::addressSize);
             convertedNumber++;
         }
         else if (groupNumber < groups.size()) {
@@ -542,10 +565,12 @@ void RunGroupingLinearAnalysis() {
             }
 
             // if it got here then there was no space in the lovely registers of ours, off to stack with it
+            auto type = GetVariableType(lifetimeVector[convertedNumber].first);
+            int64_t offset = AddStackAssignment(type.subtype == Subtype::value ? type.size : Options::addressSize);
             for (auto& n : std::get<0>(groups[groupNumber])) {
                 auto& temp = variableLifetimes[n];
                 temp.assignStatus = Operand::sta;
-                temp.staOffset = AddStackAssignment(GetVariableType(lifetimeVector[convertedNumber].first).size);
+                temp.staOffset = offset;
             }
             groupNumber++;
         }

@@ -10,9 +10,10 @@
 struct VariableStatistics {
     uint64_t firstUse = 0;
     uint64_t lastUse = 0;
-    uint64_t usageAmount: 55 = 0;
-    uint8_t isMainValue: 1 = false;
-    uint8_t assignStatus = Operand::none;
+    uint64_t usageAmount: 54 = 0;
+    uint64_t isMainValue: 1 = false;
+    uint64_t isPointedTo: 1 = false;
+    uint64_t assignStatus:8 = Operand::none;
     // assigned register if there is one
     union {
         uint64_t regNumber = 0;
@@ -22,7 +23,7 @@ struct VariableStatistics {
     DataLocation toLocation();
     
 
-    VariableStatistics(uint64_t number, bool isMain = false);
+    VariableStatistics(uint64_t number, bool isMain = false, bool isPointedTo = false);
 
     VariableStatistics() = default;
 };

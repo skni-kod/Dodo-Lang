@@ -58,3 +58,5 @@ add_executable(Dodo_Lang
 #    target_compile_options(Dodo_Lang PRIVATE -Wall -Wextra -Wpedantic -Werror)
 #endif()
 
+# run this in build folder to create the executable and get the return value
+# as out.s -o out.o && ld out.o -o out && ./out || echo $?
