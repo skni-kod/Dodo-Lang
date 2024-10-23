@@ -342,28 +342,27 @@ VariableInfo VariableInfo::FromLocation(DataLocation location) {
 
 VariableInfo::VariableInfo(const std::string& name) {
     identifier = name;
-
     // check if it's even a variable
-    if (name == "!") {
+    if (identifier == "!") {
         // it's literally nothing
         location.type = Operand::none;
         // and type
         value.type = ParserType::Type::none;
         return;
     }
-    if (name.starts_with("$")) {
+    if (identifier.starts_with("$")) {
         // it's a value
         location.type = Operand::imm;
-        location.value = std::stoull(name.substr(1));
+        location.value = std::stoull(identifier.substr(1));
 
         // and type
         value.type = ParserType::Type::none;
         return;
     }
-    if (name.starts_with("%")) {
+    if (identifier.starts_with("%")) {
         // it's a register
         location.type = Operand::reg;
-        location.value = std::stoull(name.substr(1));
+        location.value = std::stoull(identifier.substr(1));
 
         // and type, let's check what's in the register
         auto& content = generatorMemory.registers[location.value].content.value;
@@ -373,6 +372,15 @@ VariableInfo::VariableInfo(const std::string& name) {
             return;
         }
 
+        if (GetVariableType(content).subtype != Subtype::value) {
+            // in that case check if a pointer of this exact type exists
+            auto location = generatorMemory.findThing(content);
+            if (location.type == Operand::none) {
+                // in that case change the identifier to the main value
+                content = FindMainName(content);
+            }
+        }
+
         // in this case there is something there
         if (content.contains("glob.")) {
             //CodeGeneratorError("Unimplemented: global variable in register replacement!");
@@ -402,10 +410,10 @@ VariableInfo::VariableInfo(const std::string& name) {
         return;
 
     }
-    if (name.starts_with("@")) {
+    if (identifier.starts_with("@")) {
         // it's a register
         location.type = Operand::sta;
-        location.offset = std::stoll(name.substr(1));
+        location.offset = std::stoll(identifier.substr(1));
 
         // and type, let's check what's in the register
         auto& content = FindStackVariableByOffset(location.offset)->content.value;
@@ -415,6 +423,17 @@ VariableInfo::VariableInfo(const std::string& name) {
             return;
         }
 
+        value = GetVariableType(content);
+
+        if (GetVariableType(content).subtype != Subtype::value) {
+            // in that case check if a pointer of this exact type exists
+            auto location = generatorMemory.findThing(content);
+            if (location.type == Operand::none) {
+                // in that case change the identifier to the main value
+                content = FindMainName(content);
+            }
+        }
+
         // in this case there is something there
         if (content.contains("glob.")) {
             //CodeGeneratorError("Unimplemented: global variable in register replacement!");
@@ -433,29 +452,36 @@ VariableInfo::VariableInfo(const std::string& name) {
                 location.type = Operand::aadr;
                 location.globalPtr = &var;
             }
-            value = GetVariableType(content);
             identifier = content;
             return;
         }
 
-        // it's a local variable, return its info
-        value = GetVariableType(content);
+        // it's a local variable, return its inf
         identifier = content;
         return;
 
     }
 
+    if (GetVariableType(identifier).subtype != Subtype::value) {
+        // in that case check if a pointer of this exact type exists
+        auto location = generatorMemory.findThing(identifier);
+        if (location.type == Operand::none) {
+            // in that case change the identifier to the main value
+            identifier = FindMainName(identifier);
+        }
+    }
+
     // first off let's see if it's global or not
-    if (name.contains("glob.")) {
+    if (identifier.contains("glob.")) {
         // it is, to get the variable name we need to cut off the first part
-        std::string realName = name.substr(name.find("glob."));
+        std::string realName = identifier.substr(identifier.find("glob."));
         if (realName.contains("#")) {
             realName = realName.substr(0, realName.find_last_of('#'));
         }
         auto& var = globalVariables[realName];
 
         // search for the location in simulated memory
-        location = generatorMemory.findThing(name);
+        location = generatorMemory.findThing(identifier);
 
         if (location.type == Operand::none) {
             // location wasn't found, so it's on the heap or wherever the assembler decides to put it
@@ -471,7 +497,7 @@ VariableInfo::VariableInfo(const std::string& name) {
     value = GetVariableType(name);
     // now the location of this thing, if the type is none then the variable needs to be converted
     // but that must be handled on a case by case basis
-    location = generatorMemory.findThing(name);
+    location = generatorMemory.findThing(identifier);
 }
 
 // this function does not care if the variable already exists elsewhere, 
@@ -681,7 +707,7 @@ void X86_64DereferencePointer(VariableInfo source, VariableInfo target) {
 
     target.value = source.value;
     // now we just need to dereference the variable itself
-    X86_64PlaceConvertedValue(VariableInfo(source.value, {Operand::reg, source.location.number, true}, source.identifier), target);
+    X86_64PlaceConvertedValue(VariableInfo(GetVariableType(source.identifier), {Operand::reg, source.location.number, true}, source.identifier), target);
 }
 
 // gets the address of the source variable into the designated location

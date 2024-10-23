@@ -21,8 +21,12 @@ type char4 : UNSIGNED_INTEGER(4);
 
 let i16 k = 10;
 
+//i32 Fun(i32* test) {
+//    return *test;
+//}
+
 i32 Main() {
-    let i32 g = 20;
-    let i32* f = &g;
+    let i16 g = 20;
+    let i16* f = &g;
     return *f;
 }
