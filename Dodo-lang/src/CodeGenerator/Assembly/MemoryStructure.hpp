@@ -11,7 +11,7 @@ namespace Operand {
     enum {
         none = 0, convert = 0, reg, sta, imm,
         // assember address
-        aadr, var, replace, jla, fun, adr
+        aadr, var, replace, jla, sla, fun, adr
     };
 }
 

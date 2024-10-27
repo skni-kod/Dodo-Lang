@@ -19,14 +19,7 @@ type f64 : FLOATING_POINT(8);
 type char : UNSIGNED_INTEGER(1);
 type char4 : UNSIGNED_INTEGER(4);
 
-let i16 k = 10;
-
-//i32 Fun(i32* test) {
-//    return *test;
-//}
-
 i32 Main() {
-    let i16 g = 20;
-    let i16* f = &g;
-    return *f;
+    let char* g = "test";
+    return 0;
 }

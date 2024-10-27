@@ -49,10 +49,11 @@ struct ParserType {
 };
 
 struct VariableType {
-    uint32_t size: 21 = 0;
+    uint32_t size: 20 = 0;
     INSERT_SUBTYPE_ENUM
     uint8_t type: 2 = ParserType::Type::signedInteger;
     uint8_t isAddress: 1 = false;
+    uint8_t isString: 1 = false;
     uint8_t subtype = Subtype::value;
 
     VariableType() = default;
@@ -73,7 +74,7 @@ struct DataLocation;
 
 struct FunctionArgument {
     INSERT_SUBTYPE_ENUM
-    uint8_t type = Subtype::value;
+    uint8_t subtype = Subtype::value;
     uint8_t locationType = 0;
     int32_t locationValue = 0;
     bool isMutable = false;
@@ -91,12 +92,12 @@ struct ParserValue {
         // !!! keep this updated with Bytecode list, maybe do a macro
         addition, subtraction, multiplication, division, functionCall, getAddress, getValue
     };
-    enum Value {
-        signedInteger, unsignedInteger, floatingPoint
+    enum ValueType {
+        integer, floatingPoint, string
     };
     uint8_t nodeType = 0;
     uint8_t operationType = 0;
-    uint8_t valueType = 0;
+    uint8_t valueType = ValueType::integer;
     bool isNegative = false;
     std::unique_ptr<ParserValue> left = nullptr;
     std::unique_ptr<ParserValue> right = nullptr;

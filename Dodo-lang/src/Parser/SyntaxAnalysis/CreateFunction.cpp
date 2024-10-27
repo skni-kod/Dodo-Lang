@@ -58,15 +58,17 @@ void CreateFunction(Generator<const LexicalToken*>& generator, const std::string
         current = generator();
         if (current->type == LexicalToken::Type::operand) {
             if (current->value == "*") {
-                argument.type = FunctionArgument::Subtype::pointer;
+                while (current->value == "*") {
+                    argument.subtype++;
+                    current = generator();
+                }
             }
             else {
                 ParserError("Unexpected operand after function argument type name!");
             }
-            current = generator();
         }
         else {
-            argument.type = FunctionArgument::Subtype::value;
+            argument.subtype = FunctionArgument::Subtype::value;
         }
         if (current->type != LexicalToken::Type::identifier) {
             ParserError("Expected an identifier after function argument type!");

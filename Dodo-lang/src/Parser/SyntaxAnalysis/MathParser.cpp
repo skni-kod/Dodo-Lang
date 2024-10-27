@@ -14,6 +14,15 @@ bool IsNumeric(const LexicalToken* token) {
 
 ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, std::pair<uint32_t, uint32_t> range) {
     uint32_t size = range.second - range.first;
+    if (size == 1 and not IsNumeric(tokens[range.first])) {
+        // a string
+        ParserValue value;
+        value.nodeType = ParserValue::Node::constant;
+        value.valueType = ParserValue::ValueType::string;
+        value.value = std::make_unique<std::string>(std::to_string(passedStrings.size()));
+        passedStrings.push_back(tokens[range.first]->value);
+        return value;
+    }
 
     // a single constant or variable value
     if (size == 1) {

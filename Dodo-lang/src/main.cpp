@@ -24,6 +24,10 @@ void FixLexerOutput(std::vector<ProgramPage>& tokens) {
                 else if (n.value == "}") {
                     n.type = LexicalToken::Type::blockEnd;
                 }
+                else if (n.type == LexicalToken::Type::literal and n.value.size() > 1 and n.value.front() == '\"' and n.value.back() == '\"') {
+                    // it's a string, since the lexer ands the line after it an expression end needs to be added
+                    m2.add_token(LexicalToken::Type::expressionEnd, ";");
+                }
             }
         }
     }

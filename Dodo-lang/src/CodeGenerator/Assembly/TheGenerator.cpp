@@ -310,6 +310,10 @@ VariableType GetVariableType(const std::string& name) {
         case 'f':
             value.type = Value::floatingPoint;
             break;
+        case '$':
+            value.type = Value::none;
+            return value;
+        break;
         default:
             CodeGeneratorError("Bug: Invalid variable prefix!");
     }
@@ -348,6 +352,15 @@ VariableInfo::VariableInfo(const std::string& name) {
         location.type = Operand::none;
         // and type
         value.type = ParserType::Type::none;
+        return;
+    }
+    if (identifier.starts_with("\"")) {
+        // it's a const string somewhere in memory
+        location.type = Operand::sla;
+        location.number = std::stoull(identifier.substr(1));
+        value.type = ParserType::Type::none;
+        value.isAddress = true;
+        value.isString = true;
         return;
     }
     if (identifier.starts_with("$")) {

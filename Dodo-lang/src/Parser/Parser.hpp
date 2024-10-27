@@ -7,6 +7,8 @@
 
 inline const LexicalToken* lastToken = nullptr;
 
+inline std::vector <std::string> passedStrings;
+
 const std::string* GetCurrentFile();
 
 uint64_t GetCurrentLine();

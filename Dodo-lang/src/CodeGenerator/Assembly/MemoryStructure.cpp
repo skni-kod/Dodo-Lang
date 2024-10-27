@@ -233,6 +233,9 @@ void DataLocation::print(std::ofstream& out, uint8_t size) const {
             case Operand::aadr:
                 out << "$" << globalPtr->nameForOutput();
                 return;
+            case Operand::sla:
+                out << "$LS" << number;
+            return;
             default:
                 CodeGeneratorError("Unimplemented: unsupported operand type in print!");
         }

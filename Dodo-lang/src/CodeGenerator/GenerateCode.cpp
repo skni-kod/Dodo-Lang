@@ -61,6 +61,13 @@ void GenerateCode() {
         x86_64::AddGlobalVariables(out);
         out << "\n.section .text\n";
         // global text declaration
+
+        for (uint64_t n = 0; n < passedStrings.size(); n++) {
+            out << "\nLS" << n << ":\n";
+            PrintWithSpaces(".ascii", out);
+            out << " " << passedStrings[n] << "\n";
+        }
+        
         out << "\n.global _start\n";
     }
     else {

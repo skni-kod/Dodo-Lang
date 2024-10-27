@@ -162,7 +162,12 @@ uint64_t labelCounter = 0;
 
 std::string CalculateBytecodeExpression(const ParserValue& expression, VariableType type) {
     if (expression.nodeType == ParserValue::Node::constant) {
-        return "$" + *expression.value;
+        if (expression.valueType == ParserValue::ValueType::integer) {
+            return "$" + *expression.value;
+        }
+        else if (expression.valueType == ParserValue::ValueType::string) {
+            return "\"" + *expression.value;
+        }
     }
 
     if (expression.nodeType == ParserValue::Node::variable) {
@@ -174,7 +179,7 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
             return BytecodeFunctionCall(expression);
         }
         else if (expression.operationType == ParserValue::Operation::getAddress) {
-            bytecodes.emplace_back(Bytecode::getAddress, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype - 1));
+            bytecodes.emplace_back(Bytecode::getAddress, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype));
             return AddVariableInstance(EXPRESSION_SIGN);
         }
         else if (expression.operationType == ParserValue::Operation::getValue) {
@@ -432,8 +437,10 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
             }
 
             const auto& type = parserTypes[function.arguments[n].typeName];
+            VariableType argType(type);
+            argType.subtype = function.arguments[n].subtype;
             bytecodes.emplace_back(Bytecode::moveArgument,
-                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), VariableType(type.size, type.type));
+                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), argType);
 
             // get the next argument
             argument = argument->left.get();
@@ -460,8 +467,10 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
             }
 
             const auto& type = parserTypes[function.arguments[n].typeName];
+            VariableType argType(type);
+            argType.subtype = function.arguments[n].subtype;
             bytecodes.emplace_back(Bytecode::moveArgument,
-                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), VariableType(type));
+                                   CalculateBytecodeExpression(*argument->right, {type.size, type.type}), argType);
 
             // get the next argument
             argument = argument->left.get();
@@ -632,6 +641,7 @@ void BytecodeAddArguments(const ParserFunction& function) {
     for (auto& n : function.arguments) {
         // now just find their types and add bytecodes at right locations, easy-peasy
         VariableType type(parserTypes[n.typeName]);
+        type.subtype = n.subtype;
         if (n.locationType == Operand::reg) {
             bytecodes.emplace_back(Bytecode::addFromArgument, "%" + std::to_string(n.locationValue), n.name + "#0-0", type);
         }
@@ -665,12 +675,12 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
                 continue;
             default:
                 if (not n.source.empty() and n.code != Bytecode::callFunction) {
-                    if (n.source.front() != '$' and n.source.front() != '%' and n.source.front() != '@') {
+                    if (n.source.front() != '$' and n.source.front() != '%' and n.source.front() != '@' and n.source.front() != '\"') {
                         n.source = n.type.getPrefix() + n.source;
                     }
                 }
                 if (not n.target.empty()) {
-                    if (n.target.front() != '$' and n.target.front() != '%' and n.target.front() != '@') {
+                    if (n.target.front() != '$' and n.target.front() != '%' and n.target.front() != '@' and n.target.front() != '\"') {
                         if (n.code == Bytecode::assign and n.number == 1) {
                             auto type = n.type;
                             type.subtype++;
