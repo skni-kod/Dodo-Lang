@@ -28,17 +28,18 @@ The project is being developed as a SKNI "KOD" project.
 - assigned variable locations in registers and on stack
 - simulated processor memory in code generator
 - a rather high degree of optimization, safe for precalculated constant expressions
-
-## Currently in works:
-- pointers and global variables
+- global variables
+- pointers to local and global values as well as strings (a "Hello world!" is possible!)
+- syscalls
 
 ## Short term plans:
+- C function calling
 - floating point value support
-- arrays
-- system calls and/or direct assembly injection
+- arrays used via indexes
+- possibly direct assembly injection
 
 ## Long term goals:
-- preprocessor allowing for different code on different platforms
-- C ABI function calls
+- preprocessor allowing for different code on different targets
+- fixed lexer
 - structures with methods
 - unions and byte fields

@@ -125,7 +125,7 @@ namespace x86_64 {
         // now values are moved, let's back up other values to stack
         for (uint64_t n = 1; n < generatorMemory.registers.size(); n++) {
             auto& reg = generatorMemory.registers[n];
-            if (reg.content.value != "!" and not reg.content.value.starts_with("$")) {
+            if (reg.content.value != "!" and not reg.content.value.starts_with("$") and variableLifetimes[reg.content.value].lastUse > currentBytecodeIndex) {
                 // value needs to be moved away to stack
                 bool safe = false;
                 for (auto m : safeRegisters) {

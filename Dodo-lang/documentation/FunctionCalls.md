@@ -4,7 +4,7 @@ Function calls are performed similarly to other languages, with differences in v
 
 ### Calling convention
 
-Passing of arguments in x86-64 is done according to System V AMD ABI. As of now only integer arguments are implemented. The difference is the approach to preservation of register values. Instead of the caller being responsible for it, the callee is required to save the state on any non argument and if the function returns a value, register A is also overwritten, the saved values are returned to the non argument and non value return registers.
+Passing of arguments in x86-64 is done according to System V AMD ABI. As of now only integer and pointer arguments are implemented. The difference is the approach to preservation of register values. Instead of the caller being responsible for it, the callee is required to save the state on any non argument and if the function returns a value, register A is also overwritten, the saved values are returned to the non argument and non value return registers.
 Right now, only register passing in supported but stack passing will be added at a later time since 6 arguments is plenty for now.
 
 ### Value return
