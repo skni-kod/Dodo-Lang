@@ -102,8 +102,11 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index);
 
 void InsertValue(std::string target, std::string source);
 
-//void MoveValue(std::string source, std::string target, std::string contentToSet, uint16_t operationSize, uint64_t index);
 void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSet, uint64_t operationSize);
+void CopyVariableElsewhereNoReference(VariableInfo source);
+void CopyVariableElsewhere(VariableInfo& source);
+void MoveVariableElsewhereNoReference(VariableInfo source);
+void MoveVariableElsewhere(VariableInfo& source);
 
 void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::string contentToSet);
 void X86_64DereferencePointer(VariableInfo source, VariableInfo target);

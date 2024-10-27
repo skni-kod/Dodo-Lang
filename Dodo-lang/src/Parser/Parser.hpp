@@ -26,4 +26,6 @@ void RunParsing(const std::vector<ProgramPage>& tokens);
 
 void PrepareFunctionArguments();
 
+bool IsNumeric(const LexicalToken* token);
+
 #endif //DODO_LANG_PARSER_HPP

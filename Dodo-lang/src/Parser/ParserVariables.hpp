@@ -136,10 +136,10 @@ struct ReturnInstruction {
     ParserValue expression;
 };
 
-// no return value catching
 struct FunctionCallInstruction {
     std::string functionName;
     ParserValue arguments;
+    bool isCCall = false;
 };
 
 struct ParserCondition {

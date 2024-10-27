@@ -54,6 +54,33 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
         return instruction;
     }
 
+    // return statement
+    if (firstToken->type == LexicalToken::Type::keyword and firstToken->value == "syscall") {
+        const LexicalToken* current = generator();
+        if (current->value != "(") {
+            ParserError("Expected an opening bracket after syscall keyword!");    
+        }
+        auto* firstPtr = current;
+        current = generator();
+        if (not IsNumeric(current)) {
+            ParserError("Expected a call number as first syscall argument!");    
+        }
+        uint64_t syscallNumber = std::stoull(current->value);
+        current = generator();
+        if (current->value != ",") {
+            ParserError("Expected a separator after syscall number!");    
+        }
+        
+        instruction.variant.functionCallInstruction = new FunctionCallInstruction();
+        instruction.type = FunctionInstruction::Type::functionCall;
+        instruction.variant.functionCallInstruction->functionName = std::to_string(syscallNumber);
+        instruction.variant.functionCallInstruction->isCCall = true;
+        instruction.variant.functionCallInstruction->arguments = ParseMath(generator,
+            std::vector<const LexicalToken*> {firstToken, firstPtr}, false, 1);
+        return instruction;
+        
+    }
+
     // variable modification
     if (firstToken->type == LexicalToken::Type::identifier or (firstToken->type == LexicalToken::Type::operand and firstToken->value == "*")) {
         bool pointerValue = false;

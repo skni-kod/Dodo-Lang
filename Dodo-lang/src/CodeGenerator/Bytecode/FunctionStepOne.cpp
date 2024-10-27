@@ -422,7 +422,23 @@ void BytecodePopLevel() {
 }
 
 void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) {
-    //BytecodePushLevel();
+    // in that case it's a syscall
+    if (instruction.functionName.front() >= '0' and instruction.functionName.front() <= '9') {
+        const auto* argument = &instruction.arguments;
+        while (argument != nullptr) {
+            
+            if (argument->right == nullptr) {
+                CodeGeneratorError("Invalid argument value!");
+                return;
+            }
+            auto type = NegotiateOperationType(*argument->right);
+            bytecodes.emplace_back(Bytecode::moveArgument, CalculateBytecodeExpression(*argument->right, type), type);
+            argument = argument->left.get();
+        }
+        bytecodes.emplace_back(Bytecode::syscall, "", std::stoull(instruction.functionName));
+        return;
+    }
+    
     const ParserFunction& function = parserFunctions[instruction.functionName];
     if (not function.arguments.empty()) {
         const auto* argument = &instruction.arguments;

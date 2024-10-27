@@ -162,6 +162,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::addFromArgument:
             out << "Add variable named: " << code.target << " from argument located at: " << code.source << "\n";
             break;
+        case Bytecode::syscall:
+            out << "Call syscall number: " << code.number << "\n";
+        break;
         default:
             CodeGeneratorError("Invalid bytecode code!");
             break;

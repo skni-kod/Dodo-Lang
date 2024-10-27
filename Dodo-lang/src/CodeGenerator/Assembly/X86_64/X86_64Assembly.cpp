@@ -95,35 +95,87 @@ namespace x86_64 {
 
     std::vector <std::string> argumentNames;
 
+    void CallX86_64Syscall(uint64_t callNumber, bool doesReturn, std::string result = "!") {
+        std::array <uint16_t, 7> safeRegisters = {x86_64::rbx, x86_64::rsp, x86_64::rbp, x86_64::r12, x86_64::r13, x86_64::r14, x86_64::r15};
+        std::array <uint16_t, 6> registersToUse = {x86_64::rdi, x86_64::rsi, x86_64::rdx, x86_64::rcx, x86_64::r8, x86_64::r9};
+        for (uint64_t n = 0; n < argumentNames.size(); n++) {
+            if (n < registersToUse.size()) {
+                uint64_t size = 0;
+                if (argumentNames[n].starts_with("$") or argumentNames[n].starts_with("\"")) {
+                    size = Options::addressSize;
+                }
+                else {
+                    size = GetVariableType(argumentNames[n]).size;
+                }
+                MoveValue(VariableInfo(argumentNames[n]), VariableInfo::FromLocation({Operand::reg, uint64_t(registersToUse[n])}), argumentNames[n], size);
+            }
+            else {
+                CodeGeneratorError("Unimplemented: passing of arguments in stack!");
+            }
+        }
+        for (uint64_t n = 0; n < argumentNames.size(); n++) {
+            if (not argumentNames[n].starts_with("$")) {
+                auto& life = variableLifetimes[argumentNames[n]];
+                if (life.lastUse > currentBytecodeIndex) {
+                    CopyVariableElsewhereNoReference(VariableInfo(argumentNames[n]));
+                }
+            }
+            generatorMemory.registers[n].content.value = "!";
+        }
+        // now values are moved, let's back up other values to stack
+        for (uint64_t n = 1; n < generatorMemory.registers.size(); n++) {
+            auto& reg = generatorMemory.registers[n];
+            if (reg.content.value != "!" and not reg.content.value.starts_with("$")) {
+                // value needs to be moved away to stack
+                bool safe = false;
+                for (auto m : safeRegisters) {
+                    if (m == n) {
+                        safe = true;
+                        break;
+                    }
+                }
+                if (safe) {
+                    continue;
+                }
+                for (uint64_t m = 0; m < argumentNames.size() and m < 6; m++) {
+                    if (registersToUse[m] == n) {
+                        safe = true;
+                        break;
+                    }
+                }
+                if (not safe) {
+                    MoveValue(VariableInfo::FromLocation({Operand::reg, n}), VariableInfo::FromLocation({Operand::sta, AddStackVariable(reg.content.value)->offset}), "!", GetVariableType(reg.content.value).size);
+                }
+            }
+        }
+        if (generatorMemory.registers.front().content.value != "!" and not generatorMemory.registers.front().content.value.starts_with("$")) {
+            MoveValue(VariableInfo::FromLocation({Operand::reg, uint64_t(0)}), VariableInfo::FromLocation({Operand::sta, AddStackVariable(generatorMemory.registers.front().content.value)->offset}), "!", GetVariableType(generatorMemory.registers.front().content.value).size);
+            generatorMemory.registers.front().content.value = "!";
+        }
+        MoveValue(VariableInfo("$" + std::to_string(callNumber)), VariableInfo("%0"), "$0", Options::addressSize);
+        if (doesReturn) {
+            generatorMemory.registers.front().content.value = result;
+        }
+        else {
+            generatorMemory.registers.front().content.value = "!";
+        }
+        Instruction ins;
+        ins.type = x86_64::syscall;
+        finalInstructions.push_back(ins);
+    }
+
     void CallX86_64Function(ParserFunction* function, const uint64_t& index, std::string& result) {
         if (argumentNames.size() != function->arguments.size()) {
             CodeGeneratorError("Bug: Argument amount mismatch in generator!");
         }
+        
         for (uint64_t n = 0; n < argumentNames.size(); n++) {
             // move every argument into place
             // but if the variable still exists after and the target is the same as source copy it elsewhere
             if (not argumentNames[n].starts_with("$") and variableLifetimes[argumentNames[n]].lastUse > index and
-            generatorMemory.findThing(argumentNames[n]) == DataLocation(function->arguments[n].locationType, int64_t(function->arguments[n].locationValue))) {
+                generatorMemory.findThing(argumentNames[n]) == DataLocation(function->arguments[n].locationType, int64_t(function->arguments[n].locationValue))) {
                 // great, now it needs to be moved, let's do it, I really need to make dedicated functions for those
-                auto location = generatorMemory.findThing(argumentNames[n]);
-                if (location.type == Operand::reg) {
-                    bool found = false;
-                    for (uint64_t k = generatorMemory.registers.size() - 1; k > 0; k--) {
-                        if (generatorMemory.registers[k].content.value == "!" or generatorMemory.registers[k].content.value.starts_with("$")) {
-                            // found one!
-                            MoveValue(VariableInfo(argumentNames[n]), VariableInfo("%" + std::to_string(n)), argumentNames[n], GetVariableType(argumentNames[n]).size);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (not found) {
-                        // move it to stack
-                        MoveValue(VariableInfo("%0"), VariableInfo(("@" + std::to_string(AddStackVariable(argumentNames[n])->offset))), argumentNames[n], GetVariableType(argumentNames[n]).size);
-                    }
-                }
-                else {
-                    CodeGeneratorError("Unimplemented: stack argument pass copying");
-                }
+                MoveVariableElsewhereNoReference(VariableInfo(argumentNames[n]));
             }
             MoveValue(VariableInfo(argumentNames[n]), VariableInfo::FromLocation(DataLocation(function->arguments[n].locationType,
                 int64_t(function->arguments[n].locationValue))), argumentNames[n],
@@ -139,18 +191,7 @@ namespace x86_64 {
                 std::string content = reg.content.value;
                 reg.content.value = "!";
                 if (generatorMemory.findThing(content).type == Operand::none) {
-                    for (uint64_t n = generatorMemory.registers.size() - 1; n > 0; n--) {
-                        if (generatorMemory.registers[n].content.value == "!" or generatorMemory.registers[n].content.value.starts_with("$")) {
-                            // found one!
-                            MoveValue(VariableInfo("%0"), VariableInfo("%" + std::to_string(n)), content, GetVariableType(content).size);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (not found) {
-                        // move it to stack
-                        MoveValue(VariableInfo("%0"), VariableInfo("@" + std::to_string(AddStackVariable(content)->offset)), content, GetVariableType(content).size);
-                    }
+                    MoveVariableElsewhereNoReference(VariableInfo("%0"));
                 }
                 reg.content.value = result;
             }
@@ -162,7 +203,6 @@ namespace x86_64 {
         if (not function->returnType.empty()) {
             SetContent({Operand::reg, uint64_t(0)}, result);
         }
-
     }
 
     void ConvertBytecode(Bytecode& bytecode, uint64_t index) {
@@ -503,6 +543,9 @@ namespace x86_64 {
                 else {
                     CodeGeneratorError("Unimplemented: Stack argument at start of function!");
                 }
+                break;
+            case Bytecode::syscall:
+                CallX86_64Syscall(bytecode.number, false);
                 break;
             default:
                 CodeGeneratorError("Invalid bytecode code in converter!");

@@ -142,6 +142,7 @@ void AddLifetimeOrInsert(std::string name, uint64_t index) {
 }
 
 void CalculateLifetimes() {
+    std::vector <uint64_t> argumentAdds;
     for (uint64_t n = 0; n < bytecodes.size(); n++) {
         switch (bytecodes[n].code) {
             case Bytecode::declare:
@@ -200,6 +201,19 @@ void CalculateLifetimes() {
                         }
                     }
                 }
+                argumentAdds.clear();
+                break;
+            case Bytecode::syscall:
+                // find all the arguments and extend their life
+                for (auto& m : argumentAdds) {
+                    if (IsVariable(bytecodes[m].source)) {
+                        // extend the life of the result
+                        auto& temp = variableLifetimes.find(bytecodes[m].source);
+                        temp.usageAmount++;
+                        temp.lastUse = n;
+                    }
+                }
+                argumentAdds.clear();
                 break;
             case Bytecode::compare:
                 // handle source
@@ -221,6 +235,7 @@ void CalculateLifetimes() {
                         break;
                     }
                 }
+                argumentAdds.push_back(n);
                 break;
             case Bytecode::moveValue:
                 // handle target

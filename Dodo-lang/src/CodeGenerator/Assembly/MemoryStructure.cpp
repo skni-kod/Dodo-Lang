@@ -451,6 +451,10 @@ void Instruction::outputX86_64(std::ofstream& out) const {
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
+            case x86_64::syscall:
+                PrintWithSpaces("syscall", out);
+                out << "\n";
+            break;
             default:
                 CodeGeneratorError("Unimplemented: Unsupported instruction code!");
         }

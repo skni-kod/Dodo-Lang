@@ -154,7 +154,7 @@ public:
                     "break",
                     "private",
                     "public",
-                    "interrupt"
+                    "syscall"
             };
 
     //list of all operators in dodo language

@@ -1,26 +1,17 @@
 #include "AnalysisInternal.hpp"
 
-bool IsNumeric(const LexicalToken* token) {
-    if (token->literalValue == literalType::numeric or
-        token->literalValue == literalType::character or
-        token->literalValue == literalType::float_type or
-        token->literalValue == literalType::hex_type or
-        token->literalValue == literalType::binary_type or
-        token->literalValue == literalType::octal_type) {
-        return true;
-    }
-    return false;
-}
-
 ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, std::pair<uint32_t, uint32_t> range) {
     uint32_t size = range.second - range.first;
-    if (size == 1 and not IsNumeric(tokens[range.first])) {
+    if (size == 1 and not IsNumeric(tokens[range.first]) and tokens[range.first]->value.size() > 1  and tokens[range.first]->value.front() == '\"' and tokens[range.first]->value.back() == '\"') {
         // a string
+        
         ParserValue value;
         value.nodeType = ParserValue::Node::constant;
         value.valueType = ParserValue::ValueType::string;
         value.value = std::make_unique<std::string>(std::to_string(passedStrings.size()));
-        passedStrings.push_back(tokens[range.first]->value);
+        if (tokens[range.first]->value != "syscall") {
+            passedStrings.push_back(tokens[range.first]->value);
+        }
         return value;
     }
 
@@ -114,7 +105,7 @@ ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, st
 
     // value returning function call
     // TODO: add argument parsing
-    if (size > 2 and tokens[range.first]->type == LexicalToken::Type::identifier and
+    if (size > 2 and (tokens[range.first]->type == LexicalToken::Type::identifier or tokens[range.first]->value == "syscall") and
         tokens[range.first + 1]->value == "(" and tokens[range.second - 1]->value == ")") {
         ParserValue value;
         value.nodeType = ParserValue::Node::operation;

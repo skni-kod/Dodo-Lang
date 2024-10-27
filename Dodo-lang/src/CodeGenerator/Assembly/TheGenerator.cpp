@@ -243,6 +243,9 @@ internal::StackEntry* AddStackVariable(std::string name) {
     }
     
     int64_t size = std::stoll(name.substr(1, 1));
+    if (GetOperandType(name) != Subtype::value) {
+        size = Options::addressSize;
+    }
 
     // TODO: add amount later if necessary
 
@@ -313,7 +316,9 @@ VariableType GetVariableType(const std::string& name) {
         case '$':
             value.type = Value::none;
             return value;
-        break;
+        case '!':
+            value.type = Value::none;
+        return value;
         default:
             CodeGeneratorError("Bug: Invalid variable prefix!");
     }
@@ -515,6 +520,9 @@ VariableInfo::VariableInfo(const std::string& name) {
 
 // this function does not care if the variable already exists elsewhere, 
 // if it needs to exist in one place use the MoveVariableElsewhere
+void CopyVariableElsewhereNoReference(VariableInfo source) {
+    CopyVariableElsewhere(source);
+}
 void CopyVariableElsewhere(VariableInfo& source) {
     // first off see if the variable isn't in it's designated spot
     {
@@ -549,6 +557,9 @@ void CopyVariableElsewhere(VariableInfo& source) {
 }
 
 // a wrapper for CopyVariableInfo to check if the variable exists elsewhere
+void MoveVariableElsewhereNoReference(VariableInfo source) {
+    MoveVariableElsewhere(source);
+}
 void MoveVariableElsewhere(VariableInfo& source) {
     for (size_t n = 0; n < generatorMemory.registers.size(); n++) {
         if (generatorMemory.registers[n].content.value == source.identifier and 
@@ -823,7 +834,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
     }
 
     auto contentType = VariableType(contentToSet);
-    if (contentType.isAddress != source.value.isAddress) {
+    if (contentType.isAddress != source.value.isAddress and contentType.type != Value::none) {
         CodeGeneratorError("Bug: Invalid type combination in value move!");
     }
     

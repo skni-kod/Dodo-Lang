@@ -84,3 +84,15 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
                   << " function definition(s)\n";
     }
 }
+
+bool IsNumeric(const LexicalToken* token) {
+    if (token->literalValue == literalType::numeric or
+        token->literalValue == literalType::character or
+        token->literalValue == literalType::float_type or
+        token->literalValue == literalType::hex_type or
+        token->literalValue == literalType::binary_type or
+        token->literalValue == literalType::octal_type) {
+        return true;
+        }
+    return false;
+}

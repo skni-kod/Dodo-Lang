@@ -20,6 +20,7 @@ type char : UNSIGNED_INTEGER(1);
 type char4 : UNSIGNED_INTEGER(4);
 
 i32 Main() {
-    let char* g = "test";
-    return 0;
+    let char* g = "Hello world! The return value of this mess is: ";
+    syscall(1, 0, g, 47);
+    return 123;
 }

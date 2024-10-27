@@ -51,7 +51,9 @@ struct Bytecode {
         // t = s
         moveValue,
         // t = s
-        addFromArgument
+        addFromArgument,
+        // call syscall number n, return value in source
+        syscall
 
     };
 
