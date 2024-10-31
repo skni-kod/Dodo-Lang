@@ -26,7 +26,18 @@ void FixLexerOutput(std::vector<ProgramPage>& tokens) {
                 }
                 else if (n.type == LexicalToken::Type::literal and n.value.size() > 1 and n.value.front() == '\"' and n.value.back() == '\"') {
                     // it's a string, since the lexer ands the line after it an expression end needs to be added
-                    m2.add_token(LexicalToken::Type::expressionEnd, ";");
+                    if (&n == &m2.line.back()) {
+                        m2.add_token(LexicalToken::Type::expressionEnd, ";");
+                    }
+                    else {
+                        // add a comma after this
+                        for (uint64_t k = 0; k < m2.line.size(); k++) {
+                            if (&m2.line[k] == &n) {
+                                m2.line.insert(m2.line.begin() + k + 1, {LexicalToken::Type::comma, ","});
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -82,6 +93,7 @@ int main(int argc, char* argv[]) {
 
     //below is for checking if the lexing procces was correct
     std::cout << "LEXER OUTPUT: " << std::endl;
+    FixLexerOutput(lt->f_token_list);
     lt->list_of_tokens_print();
 
 
@@ -95,7 +107,7 @@ int main(int argc, char* argv[]) {
 
     plik.close();
 
-    FixLexerOutput(lt->f_token_list);
+
 
     std::cout << "INFO L1: Lexing done!\nINFO L1: Parsing:\n";
     try {

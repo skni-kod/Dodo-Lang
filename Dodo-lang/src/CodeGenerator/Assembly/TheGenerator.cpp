@@ -319,6 +319,9 @@ VariableType GetVariableType(const std::string& name) {
         case '!':
             value.type = Value::none;
         return value;
+        case '\"':
+            value.type = Value::none;
+            return value;
         default:
             CodeGeneratorError("Bug: Invalid variable prefix!");
     }

@@ -221,6 +221,10 @@ VariableType NegotiateOperationType(const ParserValue& expression) {
             }
         }
 
+        if (expression.valueType == ParserValue::ValueType::string) {
+            return {1, Value::unsignedInteger, Subtype::pointer};
+        }
+
         if (isFloat) {
             long double number = std::stold(*expression.value);
             if ((number <= MAX_16_BIT_FLOAT_PRECISE and number > MIN_16_BIT_FLOAT_PRECISE) or

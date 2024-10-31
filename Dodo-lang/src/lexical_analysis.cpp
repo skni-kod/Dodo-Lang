@@ -370,9 +370,10 @@ void list_of_tokens::lexical_analize(const std::string start_file_name) {
 }
 
 void list_of_tokens::list_of_tokens_print() {
-    int size = token_list.size();
-    for (int i = 0; i < size; i++) {
-        std::cout << token_list[i].line_number << ". " << token_list[i] << std::endl;
+    for (auto& n : f_token_list) {
+        for (auto& m: n.page) {
+            std::cout << m.line_number << ". " << m << "\n";
+        }
     }
 }
 

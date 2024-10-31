@@ -263,7 +263,7 @@ ParserValue ParseMath(Generator<const LexicalToken*>& generator, std::vector<con
     if (addBraces) {
         front.push_back(&frontBrace);
     }
-    while ((current->type != LexicalToken::Type::comma and current->type != LexicalToken::Type::expressionEnd) or
+    while ((current->value != "," and current->value != ";" and current->value != ")") or
            bracketLevel != 0) {
         if (current->value == "(") {
             bracketLevel++;
