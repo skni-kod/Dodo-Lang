@@ -49,6 +49,9 @@ add_executable(Dodo_Lang
         Dodo-lang/src/CodeGenerator/Assembly/FunctionCallStuff.cpp
         Dodo-lang/src/Parser/CheckFunctions.cpp
         Dodo-lang/src/Parser/SyntaxAnalysis/CreateVariable.cpp
+        Dodo-lang/src/CodeGenerator/ValueType.cpp
+        Dodo-lang/src/CodeGenerator/ValueType.hpp
+        Dodo-lang/src/Parser/TypeObject.hpp
 )
 
 # uncomment when project works well

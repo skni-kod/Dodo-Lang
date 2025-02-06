@@ -17,6 +17,10 @@ The language itself is to be statically typed, have objects and possibly binding
 
 The project is being developed as a SKNI "KOD" project.
 
+## Current branch goals:
+- complete rework of type system
+- structures
+- removal of data kept in strings
 
 ## Currently achieved goals:
 - custom type declaration

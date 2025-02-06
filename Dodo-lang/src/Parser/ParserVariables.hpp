@@ -17,7 +17,7 @@ enum Type { \
 
 #define INSERT_SUBTYPE_ENUM \
 enum Subtype { \
-    value, pointer, none \
+    value, pointer, none, reference \
 };
 
 #define INSERT_CONDITION_ENUM \
