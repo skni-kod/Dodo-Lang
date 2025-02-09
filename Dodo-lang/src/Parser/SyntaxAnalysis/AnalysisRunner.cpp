@@ -12,9 +12,9 @@ bool RunSyntaxAnalysis(Generator<const LexicalToken*>& generator) {
         const LexicalToken* current = generator();
 
         // BASIC TYPES
-        if (current->value == "type") {
+        if (current->value == "type" or current->value == "primitive") {
             try {
-                CreateType(generator);
+                CreateType(generator, current->value);
                 continue;
             }
             catch (__ParserException& e) {

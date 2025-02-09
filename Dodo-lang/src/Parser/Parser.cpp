@@ -64,6 +64,12 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with " << parserTypes.size() << " type definition(s)\n";
+        if (Options::informationLevel > Options::InformationLevel::general) {
+            std::cout << "INFO L3: Defined types:\n";
+            for (const auto& n : types.map) {
+                std::cout << n.second;
+            }
+        }
         std::cout << "INFO L2: Found " << globalVariables.size() << " global variable(s)\n";
     }
 

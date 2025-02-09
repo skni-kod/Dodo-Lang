@@ -9,29 +9,7 @@
 #include "MapWrapper.tpp"
 #include "Parser.hpp"
 #include "Generator.tpp"
-
-#define INSERT_TYPE_ENUM \
-enum Type { \
-    unsignedInteger, signedInteger, floatingPoint, none \
-};
-
-#define INSERT_SUBTYPE_ENUM \
-enum Subtype { \
-    value, pointer, none, reference \
-};
-
-#define INSERT_CONDITION_ENUM \
-enum Condition { \
-    equals, notEquals, greater, greaterEqual, lesser, lesserEqual \
-};
-
-namespace Value {
-    INSERT_TYPE_ENUM
-}
-
-namespace Subtype {
-    INSERT_SUBTYPE_ENUM
-}
+#include "TypeObject.hpp"
 
 bool IsType(const std::string& token);
 
@@ -40,7 +18,11 @@ bool IsObject(const std::string& token);
 // that is if it can be used for a variable
 bool IsDeclarable(const std::string& token);
 
+// TODO: Remove this when it's not used anymore
 struct ParserType {
+
+
+
     INSERT_TYPE_ENUM
     uint8_t type: 2;                         // allowed values 0-2
     uint8_t size: 6;                         // allowed values 1-8 (maybe more in future)
@@ -217,6 +199,7 @@ struct ParserFunction {
     std::vector<FunctionInstruction> instructions;
 };
 
+inline MapWrapper<std::string, TypeObject> types;
 inline MapWrapper<std::string, ParserType> parserTypes;
 inline MapWrapper<std::string, ParserFunction> parserFunctions;
 

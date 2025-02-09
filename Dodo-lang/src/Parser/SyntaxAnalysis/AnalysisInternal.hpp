@@ -5,9 +5,9 @@
 #include "../Generator.tpp"
 #include "../ParserVariables.hpp"
 
-void CreateType(Generator<const LexicalToken*>& generator);
+void CreateType(Generator<const LexicalToken*>& generator, const std::string& returnTypeName);
 
-void CreateFunction(Generator<const LexicalToken*>& generator, const std::string& returnTypeName);
+void CreateFunction(Generator<const LexicalToken*>& generator, const std::string& starterWord);
 
 std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalToken*>& generator, const std::string& firstToken, bool isGlobal);
 

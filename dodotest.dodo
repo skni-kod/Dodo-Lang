@@ -1,24 +1,28 @@
-// basic signed integers
-type i8 : SIGNED_INTEGER(1);
-type i16 : SIGNED_INTEGER(2);
-type i32 : SIGNED_INTEGER(4);
-type i64 : SIGNED_INTEGER(8);
+// base primitive types, they contain default method definitions
+// primitive types contain only one variable and cannot declare members
+primitive SIGNED_INTEGER<1> type i8 {
+    // optional default overrides and methods
+}
 
-// basic signed integers
-type u8 : UNSIGNED_INTEGER(1);
-type u16 : UNSIGNED_INTEGER(2);
-type u32 : UNSIGNED_INTEGER(4);
-type u64 : UNSIGNED_INTEGER(8);
+primitive SIGNED_INTEGER<2>   type i16 {}
+primitive SIGNED_INTEGER<4>   type i32 {}
+primitive SIGNED_INTEGER<8>   type i64 {}
 
-// basic floating points
-type f16 : FLOATING_POINT(2);
-type f32 : FLOATING_POINT(4);
-type f64 : FLOATING_POINT(8);
+primitive UNSIGNED_INTEGER<1> type u8  {}
+primitive UNSIGNED_INTEGER<2> type u16 {}
+primitive UNSIGNED_INTEGER<4> type u32 {}
+primitive UNSIGNED_INTEGER<8> type u64 {}
 
-// character types
-type char : UNSIGNED_INTEGER(1);
-type char2 : UNSIGNED_INTEGER(2);
-type char4 : UNSIGNED_INTEGER(4);
+primitive FLOATING_POINT<2>   type f16 {}
+primitive FLOATING_POINT<4>   type f32 {}
+primitive FLOATING_POINT<8>   type f64 {}
+
+// complex types cannot declare primitive members directly
+type Vec2i {
+    i8 x;
+    i8 y;
+    // optional default overrides and methods
+}
 
 i32 Main() {
     syscall(1, 0, "Hello world! The return value of this mess is: ", 47);

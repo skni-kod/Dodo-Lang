@@ -52,6 +52,7 @@ add_executable(Dodo_Lang
         Dodo-lang/src/CodeGenerator/ValueType.cpp
         Dodo-lang/src/CodeGenerator/ValueType.hpp
         Dodo-lang/src/Parser/TypeObject.hpp
+        Dodo-lang/src/Parser/TypeObject.cpp
 )
 
 # uncomment when project works well
