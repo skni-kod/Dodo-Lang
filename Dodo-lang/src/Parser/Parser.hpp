@@ -28,4 +28,6 @@ void PrepareFunctionArguments();
 
 bool IsNumeric(const LexicalToken* token);
 
+void CalculateTypeSizes();
+
 #endif //DODO_LANG_PARSER_HPP

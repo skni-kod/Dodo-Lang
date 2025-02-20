@@ -60,10 +60,11 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
         }
     }
 
-    // Step 2: checking basic types (might not be required)
+    // Step 2: checking basic types
+    CalculateTypeSizes();
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished type parsing with " << parserTypes.size() << " type definition(s)\n";
+        std::cout << "INFO L2: Finished type parsing with " << types.size() << " type definition(s)\n";
         if (Options::informationLevel > Options::InformationLevel::general) {
             std::cout << "INFO L3: Defined types:\n";
             for (const auto& n : types.map) {

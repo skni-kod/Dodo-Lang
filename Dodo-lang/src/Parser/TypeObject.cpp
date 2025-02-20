@@ -2,8 +2,7 @@
 #include <ostream>
 
 std::ostream& operator<<(std::ostream& out, const TypeObjectMember& member) {
-    //return out << "INFO L2: \t" << member.memberType->typeName << " " << member.memberName << "\n";
-    return out << "INFO L3: \t" << *member.memberTypeName << " " << member.memberName << "\n";
+    return out << "INFO L3: \t" << member.memberType->typeName << " " << member.memberName << "\n";
 }
 
 std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
@@ -28,5 +27,5 @@ std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
     for (auto& n : type.members) {
         out << n;
     }
-    return out;
+    return out << "INFO L3: It's total size is: " << type.typeSize << " byte(s), aligned to: " << type.typeAlignment << " byte(s)\n";
 }

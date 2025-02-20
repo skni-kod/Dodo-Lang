@@ -72,7 +72,8 @@ struct TypeObject {
     std::string typeName;
     uint64_t isPrimitive   : 1 = false;
     uint64_t primitiveType : 2 = Primitive::Type::none;
-    uint64_t typeSize : 61 = 1;
+    uint64_t typeAlignment : 4 = 0;
+    uint64_t typeSize : 57 = 0;
     std::vector <TypeObjectMember> members;
     // will hold information about operator, constructor, destructor overrides and methods
     //std::vector <SoMeThInG> methods;

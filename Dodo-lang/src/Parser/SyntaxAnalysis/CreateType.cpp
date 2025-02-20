@@ -41,7 +41,7 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
         if (current->type != LexicalToken::Type::literal) {
             ParserError("Expected primitive size after bracket opening!");
         }
-        type.typeSize = stoull(current->value);
+        type.typeAlignment = type.typeSize = stoull(current->value);
         if (type.primitiveType == Primitive::floatingPoint) {
             if (type.typeSize != 2 and type.typeSize != 4 and type.typeSize != 8) {
                 ParserError("Only sizes of 2, 4 and 8 bytes are accepted for float primitives!");
@@ -73,29 +73,25 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
     }
     type.typeName = current->value;
 
-    // in that case nothing after is acceptable
-    if (type.isPrimitive) {
-        if (not generator) {
-            ParserError("Expected an opening bracket or block end after primitive name!");
-        }
-        current = generator();
-        if (current->value == ";") {
-            types.map.emplace(type.typeName, std::move(type));
-            return;
-        }
-        if (current->value != "{") {
-            ParserError("Expected an opening bracket or block end after primitive name!");
-        }
+    if (not generator) {
+        ParserError("Expected an opening bracket or block end after type name!");
     }
-    else if (not generator or generator()->value != "{") {
-        ParserError("Expected an opening bracket after type name!");
+    current = generator();
+    if (current->value == ";") {
+        types.map.emplace(type.typeName, std::move(type));
+        return;
+    }
+    if (current->value != "{") {
+        ParserError("Expected an opening bracket or block end after type name!");
     }
 
     if (not generator) {
         ParserError("Expected a member type or closing bracket!");
     }
     current = generator();
+
     while (current->value != "}") {
+        // TODO: add methods and non-default operators
         TypeObjectMember member;
 
         member.memberTypeName = std::make_unique<std::string>(current->value);
@@ -113,98 +109,60 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
         current = generator();
     }
 
+    if (not type.isPrimitive and type.members.size() == 0) {
+        ParserError("Member-less complex types are prohibited!");
+    }
+
     types.map.emplace(type.typeName, std::move(type));
 }
 
-/*
-void CreateType(Generator<const LexicalToken*>& generator) {
-    // type <name>
-    if (!generator) {
-        ParserError("Expected more tokens after base type declaration!");
+std::pair<uint64_t, uint64_t> CalculateTypeSize(TypeObject& type) {
+    // was already calculated
+    if (type.typeSize != 0) {
+        uint64_t size = type.typeSize;
+        uint64_t alignment = type.typeAlignment;
+        return {size, alignment};
     }
-
-    const LexicalToken* current = generator();
-    if (current->type != LexicalToken::Type::identifier) {
-        ParserError("Expected an identifier after base type declaration!");
+    uint64_t sum = 0, alignment = 0;
+    for (auto& n : type.members) {
+        auto result = CalculateTypeSize(types[*n.memberTypeName]);
+        if (result.first == 0) {
+            return {0, 0};
+        }
+        if (sum % result.second != 0) {
+            sum = sum / result.second + result.second;
+        }
+        n.memberOffset = sum;
+        sum += result.first;
+        if (result.second > alignment) {
+            alignment = result.second;
+        }
+        n.memberType = &types[*n.memberTypeName];
+        n.memberTypeName = nullptr;
     }
-
-    const std::string& name = current->value;
-    if (parserTypes.isKey(name)) {
-        ParserError("Base type redefinition!");
+    if (sum % alignment != 0) {
+        sum = sum / alignment;
     }
-    // type <name> :
-    if (!generator) {
-        ParserError("Expected more tokens after base type name declaration!");
-    }
-
-    current = generator();
-    if (current->value != ":") {
-        ParserError("Expected a definition operand after base type name declaration!");
-    }
-    // type <name> : <type>
-    if (!generator) {
-        ParserError("Expected more tokens after base type definition!");
-    }
-
-    current = generator();
-    uint8_t type = 0;
-    if (current->value == "SIGNED_INTEGER") {
-        type = ParserType::Type::signedInteger;
-    }
-    else if (current->value == "UNSIGNED_INTEGER") {
-        type = ParserType::Type::unsignedInteger;
-    }
-    else if (current->value == "FLOATING_POINT") {
-        type = ParserType::Type::floatingPoint;
-    }
-    else {
-        ParserError("Invalid type of base type!");
-    }
-
-    // type <name> : <type>(
-    if (!generator) {
-        ParserError("Expected more tokens after base type type definition!");
-    }
-
-    current = generator();
-    if (current->value != "(") {
-        ParserError("Expected an opening bracket after basic type type definition!");
-    }
-
-    // type <name> : <type>(<singleSize>
-    if (!generator) {
-        ParserError("Expected more tokens after base type type definition bracket opening!");
-    }
-
-    current = generator();
-    if (current->type != LexicalToken::Type::literal or current->literalValue != literalType::numeric) {
-        ParserError("Expected a number inside basic type singleSize bracket!");
-    }
-    if (std::stoi(current->value) < 1 or std::stoi(current->value) > 8) {
-        ParserError("Invalid value inside basic type singleSize bracket!");
-    }
-    uint8_t size = std::stoll(current->value);
-
-    // type <name> : <type>(<singleSize>)
-    if (!generator) {
-        ParserError("Expected more tokens after base type singleSize definition!");
-    }
-
-    current = generator();
-    if (current->value != ")") {
-        ParserError("Expected a closing bracket after basic type singleSize definition!");
-    }
-
-    // type <name> : <type>(<singleSize>);
-    if (!generator) {
-        ParserError("Expected more tokens after base type type definition bracket!");
-    }
-
-    current = generator();
-    if (current->type != LexicalToken::Type::expressionEnd) {
-        ParserError("Expected an end of expression token after closing of basic type type bracket!");
-    }
-
-    parserTypes.insert(name, ParserType(type, size));
+    type.typeSize = sum;
+    type.typeAlignment = alignment;
+    return {sum, alignment};
 }
-*/
+
+void CalculateTypeSizes() {
+    // count refers to values left not calculated in this round
+    uint64_t lastCount = 0xFFFFFFFFFFFFFFFF;
+    while (true) {
+        uint64_t currentCount = 0;
+        for (auto& n : types.map) {
+            currentCount += (CalculateTypeSize(n.second).first == 0);
+        }
+
+        if (currentCount == 0) {
+            break;
+        }
+        if (currentCount == lastCount) {
+            ParserError("Type size calculation deadlock!");
+        }
+        lastCount = currentCount;
+    }
+}
