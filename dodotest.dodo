@@ -4,6 +4,8 @@ primitive SIGNED_INTEGER   <1> type i8 {
     // optional default overrides and methods
 }
 
+"a test string to see if it works \" \n";
+
 primitive SIGNED_INTEGER   <2> type i16;
 primitive SIGNED_INTEGER   <4> type i32;
 primitive SIGNED_INTEGER   <8> type i64;
@@ -16,6 +18,18 @@ primitive UNSIGNED_INTEGER <8> type u64;
 primitive FLOATING_POINT   <2> type f16;
 primitive FLOATING_POINT   <4> type f32;
 primitive FLOATING_POINT   <8> type f64;
+
+// a test operator/function thing
+primitive SIGNED_INTEGER   <8> type dumb64 {
+    dumb64 operator=(i64 other) {
+        this = -other;
+        return this;
+    }
+
+    dumb64 operator+ (i64 other) {
+        this -= other;
+    }
+}
 
 // complex types cannot declare primitive members directly, at least not for now
 type Vec2i8 {

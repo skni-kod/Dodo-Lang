@@ -2,6 +2,30 @@
 #include "TypeObject.hpp"
 #include "../ParserVariables.hpp"
 
+void CreateMember(TypeObject& type, Generator<const LexicalToken*>& generator, const std::string& typeName) {
+    // TODO: add methods and non-default operators
+
+    const auto* current = generator();
+
+
+
+
+
+    TypeObjectMember member;
+
+    member.memberTypeName = std::make_unique<std::string>(typeName);
+    if (not generator) {
+        ParserError("Expected a member name!");
+    }
+    member.memberName = generator()->value;
+    // TODO: add default values
+    if (not generator or generator()->value != ";") {
+        ParserError("Expected a block end after member declaration!");
+    }
+
+    type.members.emplace_back(std::move(member));
+}
+
 // TODO: add name syntax checks
 void CreateType(Generator<const LexicalToken*>& generator, const std::string& starterWord) {
     TypeObject type;
@@ -91,21 +115,7 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
     current = generator();
 
     while (current->value != "}") {
-        // TODO: add methods and non-default operators
-        TypeObjectMember member;
-
-        member.memberTypeName = std::make_unique<std::string>(current->value);
-        if (not generator) {
-            ParserError("Expected a member name!");
-        }
-        member.memberName = generator()->value;
-        // TODO: add default values
-        if (not generator or generator()->value != ";") {
-            ParserError("Expected a block end after member declaration!");
-        }
-
-        type.members.emplace_back(std::move(member));
-
+        CreateMember(type, generator, current->value);
         current = generator();
     }
 

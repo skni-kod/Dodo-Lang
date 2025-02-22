@@ -26,7 +26,7 @@ add_executable(Dodo_Lang
         Dodo-lang/src/Parser/SyntaxAnalysis/AnalysisRunner.cpp
         Dodo-lang/src/Parser/SyntaxAnalysis/AnalysisInternal.hpp
         Dodo-lang/src/Parser/SyntaxAnalysis/CreateType.cpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/CreateFunction.cpp
+        Dodo-lang/src/Parser/SyntaxAnalysis/CreateFunctionOrMethod.cpp
         Dodo-lang/src/Parser/SyntaxAnalysis/CreateInstruction.cpp
         Dodo-lang/src/CodeGenerator/GenerateCode.hpp
         Dodo-lang/src/Parser/SyntaxAnalysis/MathParser.cpp
@@ -53,6 +53,9 @@ add_executable(Dodo_Lang
         Dodo-lang/src/CodeGenerator/ValueType.hpp
         Dodo-lang/src/Parser/TypeObject.hpp
         Dodo-lang/src/Parser/TypeObject.cpp
+        Dodo-lang/src/Lexer/Lexing.hpp
+        Dodo-lang/src/Lexer/LexingInternal.hpp
+        Dodo-lang/src/Lexer/Lexing.cpp
 )
 
 # uncomment when project works well
