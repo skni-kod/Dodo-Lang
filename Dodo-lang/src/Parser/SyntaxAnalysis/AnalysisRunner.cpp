@@ -4,22 +4,22 @@
 
 // the base runner for the analysis
 // it finds the base keywords that define the start of the next structure
-bool RunSyntaxAnalysis(Generator<const LexicalToken*>& generator) {
+bool RunSyntaxAnalysis(Generator<const LexerToken*>& generator) {
     // the compiler skips the given structure if it can in case of issues
     bool didFail = false;
 
     while (generator) {
-        const LexicalToken* current = generator();
+        auto* current = generator();
 
         // BASIC TYPES
-        if (current->value == "type" or current->value == "primitive") {
+        if (MatchKeyword(current , Keyword::Type) or MatchKeyword(current , Keyword::Primitive)) {
             try {
-                CreateType(generator, current->value);
+                //CreateType(generator, current->value);
                 continue;
             }
             catch (__ParserException& e) {
                 didFail = true;
-                while (current->type != LexicalToken::Type::expressionEnd) {
+                while (not MatchOperator(current, Operator::BraceClose)) {
                     current = generator();
                 }
                 continue;
@@ -27,31 +27,30 @@ bool RunSyntaxAnalysis(Generator<const LexicalToken*>& generator) {
 
         }
         // FUNCTIONS
-        if (current->type == LexicalToken::Type::identifier and
-            (parserTypes.isKey(current->value) or current->value == "void")) {
+        if (current->type == Token::Identifier or MatchKeyword(current, Keyword::Void)) {
             // TODO: modify this for global variables and any function return type
             try {
-                CreateFunction(generator, current->value);
+                //CreateFunction(generator, current->value);
                 continue;
             }
             catch (__ParserException& e) {
                 didFail = true;
-                while (current->type != LexicalToken::Type::blockEnd) {
+                while (not MatchOperator(current, Operator::BraceClose)) {
                     current = generator();
                 }
                 continue;
             }
         }
         // GLOBAL VARIABLES
-        if (current->type == LexicalToken::Type::keyword and (current->value == "let" or current->value == "mut")) {
+        if (MatchKeyword(current, Keyword::Let) or MatchKeyword(current, Keyword::Mut)) {
             try {
                 // TODO: figure out how to insert it via the function with checks
-                globalVariables.map.insert(CreateVariable(generator, current->value, true));
+                //globalVariablesOLD.map.insert(CreateVariable(generator, current->value, true));
                 continue;
             }
             catch (__ParserException& e) {
                 didFail = true;
-                while (current->type != LexicalToken::Type::expressionEnd) {
+                while (not MatchOperator(current, Operator::BraceClose)) {
                     current = generator();
                 }
                 continue;
@@ -59,4 +58,23 @@ bool RunSyntaxAnalysis(Generator<const LexicalToken*>& generator) {
         } 
     }
     return didFail;
+}
+
+inline bool MatchKeyword(const LexerToken*& token, const uint64_t type) {
+    if (token->type != Token::Keyword) {
+        return false;
+    }
+    if (token->op == type) {
+        return true;
+    }
+    return false;
+}
+inline bool MatchOperator(const LexerToken*& token, const uint64_t type) {
+    if (token->type != Token::Operator) {
+        return false;
+    }
+    if (token->op == type) {
+        return true;
+    }
+    return false;
 }

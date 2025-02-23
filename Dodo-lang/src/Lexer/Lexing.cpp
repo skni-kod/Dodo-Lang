@@ -128,7 +128,7 @@ LexerLine LexLine(std::string& line) {
             uint32_t code = 0;
             struct {
                 // byte 1 is on the right actually as in 0x000000XX
-                char byte1, byte2, byte3, byte4;
+                uint8_t byte1, byte2, byte3, byte4;
             };
             struct {
                 char char1, char2, char3, char4;
@@ -136,9 +136,9 @@ LexerLine LexLine(std::string& line) {
         };
 
         std::string toString() {
-            if (byte2 > 0) {
-                if (byte3 > 0) {
-                    if (byte4 > 0) {
+            if (byte2 != 0) {
+                if (byte3 != 0) {
+                    if (byte4 != 0) {
                         return {char4, char3, char2, char1};
                     }
                     return {char3, char2, char1};
@@ -175,8 +175,8 @@ LexerLine LexLine(std::string& line) {
                 if (n > line.length() - 2) {
                     LexerError("Unfinished UTF-8 character!");
                 }
+                current.byte1 = line[n + 1];
                 current.byte2 = line[n];
-                current.byte1 = line[n] + 1;
                 n += 2;
             }
             else if ((line[n] & 0b11110000) == 0b11100000) {
@@ -185,8 +185,8 @@ LexerLine LexLine(std::string& line) {
                     LexerError("Unfinished UTF-8 character!");
                 }
                 current.byte3 = line[n];
-                current.byte2 = line[n] + 1;
-                current.byte1 = line[n] + 2;
+                current.byte2 = line[n + 1];
+                current.byte1 = line[n + 2];
                 n += 3;
             }
             else if ((line[n] & 0b11111000) == 0b11110000) {
@@ -195,9 +195,9 @@ LexerLine LexLine(std::string& line) {
                     LexerError("Unfinished UTF-8 character!");
                 }
                 current.byte4 = line[n];
-                current.byte3 = line[n] + 1;
-                current.byte2 = line[n] + 2;
-                current.byte1 = line[n] + 3;
+                current.byte3 = line[n + 1];
+                current.byte2 = line[n + 2];
+                current.byte1 = line[n + 3];
                 n += 4;
             }
             else {
@@ -415,7 +415,47 @@ LexerLine LexLine(std::string& line) {
                     result.clear();
                 }
                 else {
-                    result += current.toString();
+                    if (current.isEscaped) {
+                        switch (current.code) {
+                            case 'a':
+                                result += '\a';
+                            break;
+                            case 'b':
+                                result += '\b';
+                            break;
+                            case 't':
+                                result += '\t';
+                            break;
+                            case 'n':
+                                result += '\n';
+                            break;
+                            case 'v':
+                                result += '\v';
+                            break;
+                            case 'f':
+                                result += '\f';
+                            break;
+                            case 'r':
+                                result += '\r';
+                            break;
+                            case 'e':
+                                result += 0x1b;
+                            break;
+                            case '0':
+                                result += '\0';
+                            break;
+                            case '"':
+                                result += '"';
+                            break;
+                            default:
+                                LexerError("Invalid escaped character in string!");
+                            break;
+                        }
+                    }
+                    else {
+                        result += current.toString();
+                    }
+
                 }
                 break;
             case State::character:
@@ -449,15 +489,6 @@ LexerLine LexLine(std::string& line) {
                 else if (current.code == '*') {
                     result += '*';
                 }
-                break;
-            case State::hexNumber:
-
-                break;
-            case State::octNumber:
-
-                break;
-            case State::binNumber:
-
                 break;
             case State::number: {
                 bool parse = false;
@@ -563,11 +594,18 @@ LexerLine LexLine(std::string& line) {
                         base = 5;
                         result.pop_back();
                         break;
-                        case 's':
+                        case 'h':
                             if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
                                 LexerError("Number base specifiers are only allowed at second position!");
                             }
                         base = 6;
+                        result.pop_back();
+                        break;
+                        case 's':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 7;
                         result.pop_back();
                         break;
                         case 'o':
@@ -577,11 +615,32 @@ LexerLine LexLine(std::string& line) {
                         base = 8;
                         result.pop_back();
                         break;
+                        case 'n':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 9;
+                        result.pop_back();
+                        break;
                         case 'd':
                             if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
                                 LexerError("Number base specifiers are only allowed at second position!");
                             }
                         base = 10;
+                        result.pop_back();
+                        break;
+                        case 'e':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 11;
+                        result.pop_back();
+                        break;
+                        case 'w':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 12;
                         result.pop_back();
                         break;
                         case 'x':
@@ -625,6 +684,9 @@ LexerLine LexLine(std::string& line) {
 
                     result.clear();
                     lexerState = normal;
+                    if (current.specialWhitespace and current.code != '.' and current.code != '-') {
+                        n--;
+                    }
                 }
 
             }
@@ -660,6 +722,7 @@ LexerLine LexLine(std::string& line) {
 LexerFile LexFile(const std::string& filePath) {
     LexerFile output;
     output.path = filePath;
+    currentFile = &output.path;
 
     auto input = std::ifstream(filePath);
     if (not input.is_open()) {

@@ -4,6 +4,7 @@
 #include "../LexicalToken.hpp"
 #include "../LexicalAnalysis.hpp"
 #include "../Options.hpp"
+#include "Lexer/Lexing.hpp"
 
 inline const LexicalToken* lastToken = nullptr;
 
@@ -22,7 +23,8 @@ inline bool doneParsing = false;
 
 void ParserError(const std::string& message);
 
-void RunParsing(const std::vector<ProgramPage>& tokens);
+//void RunParsing(const std::vector<ProgramPage>& tokens);
+void RunParsing(std::vector<LexerFile>& lexed);
 
 void PrepareFunctionArguments();
 

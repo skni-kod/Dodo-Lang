@@ -35,32 +35,32 @@ void ParserError(const std::string& message) {
 
 }
 
-Generator<const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>& tokens) {
-    currentLine = 0;
-    currentFile = nullptr;
-    for (const auto& file: tokens) {
-        currentFile = &file.file_name;
-        for (const auto& line: file.page) {
-            currentLine = line.line_number;
-            for (const auto& token: line.line) {
-                lastToken = &token;
+Generator<const LexerToken*> LexerTokenGenerator(std::vector<LexerFile>& lexed) {
+    for (const auto& file: lexed) {
+        currentFile = &file.path;
+        for (const auto& line: file.lines) {
+            currentLine = line.lineNumber;
+            for (const auto& token: line.tokens) {
+                //lastToken = &token;
                 co_yield &token;
             }
         }
     }
 }
 
-void RunParsing(const std::vector<ProgramPage>& tokens) {
+
+//void RunParsing(const std::vector<ProgramPage>& tokens) {
+void RunParsing(std::vector<LexerFile>& lexed) {
 
     // Step 1: syntax analysis and creating initial structures
     {
-        auto generator = TokenRunGenerator(tokens);
+        auto generator = LexerTokenGenerator(lexed);
         if (RunSyntaxAnalysis(generator)) {
             ParserError("Syntax analysis errors occurred!");
         }
     }
 
-    // Step 2: checking basic types
+    // Step 2: processing types
     CalculateTypeSizes();
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
@@ -71,7 +71,7 @@ void RunParsing(const std::vector<ProgramPage>& tokens) {
                 std::cout << n.second;
             }
         }
-        std::cout << "INFO L2: Found " << globalVariables.size() << " global variable(s)\n";
+        std::cout << "INFO L2: Found " << globalVariablesOLD.size() << " global variable(s)\n";
     }
 
     UpdateGlobalVariables();

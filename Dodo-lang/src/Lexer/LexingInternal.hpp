@@ -2,6 +2,7 @@
 #define LEXINGINTERNAL_HPP
 
 #include "Lexing.hpp"
+#include "unordered_map"
 
 inline std::unordered_map keywordsAndOperators {
     std::pair<std::string, LexerToken> ("primitive",        LexerToken(Token::Keyword,  static_cast <uint64_t> (Keyword::Primitive), 0)),

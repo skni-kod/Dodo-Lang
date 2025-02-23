@@ -17,6 +17,9 @@ ParserValue ParseMath(const std::vector<const LexicalToken*>& tokens);
 
 ParserValue ParseMath(Generator<const LexicalToken*>& generator);
 
+inline bool MatchKeyword(const LexerToken*& token, uint64_t type);
+inline bool MatchOperator(const LexerToken*& token, uint64_t type);
+
 // use this one when doing stuff like a += 5 ---> a = a + 5
 ParserValue
 ParseMath(Generator<const LexicalToken*>& generator, std::vector<const LexicalToken*> front, bool addBraces = true,

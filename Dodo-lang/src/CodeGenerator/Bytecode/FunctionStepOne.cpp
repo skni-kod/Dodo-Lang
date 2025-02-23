@@ -49,15 +49,15 @@ namespace {
                     }
                 }
             }
-            if (globalVariables.isKey(name)) {
-                auto& var = globalVariables[name];
+            if (globalVariablesOLD.isKey(name)) {
+                auto& var = globalVariablesOLD[name];
                 tempContainer.name = name;
                 tempContainer.type = var.type;
                 tempContainer.isMutable = var.isMutable;
                 return tempContainer;
             }
-            if (globalVariables.isKey("glob." + name)) {
-                auto& var = globalVariables["glob." + name];
+            if (globalVariablesOLD.isKey("glob." + name)) {
+                auto& var = globalVariablesOLD["glob." + name];
                 tempContainer.name = "glob." + name;
                 tempContainer.type = var.type;
                 tempContainer.isMutable = var.isMutable;
@@ -106,19 +106,19 @@ std::string GetVariableInstance(std::string identifier) {
         auto& ins = variableInstances[identifier];
         return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
     }
-    if (globalVariables.isKey(identifier)) {
-        auto& global = globalVariables[identifier];
+    if (globalVariablesOLD.isKey(identifier)) {
+        auto& global = globalVariablesOLD[identifier];
         auto temp = AddVariableInstance(identifier);
         earlyVariables.variables.front().emplace_back(global.type, temp, global.isMutable);
         return temp;
     }
-    else if (globalVariables.isKey("glob." + identifier)) {
+    else if (globalVariablesOLD.isKey("glob." + identifier)) {
         identifier = "glob." + identifier;
         if (variableInstances.isKey(identifier)) {
             auto& ins = variableInstances[identifier];
             return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.assignmentNumber);
         }
-        auto& global = globalVariables[identifier];
+        auto& global = globalVariablesOLD[identifier];
         auto temp = AddVariableInstance(identifier);
         earlyVariables.variables.front().emplace_back(global.type, temp, global.isMutable);
         return temp;
@@ -135,7 +135,7 @@ std::string ReassignVariableInstance(std::string identifier, const VariableType&
         earlyVariables.add({type, GetVariableInstance(identifier), true});
         return identifier + "#" + std::to_string(ins.instanceNumber) + "-" + std::to_string(ins.newAssignmentNumber);
     }
-    else if (globalVariables.isKey("glob." + identifier)) {
+    else if (globalVariablesOLD.isKey("glob." + identifier)) {
         return ReassignVariableInstance("glob." + identifier, type);
     }
     CodeGeneratorError("Invalid variable reference!");

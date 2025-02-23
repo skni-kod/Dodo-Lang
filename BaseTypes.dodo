@@ -4,8 +4,6 @@ primitive SIGNED_INTEGER   <1> type i8 {
     // optional default overrides and methods
 }
 
-"a test string to see if it works \" \n";
-
 primitive SIGNED_INTEGER   <2> type i16;
 primitive SIGNED_INTEGER   <4> type i32;
 primitive SIGNED_INTEGER   <8> type i64;

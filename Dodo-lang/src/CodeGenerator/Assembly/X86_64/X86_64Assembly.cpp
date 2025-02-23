@@ -6,7 +6,7 @@
 
 namespace x86_64 {
     void AddGlobalVariables(std::ofstream& out) {
-        for (auto& n : globalVariables.map) {
+        for (auto& n : globalVariablesOLD.map) {
             out << "\n" << n.first << ":\n";
             if (n.second.type.subtype == ParserVariable::Subtype::value) {
                 switch (n.second.type.size) {

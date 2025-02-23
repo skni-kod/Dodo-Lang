@@ -410,7 +410,7 @@ VariableInfo::VariableInfo(const std::string& name) {
             if (realName.contains("#")) {
                 realName = realName.substr(0, realName.find_last_of('#'));
             }
-            auto& var = globalVariables[realName];
+            auto& var = globalVariablesOLD[realName];
 
             // search for the location in simulated memory
             location = generatorMemory.findThing(content);
@@ -463,7 +463,7 @@ VariableInfo::VariableInfo(const std::string& name) {
             if (realName.contains("#")) {
                 realName = realName.substr(0, realName.find_last_of('#'));
             }
-            auto& var = globalVariables[realName];
+            auto& var = globalVariablesOLD[realName];
 
             // search for the location in simulated memory
             location = generatorMemory.findThing(content);
@@ -499,7 +499,7 @@ VariableInfo::VariableInfo(const std::string& name) {
         if (realName.contains("#")) {
             realName = realName.substr(0, realName.find_last_of('#'));
         }
-        auto& var = globalVariables[realName];
+        auto& var = globalVariablesOLD[realName];
 
         // search for the location in simulated memory
         location = generatorMemory.findThing(identifier);
@@ -596,7 +596,7 @@ ParserVariable& VariableInfo::extractGlobalVariable() const{
     }
 
     // now return the variable with the name without the #
-    return globalVariables[identifier.substr(index, identifier.find_last_of("#") - index)];
+    return globalVariablesOLD[identifier.substr(index, identifier.find_last_of("#") - index)];
 }
 
 // this places the value from source, to target, using specified type

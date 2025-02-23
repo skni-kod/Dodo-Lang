@@ -99,7 +99,7 @@ struct ParserVariable {
     std::string nameForOutput();
 };
 
-inline MapWrapper <std::string, ParserVariable> globalVariables;
+inline MapWrapper <std::string, ParserVariable> globalVariablesOLD;
 
 void UpdateGlobalVariables();
 

@@ -111,9 +111,141 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
         case Token::String:
             return out << "String: \"" << *token.text << "\",";
         case Token::Keyword:
-            return out << "Keyword No: " << token._unsigned << ",";
+            switch (token.kw) {
+                case Keyword::Primitive:
+                    return out << "Keyword: primitive,";
+                case Keyword::TypeSI:
+                    return out << "Keyword: signed integer,";
+                case Keyword::TypeUI:
+                    return out << "Keyword: unsigned integer,";
+                case Keyword::TypeFP:
+                    return out << "Keyword: floating point,";
+                case Keyword::Type:
+                    return out << "Keyword: type,";
+                case Keyword::Void:
+                    return out << "Keyword: void,";
+                case Keyword::Operator:
+                    return out << "Keyword: operator,";
+                case Keyword::Return:
+                    return out << "Keyword: return,";
+                case Keyword::Import:
+                    return out << "Keyword: import,";
+                case Keyword::End:
+                    return out << "Keyword: end,";
+                case Keyword::After:
+                    return out << "Keyword: after,";
+                case Keyword::Extern:
+                    return out << "Keyword: extern,";
+                case Keyword::Syscall:
+                    return out << "Keyword: syscall,";
+                case Keyword::Public:
+                    return out << "Keyword: public,";
+                case Keyword::Private:
+                    return out << "Keyword: private,";
+                case Keyword::Protected:
+                    return out << "Keyword: protected,";
+                case Keyword::Let:
+                    return out << "Keyword: let,";
+                case Keyword::Mut:
+                    return out << "Keyword: mut,";
+                case Keyword::Const:
+                    return out << "Keyword: const,";
+                case Keyword::Comma:
+                    return out << "Keyword: comma,";
+                case Keyword::Dot:
+                    return out << "Keyword: dot,";
+                case Keyword::Member:
+                    return out << "Keyword: member,";
+                default:
+                    LexerError("Internal bug - invalid keyword in printing!");
+            }
         case Token::Operator:
-            return out << "Operator No: " << token._unsigned << ",";
+            switch (token.op) {
+                case Operator::Assign:
+                    return out << "Operator: =,";
+                case Operator::Add:
+                    return out << "Operator: +,";
+                case Operator::Subtract:
+                    return out << "Operator: -,";
+                case Operator::Multiply:
+                    return out << "Operator: *,";
+                case Operator::Divide:
+                    return out << "Operator: /,";
+                case Operator::Power:
+                    return out << "Operator: ^,";
+                case Operator::Modulo:
+                    return out << "Operator: %,";
+                case Operator::NOr:
+                    return out << "Operator: NOR,";
+                case Operator::BinNOr:
+                    return out << "Operator: binary NOR,";
+                case Operator::NAnd:
+                    return out << "Operator: NAND,";
+                case Operator::BinNAnd:
+                    return out << "Operator: binary NAND,";
+                case Operator::Macro:
+                    return out << "Operator: macro,";
+                case Operator::Not:
+                    return out << "Operator: NOT,";
+                case Operator::BinNot:
+                    return out << "Operator: binary NOT,";
+                case Operator::Or:
+                    return out << "Operator: OR,";
+                case Operator::BinOr:
+                    return out << "Operator: binary OR,";
+                case Operator::And:
+                    return out << "Operator: AND,";
+                case Operator::BinAnd:
+                    return out << "Operator: binary AND,";
+                case Operator::XOr:
+                    return out << "Operator: XOR,";
+                case Operator::BinXOr:
+                    return out << "Operator: binary XOR,";
+                case Operator::Imply:
+                    return out << "Operator: IMPLY,";
+                case Operator::NImply:
+                    return out << "Operator: NIMPLY,";
+                case Operator::BinImply:
+                    return out << "Operator: binary IMPLY,";
+                case Operator::BinNImply:
+                    return out << "Operator: binary NIMPLY,";
+                case Operator::Lesser:
+                    return out << "Operator: <,";
+                case Operator::Greater:
+                    return out << "Operator: >,";
+                case Operator::Equals:
+                    return out << "Operator: ==,";
+                case Operator::LesserEqual:
+                    return out << "Operator: <=,";
+                case Operator::GreaterEqual:
+                    return out << "Operator: >=,";
+                case Operator::NotEqual:
+                    return out << "Operator: !=,";
+                case Operator::BracketOpen:
+                    return out << "Operator: (,";
+                case Operator::BracketClose:
+                    return out << "Operator: ),";
+                case Operator::BraceOpen:
+                    return out << "Operator: {,";
+                case Operator::BraceClose:
+                    return out << "Operator: },";
+                case Operator::IndexOpen:
+                    return out << "Operator: [,";
+                case Operator::IndexClose:
+                    return out << "Operator: ],";
+                case Operator::Index:
+                    return out << "Operator: index,";
+                case Operator::Increment:
+                    return out << "Operator: ++,";
+                case Operator::Decrement:
+                    return out << "Operator: --,";
+                case Operator::ShiftRight:
+                    return out << "Operator: shift right,";
+                case Operator::ShiftLeft:
+                    return out << "Operator: shift left,";
+                default:
+                    LexerError("Internal bug - invalid operator in printing!");
+            }
         case Token::Number:
             switch (token.literalType) {
                 case Type::floatingPoint:
@@ -129,4 +261,17 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
             break;
     }
     return out;
+}
+
+std::generator<const LexerToken*> TokenGenerator(std::vector <LexerFile>& files) {
+    for (const auto& file : files) {
+        currentFile = &file.path;
+        for (const auto& line : file.lines) {
+            currentLine = line.lineNumber;
+            for (const auto& token : line.tokens) {
+                currentCharacter = token.characterNumber;
+                co_yield &token;
+            }
+        }
+    }
 }

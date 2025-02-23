@@ -52,7 +52,7 @@ std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalTok
 }
 
 void UpdateGlobalVariables() {
-    for (auto& n : globalVariables.map) {
+    for (auto& n : globalVariablesOLD.map) {
         if (not parserTypes.isKey(n.second.typeOrName)) {
             ParserError("Invalid typename \"" + n.second.typeOrName + "\" in global variable named \"" + n.first + "\"!");
         }
