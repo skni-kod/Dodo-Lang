@@ -56,6 +56,7 @@ add_executable(Dodo_Lang
         Dodo-lang/src/Lexer/Lexing.hpp
         Dodo-lang/src/Lexer/LexingInternal.hpp
         Dodo-lang/src/Lexer/Lexing.cpp
+        Dodo-lang/src/Lexer/LexingImplementations.cpp
 )
 
 # uncomment when project works well

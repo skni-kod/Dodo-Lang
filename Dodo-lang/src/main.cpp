@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<list_of_tokens> lt(list_of_tokens::get_instance());
     lt->lexical_analize(fileName);
     FixLexerOutput(lt->f_token_list);
-    lt->list_of_tokens_print();
+    //lt->list_of_tokens_print();
     plik.close();
     // END OF DO NOT USE
 

@@ -12,7 +12,7 @@
 namespace Keyword {
     enum Type {
         Primitive, TypeSI, TypeUI, TypeFP, Type, Void, Operator, Return, Import, End, After,
-        Extern, Syscall, Public, Private, Protected, Let, Mut, Const, Comma
+        Extern, Syscall, Public, Private, Protected, Let, Mut, Const, Comma, Dot, Member
     };
 }
 
@@ -26,7 +26,7 @@ namespace Token {
 
 namespace Operator {
     enum Type {
-        Assign, Add, Subtract, Multiply, Divide, Power, Modulo, NOr, BinNOr,
+        Assign, Add, Subtract, Multiply, Divide, Power, Modulo, NOr, BinNOr, NAnd, BinNAnd,
         Macro, Not, BinNot, Or, BinOr, And, BinAnd, XOr, BinXOr, Imply, NImply,
         BinImply, BinNImply, Lesser, Greater, Equals, LesserEqual,
         GreaterEqual, NotEqual, BracketOpen, BracketClose,
@@ -59,12 +59,22 @@ struct LexerToken {
     LexerToken(uint8_t type, double value, uint32_t characterNumber);
     // for identifier and string field values
     LexerToken(uint8_t type, const std::string& text, uint32_t characterNumber);
+    // for putting in a value from somewhere with correct line number
+    LexerToken(const LexerToken& value, uint32_t characterNumber);
     // for getting operator and keyword values from the map
     LexerToken(const std::string& key, uint32_t characterNumber);
 
 
+    LexerToken(LexerToken&& other) noexcept ;
+    LexerToken(LexerToken& other);
+    LexerToken& operator=(const LexerToken& other);
+    LexerToken(const LexerToken& other);
+
+
     ~LexerToken();
 };
+
+std::ostream& operator<<(std::ostream& out, const LexerToken& token);
 
 struct LexerLine {
     uint64_t lineNumber = 0;

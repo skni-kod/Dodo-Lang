@@ -1,9 +1,9 @@
 #include "Lexing.hpp"
 
-#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <queue>
+#include <print>
 
 #include "LexingInternal.hpp"
 #include "Options.hpp"
@@ -45,38 +45,37 @@ bool IsSpecialCharacter(uint32_t code) {
 
 // doesn't seem scalable, can't I make something better?
 bool CanConstructFurther(const std::string& current) {
-    switch (current[0]) {
-        case ';':
-        case ':':
-        case ',':
-        case '(':
-        case ')':
-        case '{':
-        case '}':
-            return false;
-        case '+':
-        case '-':
-            if (current.size() == 1) {
+    switch (current.size()) {
+        case 1:
+            return true;
+        case 2:
+            // TODO: change this into switch case as it seems really slow
+            if (current == ".!" or current == ".|" or current == ".&" or current == "!|" or current == "!&"
+                or current == ".^"  or current == "=>" or current == ".="  or current == "!="  or current == ">>"
+                or current == "<<"  or current == "=="  or current == "<="  or current == ">="  or current == "[]"
+                or current == "++" or current == "--" or current == "//" or current == "*/" or current == "/*" or current == "::") {
                 return true;
             }
-        return false;
-        case '.':
-            if (current.size() == 1) {
+            break;
+        case 3:
+            if (current == ".!=" or current == "!=>" or current == ".=>" or current == ".!|" or current == ".!&") {
                 return true;
             }
-            if (current[1] >= '0' and current[1] <= '9') {
-                return false;
+            break;
+        case 4:
+            if (current == ".!=>") {
+                return true;
             }
-            // TODO: add binary things here
-            return false;
+            break;
         default:
-            return false;
+            break;
     }
+
     return false;
 }
 
 // checks if the pair is a double operator
-bool DoubleOperator(uint32_t first, uint32_t second) {
+bool DoubleOperator(const uint32_t first, const uint32_t second) {
     switch (first) {
         case Operator::Add:
         case Operator::Subtract:
@@ -98,7 +97,7 @@ bool DoubleOperator(uint32_t first, uint32_t second) {
         case Operator::BinNImply:
         case Operator::ShiftRight:
         case Operator::ShiftLeft:
-            if (second == Operator::Equals) {
+            if (second == Operator::Assign) {
                 return true;
             }
             break;
@@ -112,6 +111,14 @@ enum State {
     normal, string, character, singleComment, longComment, hexNumber, octNumber, binNumber, number, oper
 };
 uint8_t lexerState = State::normal;
+bool doubleOperator = false;
+
+LexerToken PushWrapper(const std::string& result, uint32_t characterNumber) {
+    if (keywordsAndOperators.contains(result)) {
+        return {keywordsAndOperators[result], characterNumber};
+    }
+    return {Token::Identifier, result, characterNumber};
+}
 
 LexerLine LexLine(std::string& line) {
     LexerLine output;
@@ -142,13 +149,14 @@ LexerLine LexLine(std::string& line) {
         }
 
         uint8_t isEscaped = false;
-        uint8_t whitespaceBefore = false;
+        uint8_t specialWhitespace = false;
+        uint16_t whitespaceBefore = 0;
     };
 
     // getting a vector of characters after decoding the encoding
     std::vector <Character> characters;
     characters.reserve(line.length());
-    bool whitespaceBefore = false;
+    uint16_t whitespaceBefore = 0;
     currentCharacter = 1;
     for (uint32_t n = 0; n < line.length(); currentCharacter++) {
         Character current;
@@ -202,12 +210,10 @@ LexerLine LexLine(std::string& line) {
             n += 1;
         }
 
-        current.whitespaceBefore = whitespaceBefore;
-        whitespaceBefore = false;
+
 
         if (IsSpecialCharacter(current.code)) {
-            current.whitespaceBefore = true;
-            whitespaceBefore = true;
+            current.specialWhitespace = true;
         }
 
         // skipping Unicode whitespace characters
@@ -244,9 +250,11 @@ LexerLine LexLine(std::string& line) {
             case 0x2060:
             case 0x3000:
             case 0xFEFF:
-                whitespaceBefore = true;
+                whitespaceBefore++;
                 continue;
             default:
+                current.whitespaceBefore = whitespaceBefore;
+                whitespaceBefore = 0;
                 characters.push_back(current);
                 break;
         }
@@ -259,9 +267,7 @@ LexerLine LexLine(std::string& line) {
     if (Options::informationLevel > Options::InformationLevel::general) {
         std::cout << "INFO L3: Line: " << currentLine << " after character splitting:\nINFO L3: ";
         for (auto& n : characters) {
-            if (n.whitespaceBefore) {
-                std::cout << " ";
-            }
+            std::cout << std::string(n.whitespaceBefore, ' ');
             std::cout << n.toString();
         }
         std::cout << "\n";
@@ -273,47 +279,176 @@ LexerLine LexLine(std::string& line) {
 
     // now a go through the characters without context to create something
     std::string result;
-    std::vector <std::string> results;
+    bool isNegative = false;
+    bool hasDot = false;
+    bool hasFloatSign = false;
+    uint8_t base = 0;
 
-    uint32_t stateSeq = 0;
-
-    // TODO: make this work on tokens vector and do a lot of thinking current
-    for (uint32_t n = 0; n < characters.size(); n++) {
+    for (int64_t n = 0; n < characters.size(); n++) {
         auto& current = characters[n];
         switch (lexerState) {
             case State::normal:
                 // normal state of the lexer
-                if (current.whitespaceBefore) {
-                    results.push_back(result);
+                if ((current.whitespaceBefore or current.specialWhitespace) and not result.empty()) {
+                    output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
                     result.clear();
+                    if (output.tokens.back().type == Token::Operator) {
+                        n -= 2;
+                        lexerState = State::oper;
+                        continue;
+                    }
                 }
-                if (IsSpecialCharacter(current.code)) {
+                if (current.specialWhitespace) {
                     lexerState = oper;
+                    n--;
+                    continue;
+                }
+                if (current.code == '"') {
+                    lexerState = string;
+                    if (not result.empty()) {
+                        output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
+                        result.clear();
+                    }
+                    continue;
+                }
+                if (current.code == '\'') {
+                    lexerState = State::character;
+                    if (not result.empty()) {
+                        output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
+                        result.clear();
+                    }
+                    continue;
+                }
+                if (current.code >= '0' and current.code <= '9' and result.empty()) {
+                    lexerState = State::number;
+                    if (not result.empty()) {
+                        output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
+                        result.clear();
+                    }
+                    n--;
+                    isNegative = false;
+                    hasDot = false;
+                    hasFloatSign = false;
+                    base = 0;
+                    continue;
                 }
 
                 result += current.toString();
+                if (n == characters.size() - 1) {
+                    output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
+                }
                 break;
             case State::oper:
-                if (CanConstructFurther(result + current.toString())) {
-
+                if (IsSpecialCharacter(current.code) and CanConstructFurther(result + current.toString())) {
+                    result += current.toString();
+                    if (n == characters.size() - 1) {
+                        if (doubleOperator and result == ";") {
+                            doubleOperator = false;
+                            output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
+                        }
+                        if (result == "//") {
+                            lexerState = State::singleComment;
+                            continue;
+                        }
+                        if (result == "/*") {
+                            lexerState = State::longComment;
+                            continue;
+                        }
+                        output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
+                        result.clear();
+                        lexerState = normal;
+                    }
                 }
-                else {
+                else if (not result.empty()) {
+                    if (result == "//") {
+                        lexerState = State::singleComment;
+                        continue;
+                    }
+                    if (result == "/*") {
+                        lexerState = State::longComment;
+                        continue;
+                    }
+                    if (doubleOperator and result == ";") {
+                        doubleOperator = false;
+                        output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
+                    }
+                    if ((result[0] == '.' or result[0] == '-') and result.size() == 1 and current.code >= '0' and current.code <= '9') {
+                        n -= 2;
+                        lexerState = State::number;
+                        result.clear();
+                        isNegative = false;
+                        hasDot = false;
+                        hasFloatSign = false;
+                        base = 0;
+                        continue;
+                    }
+                    output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
                     // minimum index here is 1
                     n--;
-                    results.push_back(result);
+                    result.clear();
                     lexerState = State::normal;
+                }
+                else {
+                    lexerState = normal;
+                }
+                // if this ended with a double operator
+                if (result.empty() and output.tokens.size() >= 3 and output.tokens.back().type == Token::Operator
+                    and output.tokens[output.tokens.size() - 2].type == Token::Operator
+                    and DoubleOperator(output.tokens[output.tokens.size() - 2].op, output.tokens.back().op)) {
+
+                    auto operation = output.tokens[output.tokens.size() - 2];
+                    output.tokens.erase(output.tokens.size() - 2 + output.tokens.begin());
+                    if (doubleOperator) {
+                        LexerError("Use of another double operator before ending last one's area");
+                    }
+                    doubleOperator = true;
+                    output.tokens.emplace_back(output.tokens[output.tokens.size() - 2]);
+                    output.tokens.emplace_back(std::move(operation));
+                    output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketOpen), 0);
                 }
                 break;
             case State::string:
-
+                result += std::string(current.whitespaceBefore, ' ');
+                if (current.code == '"' and not current.isEscaped) {
+                    lexerState = State::normal;
+                    output.tokens.emplace_back(Token::String, result, n - result.size());
+                    result.clear();
+                }
+                else {
+                    result += current.toString();
+                }
                 break;
             case State::character:
-
+                if (current.code == '\'') {
+                    if (result.empty()) {
+                        output.tokens.emplace_back(Token::Number, static_cast <uint64_t>(0), n);
+                    }
+                    else {
+                        output.tokens.emplace_back(Token::Number, static_cast <uint64_t>(characters[n - 1].code), n);
+                    }
+                    lexerState = normal;
+                    result.clear();
+                }
+                else if (not result.empty()) {
+                    LexerError("A character definition can only contain 1 character!");
+                }
+                else {
+                    // no value is actually needed
+                    result += ' ';
+                }
                 break;
             case State::singleComment:
                 break;
             case State::longComment:
-
+                if (not result.empty()) {
+                    if (current.code == '/') {
+                        lexerState = normal;
+                    }
+                    result.clear();
+                }
+                else if (current.code == '*') {
+                    result += '*';
+                }
                 break;
             case State::hexNumber:
 
@@ -324,19 +459,198 @@ LexerLine LexLine(std::string& line) {
             case State::binNumber:
 
                 break;
+            case State::number: {
+                bool parse = false;
+                if ((current.whitespaceBefore > 0 and not result.empty())
+                    or (current.specialWhitespace and current.code != '.' and current.code != '-')) {
+                    parse = true;
+                }
+
+                if (not parse) {
+                    switch (current.code) {
+                        case 'A':
+                            result += 'a';
+                        break;
+                        case 'B':
+                            result += 'b';
+                        break;
+                        case 'C':
+                            result += 'c';
+                        break;
+                        case 'D':
+                            result += 'd';
+                        break;
+                        case 'E':
+                            result += 'e';
+                        break;
+                        case 'F':
+                            result += 'f';
+                        break;
+                        case '0':
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            result += current.toString();
+                        break;
+                        case '-':
+                            if (not result.empty()) {
+                                if (result.size() == 1 and result[0] == '-') {
+                                    // double negative negates itself, let's hope it's correct in every case
+                                    result.clear();
+                                }
+                                else {
+                                    if (result.size() > isNegative) {
+                                        // will try to parse the number, if it wasn't correct it will throw a nice error
+                                        parse = true;
+                                        n--;
+                                    }
+                                }
+                            }
+                            isNegative = true;
+                        result += current.toString();
+                        break;
+                        case '.':
+                            if (hasDot) {
+                                LexerError("Double dotted numbers are not allowed!");
+                            }
+                            hasDot = true;
+                            result += current.toString();
+                            break;
+                        case 'f':
+                            if (base != 10) {
+                                result += current.toString();
+                            }
+                            else {
+                                if (hasFloatSign) {
+                                    LexerError("Only one float sign is allowed!");
+                                }
+                                hasFloatSign = true;
+                                result += current.toString();
+                            }
+
+                        break;
+                        case 'b':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                            base = 2;
+                            result.pop_back();
+                            break;
+                        case 't':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 3;
+                        result.pop_back();
+                        break;
+                        case 'q':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 4;
+                        result.pop_back();
+                        break;
+                        case 'p':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 5;
+                        result.pop_back();
+                        break;
+                        case 's':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 6;
+                        result.pop_back();
+                        break;
+                        case 'o':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 8;
+                        result.pop_back();
+                        break;
+                        case 'd':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 10;
+                        result.pop_back();
+                        break;
+                        case 'x':
+                            if (result.size() != 1 + isNegative or base != 0 or result[isNegative] != '0') {
+                                LexerError("Number base specifiers are only allowed at second position!");
+                            }
+                        base = 16;
+                        result.pop_back();
+                        break;
+                        default:
+                            LexerError("Invalid character in number!");
+                    }
+                }
+
+                if (parse or n == characters.size() - 1) {
+                    if (base == 0) {
+                        base = 10;
+                    }
+                    if (base != 10 and (hasDot or hasFloatSign)) {
+                        LexerError("Only base 10 floats supported!");
+                    }
+
+                    if (hasFloatSign) {
+                        if (result.back() != 'f') {
+                            LexerError("Float sign can only be at the end!");
+                        }
+                        result.pop_back();
+                    }
+
+                    // TODO: what if a signed integer is needed where an unsigned one is parsed?
+                    if (hasDot or (hasFloatSign and base == 10)) {
+                        output.tokens.emplace_back(Token::Number, std::strtod(result.c_str(), nullptr), n - result.length() - hasFloatSign + 1);
+                    }
+                    else if (isNegative) {
+                        output.tokens.emplace_back(Token::Number, static_cast <int64_t>(std::strtoll(result.c_str(), nullptr, base)), n - result.length());
+                    }
+                    else {
+                        output.tokens.emplace_back(Token::Number, static_cast <uint64_t>(std::strtoull(result.c_str(), nullptr, base)), n - result.length());
+                    }
+
+
+                    result.clear();
+                    lexerState = normal;
+                }
+
+            }
+                break;
             default:
                 LexerError("Internal bug - invalid lexer token reconstruction state!");
         }
     }
 
-    if (lexerState != longComment) {
+    if (lexerState == singleComment) {
         lexerState = normal;
     }
 
+    if (output.tokens.size() == 3
+        and output.tokens[0].type == Token::Keyword and output.tokens[0].kw == Keyword::Import
+        and output.tokens[1].type == Token::String
+        and output.tokens[2].type == Token::Keyword and output.tokens[2].kw == Keyword::End) {
+
+        fileQueue.push(*output.tokens[1].text);
+        output.tokens.clear();
+    }
+
     if (Options::informationLevel > Options::InformationLevel::general) {
-        std::cout << "INFO L3: After initial construction:\nINFO L3: ";
-        for (auto& n : results) {
-            std::cout << "\"" << n << "\" ";
+        std::cout << "INFO L3: After reconstruction:\nINFO L3: ";
+        for (const auto& n : output.tokens) {
+            std::cout << n << " ";
         }
         std::cout << "\n";
     }
@@ -353,73 +667,29 @@ LexerFile LexFile(const std::string& filePath) {
     }
 
     uint64_t lineNumer = 1;
-    for (std::string line; std::getline(input, line); lineNumer++) {
-        currentLine = lineNumer;
+    for (std::string line; std::getline(input, line); currentLine = ++lineNumer) {
         auto lexedLine = LexLine(line);
         if (not lexedLine.tokens.empty()) {
             lexedLine.lineNumber = lineNumer;
-            output.lines.push_back(lexedLine);
+            output.lines.emplace_back(std::move(lexedLine));
         }
     }
 
     return output;
 }
 
+std::unordered_map<std::string, uint64_t> lexedFiles;
+
 std::vector <LexerFile> RunLexer(const std::string& startFile) {
     std::vector<LexerFile> output;
     fileQueue.push(startFile);
     while (not fileQueue.empty()) {
-        output.emplace_back(LexFile(fileQueue.front()));
+        if (not lexedFiles.contains(fileQueue.front())) {
+            output.emplace_back(LexFile(fileQueue.front()));
+            lexedFiles.emplace(fileQueue.front(), output.size());
+        }
         fileQueue.pop();
     }
 
     return output;
-}
-
-const char* LexerException::what() {
-    return "Lexer has encountered unexpected input";
-}
-
-void LexerError(const std::string& message) {
-    std::cout << "ERROR! In file: " << (currentFile != nullptr ? '"' + *currentFile + '"': "unknown")
-    << ", at line: " << currentLine << ", character: " << currentCharacter << "\nMessage:" << message << "\n";
-    throw LexerException();
-}
-
-LexerToken::~LexerToken() {
-    if ((type == Token::Identifier or type == Token::String) and text != nullptr) {
-        free(text);
-    }
-}
-
-LexerToken::LexerToken(const uint8_t type, uint64_t value, const uint32_t characterNumber, uint8_t isVerboseOperator) {
-    this->type = type;
-    this->_unsigned = type;
-    this->characterNumber = characterNumber;
-    this->isVerboseOperator = isVerboseOperator;
-}
-
-LexerToken::LexerToken(const uint8_t type, int64_t value, const uint32_t characterNumber) {
-    this->type = type;
-    this->_signed = type;
-    this->characterNumber = characterNumber;
-}
-
-LexerToken::LexerToken(const uint8_t type, double value, const uint32_t characterNumber) {
-    this->type = type;
-    this->_double = type;
-    this->characterNumber = characterNumber;
-}
-
-LexerToken::LexerToken(const uint8_t type, const std::string& text, const uint32_t characterNumber) {
-    this->type = type;
-    this->text = new std::string(text);
-    this->characterNumber = characterNumber;
-}
-
-LexerToken::LexerToken(const std::string& key, const uint32_t characterNumber) {
-    auto result = keywordsAndOperators[key];
-    this->type = result.type;
-    this->_unsigned = result._unsigned;
-    this->characterNumber = characterNumber;
 }
