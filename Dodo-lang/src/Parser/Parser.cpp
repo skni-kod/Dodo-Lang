@@ -52,7 +52,7 @@ Generator<const LexerToken*> LexerTokenGenerator(std::vector<LexerFile>& lexed) 
 //void RunParsing(const std::vector<ProgramPage>& tokens) {
 void RunParsing(std::vector<LexerFile>& lexed) {
 
-    // Step 1: syntax analysis and creating initial structures
+    // Step 1: creating unprocessed structures
     {
         auto generator = LexerTokenGenerator(lexed);
         if (RunSyntaxAnalysis(generator)) {
@@ -60,8 +60,15 @@ void RunParsing(std::vector<LexerFile>& lexed) {
         }
     }
 
-    // Step 2: processing types
+    // Step 2: processing types without their methods
     CalculateTypeSizes();
+
+    // Step 3: processing method and function prototypes
+
+    // Step 4: processing method and function contents
+
+    // Step 5: ... profit?
+
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with " << types.size() << " type definition(s)\n";
@@ -71,16 +78,13 @@ void RunParsing(std::vector<LexerFile>& lexed) {
                 std::cout << n.second;
             }
         }
-        std::cout << "INFO L2: Found " << globalVariablesOLD.size() << " global variable(s)\n";
     }
 
     UpdateGlobalVariables();
 
-    // Step 3: checking complex types
 
-    // ...
 
-    // Step 4: preparing function arguments and checking if main exists
+    /*
     PrepareFunctionArguments();
     if (not parserFunctions.isKey("Main")) {
         ParserError("No main function found!");
@@ -90,6 +94,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
         std::cout << "INFO L2: Finished function parsing with " << parserFunctions.size()
                   << " function definition(s)\n";
     }
+    */
 }
 
 bool IsNumeric(const LexicalToken* token) {

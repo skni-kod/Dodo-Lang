@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "LexicalToken.hpp"
 #include "Lexing.hpp"
 #include "LexingInternal.hpp"
 
@@ -274,4 +275,32 @@ std::generator<const LexerToken*> TokenGenerator(std::vector <LexerFile>& files)
             }
         }
     }
+}
+
+bool LexerToken::MatchOperator(const uint64_t type) const {
+    if (this->type != Token::Operator) {
+        return false;
+    }
+    if (op == type) {
+        return true;
+    }
+    return false;
+}
+bool LexerToken::MatchKeyword (const uint64_t type) const {
+    if (this->type != Token::Keyword) {
+        return false;
+    }
+    if (kw == type) {
+        return true;
+    }
+    return false;
+}
+bool LexerToken::MatchNumber (const uint64_t type) const {
+    if (this->type != Token::Number) {
+        return false;
+    }
+    if (literalType == type) {
+        return true;
+    }
+    return false;
 }

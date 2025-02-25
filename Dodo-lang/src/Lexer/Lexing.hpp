@@ -64,6 +64,10 @@ struct LexerToken {
     // for getting operator and keyword values from the map
     LexerToken(const std::string& key, uint32_t characterNumber);
 
+    bool MatchOperator(uint64_t type) const;
+    bool MatchKeyword (uint64_t type) const;
+    bool MatchNumber (uint64_t type) const;
+
 
     LexerToken(LexerToken&& other) noexcept ;
     LexerToken(LexerToken& other);

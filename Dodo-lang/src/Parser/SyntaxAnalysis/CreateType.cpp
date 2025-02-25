@@ -2,36 +2,12 @@
 #include "TypeObject.hpp"
 #include "../ParserVariables.hpp"
 
-void CreateMember(TypeObject& type, Generator<const LexicalToken*>& generator, const std::string& typeName) {
-    // TODO: add methods and non-default operators
-
-    const auto* current = generator();
-
-
-
-
-
-    TypeObjectMember member;
-
-    member.memberTypeName = std::make_unique<std::string>(typeName);
-    if (not generator) {
-        ParserError("Expected a member name!");
-    }
-    member.memberName = generator()->value;
-    // TODO: add default values
-    if (not generator or generator()->value != ";") {
-        ParserError("Expected a block end after member declaration!");
-    }
-
-    type.members.emplace_back(std::move(member));
-}
-
 // TODO: add name syntax checks
-void CreateType(Generator<const LexicalToken*>& generator, const std::string& starterWord) {
+void CreateType(Generator<const LexerToken*>& generator, const LexerToken*& firstToken) {
     TypeObject type;
 
     // check if it's primitive
-    if (starterWord == "primitive") {
+    if (firstToken->MatchKeyword(Keyword::Primitive)) {
        type.isPrimitive = true;
         // format:
         // primitive (SIGNED_INTEGER/UNSIGNED_INTEGER)<1/2/4/8>/FLOATING_POINT<2/4/8>
@@ -41,20 +17,20 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
         }
         auto current = generator();
 
-        if (current->value == "SIGNED_INTEGER") {
-            type.primitiveType = Primitive::signedInteger;
+        if (current->MatchKeyword(Keyword::TypeSI)) {
+            type.primitiveType = Type::signedInteger;
         }
-        else if (current->value == "UNSIGNED_INTEGER") {
-            type.primitiveType = Primitive::unsignedInteger;
+        else if (current->MatchKeyword(Keyword::TypeUI)) {
+            type.primitiveType = Type::unsignedInteger;
         }
-        else if (current->value == "FLOATING_POINT") {
-            type.primitiveType = Primitive::floatingPoint;
+        else if (current->MatchKeyword(Keyword::TypeFP)) {
+            type.primitiveType = Type::floatingPoint;
         }
         else {
             ParserError("Invalid primitive type identifier!");
         }
 
-        if (not generator or generator()->value != "<") {
+        if (not generator or not current->MatchOperator(Operator::Lesser)) {
             ParserError("Expected an opening bracket after primitive type identifier!");
         }
 
@@ -62,11 +38,11 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
             ParserError("Expected primitive size after bracket opening!");
         }
         current = generator();
-        if (current->type != LexicalToken::Type::literal) {
+        if (current->MatchNumber(Type::unsignedInteger)) {
             ParserError("Expected primitive size after bracket opening!");
         }
-        type.typeAlignment = type.typeSize = stoull(current->value);
-        if (type.primitiveType == Primitive::floatingPoint) {
+        type.typeAlignment = type.typeSize = current->_unsigned;
+        if (type.primitiveType == Type::floatingPoint) {
             if (type.typeSize != 2 and type.typeSize != 4 and type.typeSize != 8) {
                 ParserError("Only sizes of 2, 4 and 8 bytes are accepted for float primitives!");
             }
@@ -78,34 +54,37 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
             }
         }
 
-        if (not generator or generator()->value != ">") {
+        if (not generator or not generator()->MatchOperator(Operator::Greater)) {
             ParserError("Expected a closing bracket after primitive type identifier!");
         }
 
-        if (not generator or generator()->value != "type") {
+        if (not generator or not generator()->MatchKeyword(Keyword::Type)) {
             ParserError("Expected \"type\" keyword after primitive type identifier!");
         }
     }
 
     // now actual type name, etc.
     if (not generator) {
-        ParserError("Expected type name after keyword!");
+        ParserError("Expected type name after type keyword!");
     }
     auto current = generator();
-    if (types.isKey(current->value)) {
-        ParserError("Type name duplication: \"" + current->value + "\"!");
+    if (current->type != Token::Identifier) {
+        ParserError("Expected type name identifier after type keyword!");
     }
-    type.typeName = current->value;
+    if (types.isKey(*current->text)) {
+        ParserError("Type name duplication: \"" + *current->text + "\"!");
+    }
+    type.typeName = *current->text;
 
     if (not generator) {
         ParserError("Expected an opening bracket or block end after type name!");
     }
     current = generator();
-    if (current->value == ";") {
+    if (current->MatchKeyword(Keyword::End)) {
         types.map.emplace(type.typeName, std::move(type));
         return;
     }
-    if (current->value != "{") {
+    if (current->MatchOperator(Operator::BraceOpen)) {
         ParserError("Expected an opening bracket or block end after type name!");
     }
 
@@ -114,8 +93,9 @@ void CreateType(Generator<const LexicalToken*>& generator, const std::string& st
     }
     current = generator();
 
-    while (current->value != "}") {
-        CreateMember(type, generator, current->value);
+    while (not current->MatchOperator(Operator::BraceClose)) {
+        // TODO: do a common global, function and type parser here
+        //CreateMember(type, generator, current->value);
         current = generator();
     }
 

@@ -5,7 +5,7 @@
 #include "../Generator.tpp"
 #include "../ParserVariables.hpp"
 
-void CreateType(Generator<const LexicalToken*>& generator, const std::string& returnTypeName);
+void CreateType(Generator<const LexerToken*>& generator, const LexerToken*& firstToken);
 
 void CreateFunction(Generator<const LexicalToken*>& generator, const std::string& starterWord);
 
@@ -16,9 +16,6 @@ FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator,
 ParserValue ParseMath(const std::vector<const LexicalToken*>& tokens);
 
 ParserValue ParseMath(Generator<const LexicalToken*>& generator);
-
-inline bool MatchKeyword(const LexerToken*& token, uint64_t type);
-inline bool MatchOperator(const LexerToken*& token, uint64_t type);
 
 // use this one when doing stuff like a += 5 ---> a = a + 5
 ParserValue
