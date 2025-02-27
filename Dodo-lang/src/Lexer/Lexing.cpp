@@ -6,11 +6,7 @@
 #include <print>
 
 #include "LexingInternal.hpp"
-#include "Options.hpp"
-
-
-
-std::queue <std::string> fileQueue;
+#include "Misc/Options.hpp"
 
 bool IsSpecialCharacter(uint32_t code) {
     switch (code) {
@@ -701,11 +697,19 @@ LexerLine LexLine(std::string& line) {
     }
 
     if (output.tokens.size() == 3
-        and output.tokens[0].type == Token::Keyword and output.tokens[0].kw == Keyword::Import
+        and output.tokens[0].MatchKeyword(Keyword::Import)
         and output.tokens[1].type == Token::String
-        and output.tokens[2].type == Token::Keyword and output.tokens[2].kw == Keyword::End) {
+        and output.tokens[2].MatchKeyword(Keyword::End)) {
+        if (auto pos = output.tokens[1].text->find_last_of('/'); pos == std::string::npos) {
+            Options::inputFiles.emplace(*output.tokens[1].text);
+            //std::cout << "Importing: " << *output.tokens[1].text << "\n";
+        }
+        else {
+            std::cout << "Warning: only file names are supported in import, the rest of the path: \"" << *output.tokens[1].text << "\" was ignored!\n";
+            Options::inputFiles.emplace(output.tokens[1].text->substr(pos + 1));
+            //std::cout << "Importing shortened: " << output.tokens[1].text->substr(pos) << "\n";
+        }
 
-        fileQueue.push(*output.tokens[1].text);
         output.tokens.clear();
     }
 
@@ -719,21 +723,35 @@ LexerLine LexLine(std::string& line) {
     return output;
 }
 
-LexerFile LexFile(const std::string& filePath) {
+LexerFile LexFile(const fs::path& fileName) {
     LexerFile output;
-    output.path = filePath;
-    currentFile = &output.path;
-
-    auto input = std::ifstream(filePath);
-    if (not input.is_open()) {
-        LexerError("Cannot open file: \"" + filePath + "\"!");
+    // finding the file
+    for (auto& n : Options::importDirectories) {
+        for (auto& m : fs::recursive_directory_iterator(n)) {
+            if (m.is_regular_file() and m.path().filename() == fileName.filename()) {
+                output.path = fs::canonical(m);
+                currentFile = &output.path;
+                break;
+            }
+        }
+        if (output.path != "") {
+            break;
+        }
     }
 
-    uint64_t lineNumer = 1;
-    for (std::string line; std::getline(input, line); currentLine = ++lineNumer) {
-        auto lexedLine = LexLine(line);
-        if (not lexedLine.tokens.empty()) {
-            lexedLine.lineNumber = lineNumer;
+    if (output.path == "") {
+        LexerError("Cannot find file: \"" + fileName.string() + "\"!");
+    }
+
+    auto input = std::ifstream(absolute(output.path));
+    if (not input.is_open()) {
+        LexerError("Cannot open file: \"" + fileName.string() + "\"!");
+    }
+
+    uint64_t lineNumber = 1;
+    for (std::string line; std::getline(input, line); currentLine = ++lineNumber) {
+        if (auto lexedLine = LexLine(line); not lexedLine.tokens.empty()) {
+            lexedLine.lineNumber = lineNumber;
             output.lines.emplace_back(std::move(lexedLine));
         }
     }
@@ -743,15 +761,14 @@ LexerFile LexFile(const std::string& filePath) {
 
 std::unordered_map<std::string, uint64_t> lexedFiles;
 
-std::vector <LexerFile> RunLexer(const std::string& startFile) {
+std::vector <LexerFile> RunLexer() {
     std::vector<LexerFile> output;
-    fileQueue.push(startFile);
-    while (not fileQueue.empty()) {
-        if (not lexedFiles.contains(fileQueue.front())) {
-            output.emplace_back(LexFile(fileQueue.front()));
-            lexedFiles.emplace(fileQueue.front(), output.size());
+    while (not Options::inputFiles.empty()) {
+        if (not lexedFiles.contains(Options::inputFiles.front().filename())) {
+            output.emplace_back(LexFile(Options::inputFiles.front()));
+            lexedFiles.emplace(Options::inputFiles.front().filename(), output.size());
         }
-        fileQueue.pop();
+        Options::inputFiles.pop();
     }
 
     return output;

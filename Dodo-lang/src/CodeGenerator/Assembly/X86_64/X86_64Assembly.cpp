@@ -4,6 +4,8 @@
 #include "Assembly/LinearAnalysis.hpp"
 #include <fstream>
 
+#include "Misc/Options.hpp"
+
 namespace x86_64 {
     void AddGlobalVariables(std::ofstream& out) {
         for (auto& n : globalVariablesOLD.map) {

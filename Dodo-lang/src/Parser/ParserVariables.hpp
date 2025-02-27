@@ -175,7 +175,7 @@ struct FunctionInstruction {
         ForInstruction* forInstruction;
     } variant;
     uint64_t sourceLine = 0;
-    const std::string* sourceFile = nullptr;
+    const fs::path* sourceFile = nullptr;
     uint8_t type = 0;
 
     ~FunctionInstruction();

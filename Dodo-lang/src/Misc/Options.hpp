@@ -2,6 +2,11 @@
 #define DODO_LANG_OPTIONS_HPP
 
 #include <cstdint>
+#include <string>
+#include <queue>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace Options {
     // default values inside
@@ -16,18 +21,28 @@ namespace Options {
     enum TargetArchitecture {
         x86_64, x86_32
     };
-    inline uint8_t informationLevel = InformationLevel::full;
+    inline uint8_t informationLevel = InformationLevel::minimal;
     inline uint8_t addressSize = 8;
     inline uint8_t targetArchitecture = TargetArchitecture::x86_64;
+    inline std::queue <fs::path> inputFiles;
+#ifdef __unix__
+    inline fs::path stdlibDirectory = "/usr/include/DodoLang/";
+#else
+    // if you're on windows you need to set the dir yourself, I'm not going into that mess of a system
+    inline fs::path stdlibDirectory = "";
+#endif
+    inline std::vector <fs::path> importDirectories;
     inline std::string targetSystem = "LINUX";
+    inline std::string outputName = "out";
     inline std::string commentPrefix = "# ";
     inline std::string jumpLabelPrefix = ".LC";
     enum AssemblyFlavor {
-        GNU_AS, NASM
+        GAS, NASM
     };
-    inline uint8_t assemblyFlavor = AssemblyFlavor::GNU_AS;
+    inline uint8_t assemblyFlavor = AssemblyFlavor::GAS;
     inline uint8_t instructionSpace = 8;
     inline uint8_t functionIndentation = 4;
+    inline bool helpOption = false;
 }
 
 namespace Optimizations {

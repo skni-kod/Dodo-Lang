@@ -2,6 +2,7 @@
 #include "Bytecode.hpp"
 #include "GenerateCode.hpp"
 #include "Assembly/MemoryStructure.hpp"
+#include "Misc/Options.hpp"
 
 #define MIN_16_BIT_FLOAT_PRECISE 0.000000059604644l
 #define MIN_32_BIT_FLOAT_PRECISE 0.000000000000000000000000000000000000000000001401298l

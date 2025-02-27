@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <generator>
+#include "Misc/Options.hpp"
 
 #include "TypeObject.hpp"
 
@@ -86,11 +87,11 @@ struct LexerLine {
 };
 
 struct LexerFile {
-    std::string path;
+    fs::path path;
     std::vector <LexerLine> lines;
 };
 
-std::vector <LexerFile> RunLexer(const std::string& startFile);
+std::vector <LexerFile> RunLexer();
 
 class LexerException : public std::exception {
 public:
@@ -101,6 +102,6 @@ void LexerError(const std::string& message);
 
 inline uint32_t currentCharacter = 0;
 inline uint64_t currentLine = 0;
-inline const std::string* currentFile = nullptr;
+inline const fs::path* currentFile = nullptr;
 
 #endif //LEXING_HPP

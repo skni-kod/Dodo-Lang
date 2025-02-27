@@ -1,5 +1,3 @@
-import "BaseTypes.dodo";
-
 // a test operator/function thing
 primitive SIGNED_INTEGER   <8> type dumb64 {
     dumb64 operator=(i64 other) {

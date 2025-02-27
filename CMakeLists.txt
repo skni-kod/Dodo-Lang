@@ -9,6 +9,8 @@ include_directories(Dodo-lang/src/Parser)
 include_directories(Dodo-lang/src/Parser/CreateTree)
 include_directories(Dodo-lang/src/Parser/SyntaxAnalysis)
 
+# TODO: Add version string
+
 add_executable(Dodo_Lang
         Dodo-lang/src/Parser/Generator.tpp
         Dodo-lang/src/Parser/MapWrapper.tpp
@@ -16,7 +18,7 @@ add_executable(Dodo_Lang
         Dodo-lang/src/Parser/Parser.hpp
         Dodo-lang/src/Parser/ParserVariables.cpp
         Dodo-lang/src/Parser/ParserVariables.hpp
-        Dodo-lang/src/Options.hpp
+        Dodo-lang/src/Misc/Options.hpp
         Dodo-lang/src/lexical_analysis.cpp
         Dodo-lang/src/LexicalAnalysis.hpp
         Dodo-lang/src/LexicalToken.cpp
@@ -57,6 +59,8 @@ add_executable(Dodo_Lang
         Dodo-lang/src/Lexer/LexingInternal.hpp
         Dodo-lang/src/Lexer/Lexing.cpp
         Dodo-lang/src/Lexer/LexingImplementations.cpp
+        Dodo-lang/src/Cli/Cli.hpp
+        Dodo-lang/src/Cli/Cli.cpp
 )
 
 # uncomment when project works well
@@ -68,3 +72,8 @@ add_executable(Dodo_Lang
 
 # run this in build folder to create the executable and get the return value
 # as out.s -o out.o && ld out.o -o out && ./out || echo $?
+
+# example compilation cli arguments
+# dodotest.dodo -o dodotest -l3 -import=../
+# to create a stdlib link when in cmake dir
+# sudo ln -s <PATH>/Dodo-lang/Stdlib/ /usr/include/DodoLang

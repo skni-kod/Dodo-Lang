@@ -2,6 +2,7 @@
 #include "../Bytecode/Bytecode.hpp"
 #include "MemoryStructure.hpp"
 #include "TheGenerator.hpp"
+#include "Misc/Options.hpp"
 
 VariableStatistics::VariableStatistics(uint64_t number, bool isMain, bool isPointedTo) : firstUse(number), lastUse(number), isMainValue(isMain), isPointedTo(isPointedTo) {}
 

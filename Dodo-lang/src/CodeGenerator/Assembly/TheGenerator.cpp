@@ -5,6 +5,7 @@
 #include "GenerateCode.hpp"
 #include "Assembly/X86_64/X86_64Assembly.hpp"
 #include "LinearAnalysis.hpp"
+#include "Misc/Options.hpp"
 
 uint8_t GetOperandType(const std::string& operand) {
     if (operand.front() == '%') {

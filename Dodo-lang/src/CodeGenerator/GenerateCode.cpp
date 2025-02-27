@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include "Misc/Options.hpp"
+
 namespace fs = std::filesystem;
 
 const char* __CodeGeneratorException::what() {

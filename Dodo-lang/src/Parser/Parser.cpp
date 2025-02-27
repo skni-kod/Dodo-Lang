@@ -4,14 +4,11 @@
 #include "SyntaxAnalysis/SyntaxAnalysis.hpp"
 #include "GenerateCode.hpp"
 #include "Lexer/Lexing.hpp"
+#include "Misc/Options.hpp"
 
 
 //uint64_t currentLine = 0;
 //const std::string* currentFile = nullptr;
-
-const std::string* GetCurrentFile() {
-    return currentFile;
-}
 
 uint64_t GetCurrentLine() {
     return currentLine;

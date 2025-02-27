@@ -10,7 +10,7 @@ const char* LexerException::what() {
 
 void LexerError(const std::string& message) {
     std::print(std::cout, "ERROR! In file: {}, at line: {}, character: {}\nMessage: {}\n",
-        (currentFile != nullptr ? '"' + *currentFile + '"': "unknown"), currentLine, currentCharacter, message);
+        (currentFile != nullptr ? '"' + currentFile->string() + '"': "unknown"), currentLine, currentCharacter, message);
     throw LexerException();
 }
 

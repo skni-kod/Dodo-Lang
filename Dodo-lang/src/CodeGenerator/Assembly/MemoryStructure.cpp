@@ -5,6 +5,7 @@
 #include "Assembly/X86_64/X86_64Assembly.hpp"
 #include "TheGenerator.hpp"
 #include "GenerateCodeInternal.hpp"
+#include "Misc/Options.hpp"
 
 namespace internal {
     ContentEntry::ContentEntry(std::string value) : value(std::move(value)) {}
@@ -205,7 +206,7 @@ DataLocation::DataLocation(uint8_t type, ParserFunction* functionPtr, bool isAdd
 DataLocation::DataLocation(uint8_t type, ParserVariable* globalPtr, bool isAddress) : type(type), globalPtr(globalPtr), extractAddress(isAddress) {}
 
 void DataLocation::print(std::ofstream& out, uint8_t size) const {
-    if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS and Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
+    if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS and Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         switch (this->type) {
             case Operand::imm:
                 out << '$' << value;
@@ -311,7 +312,7 @@ void PrintWithSpaces(const std::string& input, std::ofstream& out) {
 }
 
 void Instruction::outputX86_64(std::ofstream& out) const {
-    if (Options::assemblyFlavor == Options::AssemblyFlavor::GNU_AS) {
+    if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
         switch (this->type) {
             case x86_64::ret:
                 PrintWithSpaces("jmp", out);
