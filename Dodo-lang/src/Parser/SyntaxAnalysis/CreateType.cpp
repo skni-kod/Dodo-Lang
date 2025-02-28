@@ -1,4 +1,5 @@
 #include "AnalysisInternal.hpp"
+#include "SyntaxAnalysis.hpp"
 #include "TypeObject.hpp"
 #include "../ParserVariables.hpp"
 
@@ -30,15 +31,14 @@ void CreateType(Generator<const LexerToken*>& generator, const LexerToken*& firs
             ParserError("Invalid primitive type identifier!");
         }
 
+        current = generator();
+
         if (not generator or not current->MatchOperator(Operator::Lesser)) {
-            ParserError("Expected an opening bracket after primitive type identifier!");
+            ParserError("Expected an opening triangle bracket after primitive type identifier!");
         }
 
-        if (not generator) {
-            ParserError("Expected primitive size after bracket opening!");
-        }
         current = generator();
-        if (current->MatchNumber(Type::unsignedInteger)) {
+        if (not current->MatchNumber(Type::unsignedInteger)) {
             ParserError("Expected primitive size after bracket opening!");
         }
         type.typeAlignment = type.typeSize = current->_unsigned;
@@ -70,6 +70,7 @@ void CreateType(Generator<const LexerToken*>& generator, const LexerToken*& firs
     auto current = generator();
     if (current->type != Token::Identifier) {
         ParserError("Expected type name identifier after type keyword!");
+
     }
     if (types.isKey(*current->text)) {
         ParserError("Type name duplication: \"" + *current->text + "\"!");
@@ -84,22 +85,14 @@ void CreateType(Generator<const LexerToken*>& generator, const LexerToken*& firs
         types.map.emplace(type.typeName, std::move(type));
         return;
     }
-    if (current->MatchOperator(Operator::BraceOpen)) {
+    if (not current->MatchOperator(Operator::BraceOpen)) {
         ParserError("Expected an opening bracket or block end after type name!");
     }
 
-    if (not generator) {
-        ParserError("Expected a member type or closing bracket!");
-    }
-    current = generator();
+    // since members and methods are very similar to variables and functions they can use the same functions
+    RunSyntaxAnalysis(generator, true, &type);
 
-    while (not current->MatchOperator(Operator::BraceClose)) {
-        // TODO: do a common global, function and type parser here
-        //CreateMember(type, generator, current->value);
-        current = generator();
-    }
-
-    if (not type.isPrimitive and type.members.size() == 0) {
+    if (not type.isPrimitive and type.members.empty()) {
         ParserError("Member-less complex types are prohibited!");
     }
 
@@ -115,17 +108,17 @@ std::pair<uint64_t, uint64_t> CalculateTypeSize(TypeObject& type) {
     }
     uint64_t sum = 0, alignment = 0;
     for (auto& n : type.members) {
-        auto result = CalculateTypeSize(types[*n.memberTypeName]);
-        if (result.first == 0) {
+        auto [memberSize, memberAlignment] = CalculateTypeSize(types[*n.memberTypeName]);
+        if (memberSize == 0) {
             return {0, 0};
         }
-        if (sum % result.second != 0) {
-            sum = sum / result.second + result.second;
+        if (sum % memberAlignment != 0) {
+            sum = sum / memberAlignment + memberAlignment;
         }
         n.memberOffset = sum;
-        sum += result.first;
-        if (result.second > alignment) {
-            alignment = result.second;
+        sum += memberSize;
+        if (memberAlignment > alignment) {
+            alignment = memberAlignment;
         }
         n.memberType = &types[*n.memberTypeName];
         n.memberTypeName = nullptr;

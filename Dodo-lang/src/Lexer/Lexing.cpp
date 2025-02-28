@@ -702,12 +702,10 @@ LexerLine LexLine(std::string& line) {
         and output.tokens[2].MatchKeyword(Keyword::End)) {
         if (auto pos = output.tokens[1].text->find_last_of('/'); pos == std::string::npos) {
             Options::inputFiles.emplace(*output.tokens[1].text);
-            //std::cout << "Importing: " << *output.tokens[1].text << "\n";
         }
         else {
             std::cout << "Warning: only file names are supported in import, the rest of the path: \"" << *output.tokens[1].text << "\" was ignored!\n";
             Options::inputFiles.emplace(output.tokens[1].text->substr(pos + 1));
-            //std::cout << "Importing shortened: " << output.tokens[1].text->substr(pos) << "\n";
         }
 
         output.tokens.clear();

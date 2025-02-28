@@ -9,7 +9,17 @@ include_directories(Dodo-lang/src/Parser)
 include_directories(Dodo-lang/src/Parser/CreateTree)
 include_directories(Dodo-lang/src/Parser/SyntaxAnalysis)
 
-# TODO: Add version string
+set(HEADER_FILE "Dodo-lang/src/Misc/Increment.hpp")
+set(CACHE_FILE "BuildNumberCache.txt")
+
+file(READ ${CACHE_FILE} INCREMENTED_VALUE)
+math(EXPR INCREMENTED_VALUE "${INCREMENTED_VALUE}+1")
+
+file(WRITE ${CACHE_FILE} "${INCREMENTED_VALUE}")
+
+file(WRITE ${HEADER_FILE} "#ifndef INCREMENT_HPP\n#define INCREMENT_HPP\n\n#define INCREMENTED_VALUE \"${INCREMENTED_VALUE}\"\n\n#endif")
+
+
 
 add_executable(Dodo_Lang
         Dodo-lang/src/Parser/Generator.tpp

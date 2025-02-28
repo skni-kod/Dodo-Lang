@@ -1,7 +1,7 @@
 #include "TypeObject.hpp"
 #include <ostream>
 
-std::ostream& operator<<(std::ostream& out, const TypeObjectMember& member) {
+std::ostream& operator<<(std::ostream& out, const ParserTypeObjectMember& member) {
     return out << "INFO L3: \t" << member.memberType->typeName << " " << member.memberName << "\n";
 }
 

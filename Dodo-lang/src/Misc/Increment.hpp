@@ -1,0 +1,6 @@
+#ifndef INCREMENT_HPP
+#define INCREMENT_HPP
+
+#define INCREMENTED_VALUE "16"
+
+#endif

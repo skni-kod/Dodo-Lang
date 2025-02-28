@@ -5,11 +5,11 @@
 #include "LexicalAnalysis.hpp"
 #include <memory>
 
+#include "Misc/Increment.hpp"
 #include "Cli/Cli.hpp"
 #include "Parser/Parser.hpp"
 #include "CodeGenerator/GenerateCode.hpp"
 #include "Lexer/Lexing.hpp"
-
 
 
 int main(int argc, char* argv[]) {
@@ -21,14 +21,12 @@ int main(int argc, char* argv[]) {
 
     if (Options::helpOption) {
         std::cout <<
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
-            "┃ 𝐃𝐨𝐝𝐨𝐋𝐚𝐧𝐠 𝐜𝐨𝐦𝐩𝐢𝐥𝐞𝐫                                    ┃\n"
-            "┃ Build: (TBA)                                         ┃\n"
-            "┃ By Szymon Jabłoński, Michał Kosiorski for SKNI \"KOD\" ┃\n"
-            "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+            "𝐃𝐨𝐝𝐨𝐋𝐚𝐧𝐠 𝐜𝐨𝐦𝐩𝐢𝐥𝐞𝐫\n"
+            "Build: " << INCREMENTED_VALUE << "\n"
+            "By Szymon Jabłoński, Michał Kosiorski for SKNI \"KOD\"\n"
             "\n"
-            "Usage guide:\n"
-            "{command name TBD} {file names} {options}\n"
+            "Usage:\n"
+            "dodoc {file names} {options}\n"
             "\n"
             "Options:\n"
             "-o                - sets executable name, pass name as next argument\n"
@@ -42,6 +40,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    std::cout << "DodoLang compiler, build: " << INCREMENTED_VALUE << "\n";
+
     // new lexing here
     std::vector<LexerFile> lexed;
     try {
@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
     }
 
     // TODO: macro system here
-
 
     std::cout << "INFO L1: Lexing done!\nINFO L1: Parsing:\n";
     try {
