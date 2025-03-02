@@ -8,6 +8,7 @@
 
 namespace fs = std::filesystem;
 
+
 namespace Options {
     // default values inside
     enum InformationLevel {

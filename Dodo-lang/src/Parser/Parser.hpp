@@ -5,7 +5,7 @@
 #include "../LexicalAnalysis.hpp"
 #include "Lexer/Lexing.hpp"
 
-inline const LexicalToken* lastToken = nullptr;
+inline const LexicalToken* lastTokenDEPRECATED = nullptr;
 
 inline std::vector <std::string> passedStrings;
 
@@ -13,10 +13,12 @@ const std::string* GetCurrentFile();
 
 uint64_t GetCurrentLine();
 
-class __ParserException : public std::exception {
+class ParserException final : public std::exception {
 public:
     const char* what();
 };
+
+inline const LexerToken* lastToken = nullptr;
 
 inline bool doneParsing = false;
 

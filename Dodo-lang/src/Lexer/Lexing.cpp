@@ -49,7 +49,8 @@ bool CanConstructFurther(const std::string& current) {
             if (current == ".!" or current == ".|" or current == ".&" or current == "!|" or current == "!&"
                 or current == ".^"  or current == "=>" or current == ".="  or current == "!="  or current == ">>"
                 or current == "<<"  or current == "=="  or current == "<="  or current == ">="  or current == "[]"
-                or current == "++" or current == "--" or current == "//" or current == "*/" or current == "/*" or current == "::") {
+                or current == "++" or current == "--" or current == "//" or current == "*/" or current == "/*"
+                or current == "::" or current == "()" or current == "{}") {
                 return true;
             }
             break;
@@ -350,6 +351,13 @@ LexerLine LexLine(std::string& line) {
                             lexerState = State::longComment;
                             continue;
                         }
+                        if ((output.tokens.empty()
+                                or (not output.tokens.empty() and not output.tokens.front().MatchKeyword(Keyword::Operator)))
+                                and (result == "()" or result == "{}" or result == "[]")){
+
+                            output.tokens.emplace_back(PushWrapper({result[0]}, n - result.size()));
+                            result.erase(result.begin());
+                                }
                         output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
                         result.clear();
                         lexerState = normal;
@@ -378,6 +386,13 @@ LexerLine LexLine(std::string& line) {
                         base = 0;
                         continue;
                     }
+                    if ((output.tokens.empty()
+                        or (not output.tokens.empty() and not output.tokens.front().MatchKeyword(Keyword::Operator)))
+                        and (result == "()" or result == "{}" or result == "[]")){
+
+                        output.tokens.emplace_back(PushWrapper({result[0]}, n - result.size()));
+                        result.erase(result.begin());
+                    }
                     output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
                     // minimum index here is 1
                     n--;
@@ -403,6 +418,7 @@ LexerLine LexLine(std::string& line) {
                     output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketOpen), 0);
                 }
                 break;
+            // TODO: multiline strings
             case State::string:
                 result += std::string(current.whitespaceBefore, ' ');
                 if (current.code == '"' and not current.isEscaped) {

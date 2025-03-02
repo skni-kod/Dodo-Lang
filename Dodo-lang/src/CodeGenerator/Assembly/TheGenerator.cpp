@@ -607,7 +607,7 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
     // TODO: add cases for conversion edge cases
     if (source.value.type != Value::floatingPoint and target.value.type != Value::floatingPoint) {
         // we have two integers so that's laughably simple
-        Instruction ins;
+        DEPRECATEDInstruction ins;
         
         // determine the instruction type
         if (source.value.size < target.value.size) {
@@ -671,7 +671,7 @@ void X86_64PureMove(DataLocation source, DataLocation target, uint64_t size, boo
     if (size > 8) {
         CodeGeneratorError("Unimplemented: Multimoves!");
     }
-    Instruction ins;
+    DEPRECATEDInstruction ins;
     ins.type = x86_64::mov;
     ins.sizeAfter = ins.sizeBefore = size;
     ins.op2 = source;
@@ -766,7 +766,7 @@ void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::str
     }
 
     // now we are sure the value is in stack, we can finally get the address
-    Instruction ins;
+    DEPRECATEDInstruction ins;
     ins.type = x86_64::lea;
     ins.op1 = target.location;
     ins.op2 = source.location;
@@ -790,7 +790,7 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
     auto& base = source.extractGlobalVariable();
 
     // put the pointer into a register
-    Instruction ins;
+    DEPRECATEDInstruction ins;
     ins.type = x86_64::mov;
     ins.sizeAfter = ins.sizeBefore = Options::addressSize;
     ins.op1 = FindViableRegister();
@@ -870,7 +870,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
     if (source.location.type != Operand::convert) {
         // Even more hooray! This variable exists so it just needs to be moved into place and that's it!
         if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
-            Instruction ins;
+            DEPRECATEDInstruction ins;
             ins.type = x86_64::mov;
             if (source.value.isAddress) {
                 // in that case we're moving a pointer
@@ -962,7 +962,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     // choose the best valid operand combination if there is one
     OpCombination& combination = ChooseOpCombination(req, types);
 
-    Instruction ins;
+    DEPRECATEDInstruction ins;
     ins.type = req.instructionNumber;
     ins.sizeBefore = ins.sizeAfter = req.instructionSize;
 
@@ -1361,7 +1361,7 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var) 
         // after that it should be a normal move
         DataLocation where = FindViableRegister();
         X86_64GetVariableAddress(VariableInfo(var), VariableInfo::FromLocation(where), "^" + var);
-        Instruction ins;
+        DEPRECATEDInstruction ins;
         if (Options::targetArchitecture != Options::TargetArchitecture::x86_64) {
             CodeGeneratorError("Unimplemented: Non x86-64 global assignment!");
         }

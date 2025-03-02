@@ -14,15 +14,41 @@
 
 int main(int argc, char* argv[]) {
 
+    std::cout <<
+            "𝐃𝐨𝐝𝐨𝐋𝐚𝐧𝐠 𝐜𝐨𝐦𝐩𝐢𝐥𝐞𝐫\n"
+            "Version: " << INCREMENTED_VALUE << "\n"
+#if defined(__linux__) or defined(__gnu_linux__)
+            "Platform: Linux "
+#else
+            "Platform: Not linux "
+#endif
+#if defined(__x86_64__)
+            "x86-64 "
+#elif defined(i386) or defined(__i386__) or defined(__i386) or defined(_M_IX86)
+            "x86-32 "
+#else
+            "unknown architecture "
+#endif
+#if defined(_MSC_VER)
+            "MSVC\n";
+#elif defined(__GNUC__)
+            "GCC\n";
+#elif defined(__clang__)
+            "Clang\n";
+#elif defined(__MINGW32) or defined(__MINGW64__)
+            "MinGW\n";
+#endif
+
+
     if (ApplyCommandLineArguments(argc, argv) == false) {
         std::cout << "Command line argument parsing failed. Compilation aborted!\n";
         return 1;
     }
 
+
     if (Options::helpOption) {
-        std::cout <<
-            "𝐃𝐨𝐝𝐨𝐋𝐚𝐧𝐠 𝐜𝐨𝐦𝐩𝐢𝐥𝐞𝐫\n"
-            "Build: " << INCREMENTED_VALUE << "\n"
+
+            std::cout <<
             "By Szymon Jabłoński, Michał Kosiorski for SKNI \"KOD\"\n"
             "\n"
             "Usage:\n"
@@ -40,8 +66,6 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    std::cout << "DodoLang compiler, build: " << INCREMENTED_VALUE << "\n";
-
     // new lexing here
     std::vector<LexerFile> lexed;
     try {
@@ -58,7 +82,7 @@ int main(int argc, char* argv[]) {
     try {
         RunParsing(lexed);
     }
-    catch (__ParserException& e) {
+    catch (ParserException& e) {
         std::cout << "Parsing has failed. Compilation aborted!\n";
         return 1;
     }
@@ -73,8 +97,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::system("as -o build/out.o build/out.s");
-    std::system("ld build/out.o -o build/out");
+    //std::system("as -o build/out.o build/out.s");
+    //std::system("ld build/out.o -o build/out");
 
     return 0;
 }

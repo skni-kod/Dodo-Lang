@@ -143,7 +143,7 @@ struct DataLocation {
 
 std::ostream& operator<<(std::ostream& out, const DataLocation& data);
 
-struct Instruction {
+struct DEPRECATEDInstruction {
     uint32_t type = 0;
     uint8_t sizeBefore = 0;
     uint8_t sizeAfter = 0;
@@ -158,7 +158,7 @@ struct Instruction {
     void outputX86_64(std::ofstream& out) const;
 };
 
-inline std::vector<Instruction> finalInstructions;
+inline std::vector<DEPRECATEDInstruction> finalInstructions;
 
 // for operations
 

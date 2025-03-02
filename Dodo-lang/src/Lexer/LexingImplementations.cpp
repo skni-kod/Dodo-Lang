@@ -157,6 +157,24 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
                     return out << "Keyword: dot,";
                 case Keyword::Member:
                     return out << "Keyword: member,";
+                case Keyword::Break:
+                    return out << "Keyword: break,";
+                case Keyword::Continue:
+                    return out << "Keyword: continue,";
+                case Keyword::Switch:
+                    return out << "Keyword: switch,";
+                case Keyword::If:
+                    return out << "Keyword: if,";
+                case Keyword::While:
+                    return out << "Keyword: while,";
+                case Keyword::Else:
+                    return out << "Keyword: else,";
+                case Keyword::Case:
+                    return out << "Keyword: case,";
+                case Keyword::Do:
+                    return out << "Keyword: do,";
+                case Keyword::For:
+                    return out << "Keyword: for,";
                 default:
                     LexerError("Internal bug - invalid keyword in printing!");
             }
@@ -235,7 +253,7 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
                 case Operator::IndexClose:
                     return out << "Operator: ],";
                 case Operator::Index:
-                    return out << "Operator: index,";
+                    return out << "Operator: [],";
                 case Operator::Increment:
                     return out << "Operator: ++,";
                 case Operator::Decrement:
@@ -244,6 +262,10 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
                     return out << "Operator: shift right,";
                 case Operator::ShiftLeft:
                     return out << "Operator: shift left,";
+                case Operator::Bracket:
+                    return out << "Operator: (),";
+                case Operator::Brace:
+                    return out << "Operator: {},";
                 default:
                     LexerError("Internal bug - invalid operator in printing!");
             }

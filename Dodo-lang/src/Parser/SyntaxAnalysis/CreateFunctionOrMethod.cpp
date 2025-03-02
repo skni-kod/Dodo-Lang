@@ -7,13 +7,26 @@ ParserFunctionMethodObject CreateMethodOrFunction(Generator<const LexerToken*>& 
 
     const auto* current = generator();
     while (not current->MatchOperator(Operator::BracketClose)) {
-        // TODO: add let and mut here
+        bool isMutable = false;
+        if (current->type == Token::Keyword) {
+            if (current->kw == Keyword::Let) {
+                current = generator();
+            }
+            else if (current->kw == Keyword::Mut) {
+                current = generator();
+                isMutable = true;
+            }
+            else {
+                ParserError("Unexpected mutability keyword in parameter!");
+            }
+        }
 
         if (current->type != Token::Identifier) {
             ParserError("Expected parameter type identifier!");
         }
 
         auto [thingType, thingIdentifier] = ParseValueType(generator, current);
+        thingType.type.isMutable = isMutable;
         output.arguments.emplace_back(*thingIdentifier->text, thingType, TypeObjectValue());
 
         current = generator();
@@ -21,10 +34,12 @@ ParserFunctionMethodObject CreateMethodOrFunction(Generator<const LexerToken*>& 
             ParserError("Expected a comma or bracket close after parameter!");
         }
     }
-
-
-
-    while (not generator()->MatchOperator(Operator::BraceClose)) {}
+    if (not generator()->MatchOperator(Operator::BraceOpen)) {
+        ParserError("Expected an opening brace after function prototype!");
+    }
+    while (not (current = generator())->MatchOperator(Operator::BraceClose)) {
+        output.instructions.emplace_back(ParseInstruction(generator, current));
+    }
 
     return std::move(output);
 }

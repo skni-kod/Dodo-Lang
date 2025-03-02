@@ -1,5 +1,91 @@
 #include "AnalysisInternal.hpp"
 
+bool IsExpressionEndToken(const LexerToken* token) {
+    switch (token->type) {
+        case Token::Keyword:
+            switch (token->kw) {
+                case Keyword::End:
+                case Keyword::Comma:
+                    return true;
+                default:
+                    return false;
+            }
+        case Token::Operator:
+            switch (token->kw) {
+                case Operator::BraceClose:
+                case Operator::BracketClose:
+                case Operator::IndexClose:
+                    return true;
+                default:
+                    return false;
+            }
+        default:
+            return false;
+    }
+}
+
+const LexerToken* ParseExpression(Generator <const LexerToken*>& generator, std::vector <ParserTreeValue>& valueArray, std::vector <const LexerToken*> tokens) {
+    // first of all let's
+    const LexerToken* last = nullptr;
+    uint16_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
+    for (uint32_t n = 0; n < tokens.size(); n++) {
+        if (bracketLevel == 0 and braceLevel == 0 and indexLevel == 0 and IsExpressionEndToken(tokens[n])) {
+            if (n != tokens.size() - 1) {
+                ParserError("Invalid expression!");
+            }
+            last = tokens.back();
+            tokens.pop_back();
+        }
+
+        if (tokens[n]->type == Token::Operator) {
+            switch (tokens[n]->op) {
+                case Operator::BraceOpen:
+                    braceLevel++;
+                break;
+                case Operator::BracketOpen:
+                    bracketLevel++;
+                break;
+                case Operator::IndexOpen:
+                    indexLevel++;
+                break;
+                case Operator::BraceClose:
+                    if (braceLevel == 0) {
+                        ParserError("Invalid braces!");
+                    }
+                    braceLevel--;
+                    break;
+                case Operator::BracketClose:
+                    if (bracketLevel == 0) {
+                        ParserError("Invalid brackets!");
+                    }
+                    bracketLevel--;
+                break;
+                case Operator::IndexClose:
+                    if (indexLevel == 0) {
+                        ParserError("Invalid index brackets!");
+                    }
+                    indexLevel--;
+                break;
+                default:
+                    break;
+            }
+        }
+
+        if (n == tokens.size() - 1) {
+            tokens.push_back(generator());
+        }
+    }
+
+    // now the entire expression bounds are done and it can be parsed into a tree
+
+
+    return last;
+}
+
+
+
+
+// DEPRECATED
 ParserValue ParseMathInternal(const std::vector<const LexicalToken*>& tokens, std::pair<uint32_t, uint32_t> range) {
     uint32_t size = range.second - range.first;
     if (size == 1 and not IsNumeric(tokens[range.first]) and tokens[range.first]->value.size() > 1  and tokens[range.first]->value.front() == '\"' and tokens[range.first]->value.back() == '\"') {

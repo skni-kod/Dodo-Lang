@@ -11,9 +11,10 @@
 
 
 namespace Keyword {
-    enum Type {
-        Primitive, TypeSI, TypeUI, TypeFP, Type, Void, Operator, Return, Import, End, After,
-        Extern, Syscall, Public, Private, Protected, Let, Mut, Const, Comma, Dot, Member
+    enum KeywordType {
+        None, Primitive, TypeSI, TypeUI, TypeFP, Type, Void, Operator, Return, Import, End, After,
+        Extern, Syscall, Public, Private, Protected, Let, Mut, Const, Comma, Dot, Member,
+        Break, Continue, Switch, If, While, Else, Case, Do, For, Address, Dereference
     };
 }
 
@@ -26,25 +27,38 @@ namespace Token {
 }
 
 namespace Operator {
+
     enum Type {
-        Assign, Add, Subtract, Multiply, Divide, Power, Modulo, NOr, BinNOr, NAnd, BinNAnd,
-        Macro, Not, BinNot, Or, BinOr, And, BinAnd, XOr, BinXOr, Imply, NImply,
-        BinImply, BinNImply, Lesser, Greater, Equals, LesserEqual,
-        GreaterEqual, NotEqual, BracketOpen, BracketClose,
-        BraceOpen, BraceClose, IndexOpen, IndexClose, Index,
-        Increment, Decrement, ShiftRight, ShiftLeft
+        // enum order affects order of operations
+        // lower code means being before the one with higher
+        Not, BinNot,
+        // first kinda like PEMDAS
+        Increment, Decrement, Power, Multiply, Divide, Modulo, Add, Subtract,
+        ShiftRight, ShiftLeft,
+        // boolean order similar to C/C++ but expanded for more things
+        NAnd, BinNAnd, And, BinAnd,
+        XOr, BinXOr,
+        NOr, BinNOr, Or, BinOr,
+        NImply, Imply, BinNImply, BinImply,
+        // assign and compare last so that they are evaluated after everything
+        Assign, Lesser, Greater, Equals, LesserEqual, GreaterEqual, NotEqual,
+        // these are special cases that do not use order of operations
+        Macro, BracketOpen, BracketClose, Bracket, Brace,
+        BraceOpen, BraceClose, IndexOpen, IndexClose, Index
+
     };
 }
 
 struct LexerToken {
+    // TODO: make this enums
     uint8_t type = Token::Unknown;
     uint8_t literalType = Type::unsignedInteger;
     uint8_t isVerboseOperator = false;
     uint32_t characterNumber = 0;
     union {
-        uint64_t op = 0;
-        uint64_t kw;
-        uint64_t num;
+        Operator::Type op;
+        Keyword::KeywordType kw;
+        uint64_t num = 0;
         uint64_t _unsigned;
         double _double;
         int64_t _signed;
@@ -65,9 +79,9 @@ struct LexerToken {
     // for getting operator and keyword values from the map
     LexerToken(const std::string& key, uint32_t characterNumber);
 
-    bool MatchOperator(uint64_t type) const;
-    bool MatchKeyword (uint64_t type) const;
-    bool MatchNumber (uint64_t type) const;
+    [[nodiscard]] bool MatchOperator(uint64_t type) const;
+    [[nodiscard]] bool MatchKeyword (uint64_t type) const;
+    [[nodiscard]] bool MatchNumber (uint64_t type) const;
 
 
     LexerToken(LexerToken&& other) noexcept ;

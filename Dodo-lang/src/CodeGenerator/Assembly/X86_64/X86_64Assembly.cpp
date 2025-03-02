@@ -161,7 +161,7 @@ namespace x86_64 {
         else {
             generatorMemory.registers.front().content.value = "!";
         }
-        Instruction ins;
+        DEPRECATEDInstruction ins;
         ins.type = x86_64::syscall;
         finalInstructions.push_back(ins);
     }
@@ -198,7 +198,7 @@ namespace x86_64 {
                 reg.content.value = result;
             }
         }
-        Instruction ins;
+        DEPRECATEDInstruction ins;
         ins.type = x86_64::call;
         ins.op1 = DataLocation(Operand::fun, function);
         finalInstructions.push_back(ins);
@@ -406,7 +406,7 @@ namespace x86_64 {
             case Bytecode::jumpConditionalTrue:
                 FillDesignatedPlaces(index);
                 {
-                    Instruction ins;
+                    DEPRECATEDInstruction ins;
                     ins.type = GetJumpType(bytecode.code, bytecode.number);
                     ins.op1.type = Operand::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
@@ -417,7 +417,7 @@ namespace x86_64 {
             case Bytecode::jump:
                 FillDesignatedPlaces(index);
                 {
-                    Instruction ins;
+                    DEPRECATEDInstruction ins;
                     ins.type = x86_64::jmp;
                     ins.op1.type = Operand::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
@@ -501,7 +501,7 @@ namespace x86_64 {
             case Bytecode::addLabel:
                 FillDesignatedPlaces(index);
                 if (bytecode.source.starts_with(Options::jumpLabelPrefix)) {
-                    Instruction ins;
+                    DEPRECATEDInstruction ins;
                     ins.type = x86_64::jumpLabel;
                     ins.op1.type = Operand::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));

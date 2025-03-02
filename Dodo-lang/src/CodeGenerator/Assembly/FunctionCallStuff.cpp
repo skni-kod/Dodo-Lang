@@ -71,7 +71,7 @@ void AddFunctionHeaders() {
         }
 
         {
-            Instruction ins;
+            DEPRECATEDInstruction ins;
             ins.type = x86_64::returnPoint;
             finalInstructions.push_back(ins);
         }
@@ -81,7 +81,7 @@ void AddFunctionHeaders() {
             if (occupied[n]) {
                 // add the register here
                 maxOffset -= 8;
-                Instruction ins;
+                DEPRECATEDInstruction ins;
                 ins.type = x86_64::mov;
                 ins.sizeAfter = ins.sizeBefore = 8;
                 ins.op1 = {Operand::sta, maxOffset};
@@ -98,7 +98,7 @@ void AddFunctionHeaders() {
 
         // TODO: add this only in function calls are in the function
         if (maxOffset != 0) {
-            Instruction ins;
+            DEPRECATEDInstruction ins;
             ins.type = x86_64::sub;
             ins.sizeBefore = ins.sizeAfter = 8;
             ins.op1 = {Operand::reg, uint64_t(x86_64::rsp)};

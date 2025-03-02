@@ -311,7 +311,7 @@ void PrintWithSpaces(const std::string& input, std::ofstream& out) {
     }
 }
 
-void Instruction::outputX86_64(std::ofstream& out) const {
+void DEPRECATEDInstruction::outputX86_64(std::ofstream& out) const {
     if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
         switch (this->type) {
             case x86_64::ret:

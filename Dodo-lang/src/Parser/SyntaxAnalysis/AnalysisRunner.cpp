@@ -67,6 +67,8 @@ bool IsOperatorOverloadAllowed(uint32_t type) {
         case Operator::Decrement:
         case Operator::ShiftRight:
         case Operator::ShiftLeft:
+        case Operator::Brace:
+        case Operator::Bracket:
             return true;
         default:
             return false;
@@ -90,7 +92,7 @@ bool RunSyntaxAnalysis(Generator<const LexerToken*>& generator, bool isInType, T
                 CreateType(generator, current);
                 continue;
             }
-            catch (__ParserException& e) {
+            catch (ParserException& e) {
                 didFail = true;
                 while (not current->MatchOperator(Operator::BraceClose) and not current->MatchKeyword(Keyword::End)) {
                     current = generator();
@@ -155,7 +157,7 @@ bool RunSyntaxAnalysis(Generator<const LexerToken*>& generator, bool isInType, T
             if (isOperator) {
                 ParserError("Cannot create a variable of operator overload!");
             }
-            if (thingType.typeName == "" and thingType.type.pointerLevel == 0) {
+            if (thingType.typeName.empty() and thingType.type.pointerLevel == 0) {
                 ParserError("Cannot create a void type variable!");
             }
             // variable

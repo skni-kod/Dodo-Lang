@@ -14,7 +14,7 @@ uint64_t GetCurrentLine() {
     return currentLine;
 }
 
-const char* __ParserException::what() {
+const char* ParserException::what() {
     return "Parser has encountered unexpected input";
 }
 
@@ -26,7 +26,7 @@ void ParserError(const std::string& message) {
         std::cout << "ERROR! " << *currentFile << " at line : " << currentLine + 1 << " : " << message << "\n";
     }
     if (not doneParsing) {
-        throw __ParserException();
+        throw ParserException();
     }
     throw __CodeGeneratorException();
 
@@ -57,7 +57,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
         }
     }
 
-    // Step 2: processing types without their methods
+    // Step 2: processing type sizes, alignments and names
     CalculateTypeSizes();
 
     // Step 3: processing method and function prototypes

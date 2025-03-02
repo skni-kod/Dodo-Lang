@@ -1,12 +1,7 @@
 // a test operator/function thing
-primitive SIGNED_INTEGER   <8> type dumb64 {
+primitive SIGNED_INTEGER <8> type dumb64 {
     dumb64 operator=(i64 other) {
-        this = -other;
-        return this;
-    }
-
-    dumb64 operator+ (i64 other) {
-        this -= other;
+        break;
     }
 }
 
@@ -28,6 +23,9 @@ type Vec2Vec2i8i64 {
 }
 
 i32 Main() {
-    syscall(1, 0, "Hello world! The return value of this mess is: ", 47);
-    return 123;
+    //syscall(1, 0, "Hello world! The return value of this mess is: ", 47);
+    //return 123;
+    2525 * 4534 ( 456 86);
+    break;
 }
+
