@@ -115,7 +115,13 @@ namespace ParserOperation {
         Constant,
         // variable
         // pointer to identifier, next value for its members, etc.
-        Variable
+        Variable,
+        // string
+        // pointer to string, next value for its members, etc.
+        String,
+        // declaration
+        // pointer to string with typename, next value for its value, etc.
+        Declaration
     };
 }
 
@@ -127,7 +133,6 @@ struct ParserTreeValue {
     union {
         uint16_t left = 0;
         uint16_t next;
-
     };
     union {
         uint16_t right = 0;

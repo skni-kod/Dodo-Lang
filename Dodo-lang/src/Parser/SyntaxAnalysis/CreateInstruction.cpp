@@ -1,3 +1,5 @@
+#include <Bytecode.hpp>
+
 #include "AnalysisInternal.hpp"
 
 // instruction format
@@ -17,13 +19,13 @@
 // Break    - break;
 // Continue - continue;
 
-ParserFunctionMethodInstructionObject ParseInstruction(Generator<const LexerToken*>& generator, const LexerToken* first) {
+ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first) {
     ParserFunctionMethodInstructionObject output;
 
     uint8_t keyword1 = Keyword::None;
     uint8_t keyword2 = Keyword::None;
 
-    const auto* current = first;
+    auto* current = first;
 
     if (current->type == Token::Keyword) {
         keyword1 = current->kw;
@@ -37,14 +39,6 @@ ParserFunctionMethodInstructionObject ParseInstruction(Generator<const LexerToke
     }
 
     switch (keyword1) {
-        case Keyword::Let:
-        case Keyword::Mut:
-            if (keyword2) {
-                ParserError("Unexpected keyword after variable declaration!");
-            }
-            // declare
-            ParserError("Unimplemented!");
-            break;
         case Keyword::Return:
             // valueless return
             if (keyword2 == Keyword::End) {
@@ -123,338 +117,46 @@ ParserFunctionMethodInstructionObject ParseInstruction(Generator<const LexerToke
             output.type = Instruction::Continue;
             return std::move(output);
         case Keyword::None:
-            // here keyword 2 is ~100% not assigned
-            // instruction assign or call
+        case Keyword::Let:
+        case Keyword::Mut:
+            if (keyword2) {
+                ParserError("Unexpected keyword after variable declaration!");
+            }{
+            // instruction declare, assign or call
+            if (keyword1 != Keyword::None) {
+                output.type = Instruction::Declare;
+                ParserTreeValue temp;
+                temp.operation = ParserOperation::Declaration;
+                temp.next = 1;
+                // TODO: finish implementing
+                ParserError("Declaration not fully implemented!");
+                //temp.type
+            }
+            else {
+                output.type = Instruction::Assign;
+            }
 
-                // TODO: check if function
-                    ParseExpression(generator, output.valueArray, {current});
+            // TODO: check if function
+            auto result = ParseExpression(generator, output.valueArray, {current});
+            if (result->MatchOperator(Operator::Assign)) {
+                if (not IsLValue(output.valueArray, 0)) {
+                    ParserError("Cannot assign to non-lvalue!");
+                }
 
-            //ParserError("Unimplemented!");
+                output.rValueIndex = output.valueArray.size();
+                result = ParseExpression(generator, output.valueArray, {current});
+
+            }
+            else if (result->MatchKeyword(Keyword::End)) {
+                output.type = Instruction::Call;
+            }
+            else {
+                ParserError("Unexpected token after expression!");
+            }
             break;
+        }
         default:
             ParserError("Malformed instruction!");
     }
-
-
     return std::move(output);
 }
-
-/* DEPRECATED
-bool IsComparisonOperand(const std::string& value) {
-    if (value == "==" or value == "!=" or value == ">" or value == "<" or value == ">=" or value == "<=") {
-        return true;
-    }
-    return false;
-}
-
-uint8_t GetComparisonOperandType(const std::string& value) {
-    if (value == "==") {
-        return ParserCondition::Condition::equals;
-    }
-    if (value == "!=") {
-        return ParserCondition::Condition::notEquals;
-    }
-    if (value == ">") {
-        return ParserCondition::Condition::greater;
-    }
-    if (value == ">=") {
-        return ParserCondition::Condition::greaterEqual;
-    }
-    if (value == "<") {
-        return ParserCondition::Condition::lesser;
-    }
-    if (value == "<=") {
-        return ParserCondition::Condition::lesserEqual;
-    }
-    ParserError("Unknown comparison operand!");
-    return 1;
-}
-
-FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator, const LexicalToken* firstToken) {
-    FunctionInstruction instruction;
-    instruction.sourceFile = currentFile;
-    instruction.sourceLine = GetCurrentLine();
-
-    // return statement
-    if (firstToken->type == LexicalToken::Type::keyword and firstToken->value == "return") {
-        instruction.variant.returnInstruction = new ReturnInstruction();
-        instruction.type = FunctionInstruction::Type::returnValue;
-        instruction.variant.returnInstruction->expression = ParseMath(generator);
-        return instruction;
-    }
-
-    // declaration
-    if (firstToken->value == "let" or firstToken->value == "mut") {
-        auto result = CreateVariable(generator, firstToken->value, false);
-        instruction.variant.declarationInstruction = new DeclarationInstruction();
-        instruction.type = FunctionInstruction::Type::declaration;
-        instruction.variant.declarationInstruction->name = result.first;
-        instruction.variant.declarationInstruction->content = std::move(result.second);
-        return instruction;
-    }
-
-    // return statement
-    if (firstToken->type == LexicalToken::Type::keyword and firstToken->value == "syscall") {
-        const LexicalToken* current = generator();
-        if (current->value != "(") {
-            ParserError("Expected an opening bracket after syscall keyword!");    
-        }
-        auto* firstPtr = current;
-        current = generator();
-        if (not IsNumeric(current)) {
-            ParserError("Expected a call number as first syscall argument!");    
-        }
-        uint64_t syscallNumber = std::stoull(current->value);
-        current = generator();
-        if (current->value != ",") {
-            ParserError("Expected a separator after syscall number!");    
-        }
-        
-        instruction.variant.functionCallInstruction = new FunctionCallInstruction();
-        instruction.type = FunctionInstruction::Type::functionCall;
-        instruction.variant.functionCallInstruction->functionName = std::to_string(syscallNumber);
-        instruction.variant.functionCallInstruction->isCCall = true;
-        instruction.variant.functionCallInstruction->arguments = ParseMath(generator,
-            std::vector<const LexicalToken*> {firstToken, firstPtr}, false, 1);
-        return instruction;
-        
-    }
-
-    // variable modification
-    if (firstToken->type == LexicalToken::Type::identifier or (firstToken->type == LexicalToken::Type::operand and firstToken->value == "*")) {
-        bool pointerValue = false;
-        if (firstToken->type == LexicalToken::Type::operand) {
-            pointerValue = true;
-            const LexicalToken* current = generator();
-            firstToken = current;
-            if (current->type != LexicalToken::identifier) {
-                ParserError("Expected an identifier after pointed value change operand!");
-            }
-        }
-        // get the = or the + before += and such
-        const LexicalToken* current = generator();
-        if (current->type != LexicalToken::Type::operand) {
-            ParserError("Expected an operand after identifier!");
-        }
-
-        if (current->value == "(") {
-            instruction.variant.functionCallInstruction = new FunctionCallInstruction();
-            instruction.type = FunctionInstruction::Type::functionCall;
-            instruction.variant.functionCallInstruction->functionName = firstToken->value;
-            instruction.variant.functionCallInstruction->arguments = ParseMath(generator,
-                                                                               std::vector<const LexicalToken*> {
-                                                                                       firstToken, current}, false, 1);
-            return instruction;
-        }
-
-        instruction.variant.valueChangeInstruction = new ValueChangeInstruction();
-        instruction.type = FunctionInstruction::Type::valueChange;
-        instruction.variant.valueChangeInstruction->name = firstToken->value;
-        instruction.variant.valueChangeInstruction->pointerValue = pointerValue;
-
-        if (current->value == "=") {
-            instruction.variant.valueChangeInstruction->expression = ParseMath(generator);
-            return instruction;
-        }
-
-        if (current->value == "+=") {
-            LexicalToken temp = {LexicalToken::Type::operand, "+"};
-            instruction.variant.valueChangeInstruction->expression = ParseMath(generator, {firstToken, &temp});
-            return instruction;
-        }
-        if (current->value == "-=") {
-            LexicalToken temp = {LexicalToken::Type::operand, "-"};
-            instruction.variant.valueChangeInstruction->expression = ParseMath(generator, {firstToken, &temp});
-            return instruction;
-        }
-        if (current->value == "*=") {
-            LexicalToken temp = {LexicalToken::Type::operand, "*"};
-            instruction.variant.valueChangeInstruction->expression = ParseMath(generator, {firstToken, &temp});
-            return instruction;
-        }
-        if (current->value == "/=") {
-            LexicalToken temp = {LexicalToken::Type::operand, "/"};
-            instruction.variant.valueChangeInstruction->expression = ParseMath(generator, {firstToken, &temp});
-            return instruction;
-        }
-
-        ParserError("Unexpected operator after identifier!");
-    }
-
-    // keyword starting things
-    if (firstToken->type == LexicalToken::keyword) {
-        if (firstToken->value == "else") {
-            instruction.type = FunctionInstruction::Type::elseStatement;
-            return instruction;
-        }
-
-        // if statement
-        if (firstToken->value == "if") {
-            const LexicalToken* current = generator();
-            if (current->type != LexicalToken::Type::operand or current->value != "(") {
-                ParserError("Expected a bracket opening after keyword if!");
-            }
-            // left side
-            current = generator();
-            std::vector<const LexicalToken*> tokens;
-            while (not IsComparisonOperand(current->value)) {
-                tokens.push_back(current);
-                current = generator();
-            }
-            instruction.type = FunctionInstruction::Type::ifStatement;
-            instruction.variant.ifInstruction = new IfInstruction();
-            instruction.variant.ifInstruction->condition.left = ParseMath(tokens);
-            instruction.variant.ifInstruction->condition.type = GetComparisonOperandType(current->value);
-
-            // right side
-            current = generator();
-            tokens.clear();
-            uint64_t bracketLevel = 0;
-            while (bracketLevel != 0 or current->value != ")") {
-                if (current->value == "(") {
-                    bracketLevel++;
-                }
-                else if (current->value == ")") {
-                    bracketLevel--;
-                }
-                tokens.push_back(current);
-                current = generator();
-            }
-            instruction.variant.ifInstruction->condition.right = ParseMath(tokens);
-            return instruction;
-        }
-
-        // while statement
-        if (firstToken->value == "while") {
-            const LexicalToken* current = generator();
-            if (current->type != LexicalToken::Type::operand or current->value != "(") {
-                ParserError("Expected a bracket opening after keyword while!");
-            }
-            // left side
-            current = generator();
-            std::vector<const LexicalToken*> tokens;
-            while (not IsComparisonOperand(current->value)) {
-                tokens.push_back(current);
-                current = generator();
-            }
-            instruction.type = FunctionInstruction::Type::whileStatement;
-            instruction.variant.whileInstruction = new WhileInstruction();
-            instruction.variant.whileInstruction->condition.left = ParseMath(tokens);
-            instruction.variant.whileInstruction->condition.type = GetComparisonOperandType(current->value);
-
-            // right side
-            current = generator();
-            tokens.clear();
-            uint64_t bracketLevel = 0;
-            while (bracketLevel != 0 or current->value != ")") {
-                if (current->value == "(") {
-                    bracketLevel++;
-                }
-                else if (current->value == ")") {
-                    bracketLevel--;
-                }
-                tokens.push_back(current);
-                current = generator();
-            }
-            instruction.variant.whileInstruction->condition.right = ParseMath(tokens);
-            return instruction;
-        }
-
-        // for statement
-        if (firstToken->value == "for") {
-            const LexicalToken* current = generator();
-            if (current->type != LexicalToken::Type::operand or current->value != "(") {
-                ParserError("Expected a bracket opening after keyword for!");
-            }
-
-            instruction.type = FunctionInstruction::Type::forStatement;
-            instruction.variant.forInstruction = new ForInstruction();
-
-
-            // if there is a variable at all
-            while (lastToken->type != LexicalToken::Type::expressionEnd) {
-                current = generator();
-                if (current->type != LexicalToken::Type::identifier) {
-                    if (current->type == LexicalToken::Type::keyword and current->value == "mut") {
-                        current = generator();
-                    }
-                    else {
-                        ParserError("Expected a type identifier in first segment of for loop");
-                    }
-                }
-                ForLoopVariable var;
-                var.typeName = current->value;
-
-
-                current = generator();
-                if (current->type != LexicalToken::Type::identifier) {
-                    ParserError("Expected a name after type in first segment of for loop");
-                }
-                var.identifier = current->value;
-
-                current = generator();
-                if (current->type == LexicalToken::Type::operand and current->value == "=") {
-                    var.value = ParseMath(generator);
-                }
-                else if (current->type == LexicalToken::Type::expressionEnd) {
-                    var.value.operationType = ParserValue::Node::constant;
-                    var.value.value = std::make_unique<std::string>("0");
-                }
-                else {
-                    ParserError("Expected an expression or an end of expression after loop variable declaration!");
-                }
-
-                instruction.variant.forInstruction->variables.emplace_back(std::move(var));
-            }
-
-            // now get the condition
-            current = generator();
-            std::vector<const LexicalToken*> tokens;
-            while (not IsComparisonOperand(current->value)) {
-                tokens.push_back(current);
-                current = generator();
-            }
-
-            instruction.variant.forInstruction->condition.left = ParseMath(tokens);
-            instruction.variant.forInstruction->condition.type = GetComparisonOperandType(current->value);
-
-            // right side
-            current = generator();
-            tokens.clear();
-            uint64_t bracketLevel = 0;
-            while (bracketLevel != 0 or current->type != LexicalToken::Type::expressionEnd) {
-                if (current->value == "(") {
-                    bracketLevel++;
-                }
-                else if (current->value == ")") {
-                    bracketLevel--;
-                }
-                tokens.push_back(current);
-                current = generator();
-            }
-            instruction.variant.forInstruction->condition.right = ParseMath(tokens);
-
-            // and now add the operations after this
-            while (lastToken->value != ")") {
-                instruction.variant.forInstruction->instructions.push_back(CreateInstruction(generator, generator()));
-            }
-
-            return instruction;
-        }
-
-        ParserError("Other keyword starting instructions net yet introduced!");
-    }
-
-    if (firstToken->type == LexicalToken::Type::blockBegin) {
-        instruction.type = FunctionInstruction::Type::beginScope;
-        return instruction;
-    }
-
-    if (firstToken->type == LexicalToken::Type::blockEnd) {
-        instruction.type = FunctionInstruction::Type::endScope;
-        return instruction;
-    }
-
-    ParserError("Invalid instruction!");
-    return instruction;
-}*/

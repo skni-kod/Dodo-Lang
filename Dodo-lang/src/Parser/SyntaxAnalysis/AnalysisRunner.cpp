@@ -2,14 +2,13 @@
 #include "AnalysisInternal.hpp"
 #include "ParserVariables.hpp"
 
-std::pair<ParserValueTypeObject, const LexerToken*> ParseValueType(Generator<const LexerToken*>& generator, const LexerToken* first) {
+std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToken*>& generator, LexerToken* first) {
     ParserValueTypeObject output;
 
     if (not first->MatchKeyword(Keyword::Void)) {
         output.typeName = *first->text;
     }
-
-    const auto* current = generator();
+    auto current = generator();
     if (current->type == Token::Operator) {
         switch (current->op) {
             case Operator::Multiply:
@@ -77,10 +76,10 @@ bool IsOperatorOverloadAllowed(uint32_t type) {
 
 // the base runner for the analysis
 // it finds the base keywords that define the start of the next structure
-bool RunSyntaxAnalysis(Generator<const LexerToken*>& generator, bool isInType, TypeObject* type) {
+bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObject* type) {
     // the compiler skips the given structure if it can in case of issues
     bool didFail = false;
-    const LexerToken* current = nullptr;
+    LexerToken* current = nullptr;
     while (generator or (isInType and not current->MatchOperator(Operator::BraceClose))) {
         current = generator();
         // TYPES

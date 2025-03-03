@@ -32,12 +32,12 @@ void ParserError(const std::string& message) {
 
 }
 
-Generator<const LexerToken*> LexerTokenGenerator(std::vector<LexerFile>& lexed) {
-    for (const auto& file: lexed) {
+Generator<LexerToken*> LexerTokenGenerator(std::vector<LexerFile>& lexed) {
+    for (auto& file: lexed) {
         currentFile = &file.path;
-        for (const auto& line: file.lines) {
+        for (auto& line: file.lines) {
             currentLine = line.lineNumber;
-            for (const auto& token: line.tokens) {
+            for (auto& token: line.tokens) {
                 //lastToken = &token;
                 co_yield &token;
             }
@@ -92,16 +92,4 @@ void RunParsing(std::vector<LexerFile>& lexed) {
                   << " function definition(s)\n";
     }
     */
-}
-
-bool IsNumeric(const LexicalToken* token) {
-    if (token->literalValue == literalType::numeric or
-        token->literalValue == literalType::character or
-        token->literalValue == literalType::float_type or
-        token->literalValue == literalType::hex_type or
-        token->literalValue == literalType::binary_type or
-        token->literalValue == literalType::octal_type) {
-        return true;
-        }
-    return false;
 }

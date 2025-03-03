@@ -1,11 +1,13 @@
 #ifndef DODO_LANG_PARSER_HPP
 #define DODO_LANG_PARSER_HPP
 
+#include <fstream>
+#include <iostream>
+
 #include "../LexicalToken.hpp"
-#include "../LexicalAnalysis.hpp"
 #include "Lexer/Lexing.hpp"
 
-inline const LexicalToken* lastTokenDEPRECATED = nullptr;
+//inline const LexicalToken* lastTokenDEPRECATED = nullptr;
 
 inline std::vector <std::string> passedStrings;
 
@@ -29,7 +31,7 @@ void RunParsing(std::vector<LexerFile>& lexed);
 
 void PrepareFunctionArguments();
 
-bool IsNumeric(const LexicalToken* token);
+//bool IsNumeric(const LexicalToken* token);
 
 void CalculateTypeSizes();
 

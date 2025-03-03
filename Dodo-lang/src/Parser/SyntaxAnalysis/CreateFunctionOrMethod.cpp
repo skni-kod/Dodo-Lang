@@ -1,11 +1,11 @@
 #include "AnalysisInternal.hpp"
 
-ParserFunctionMethodObject CreateMethodOrFunction(Generator<const LexerToken*>& generator,
-    const ParserValueTypeObject& type, const LexerToken* identifier, uint32_t operatorType) {
+ParserFunctionMethodObject CreateMethodOrFunction(Generator<LexerToken*>& generator,
+    const ParserValueTypeObject& type, LexerToken* identifier, uint32_t operatorType) {
 
     ParserFunctionMethodObject output;
 
-    const auto* current = generator();
+    auto* current = generator();
     while (not current->MatchOperator(Operator::BracketClose)) {
         bool isMutable = false;
         if (current->type == Token::Keyword) {

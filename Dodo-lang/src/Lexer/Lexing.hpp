@@ -14,7 +14,7 @@ namespace Keyword {
     enum KeywordType {
         None, Primitive, TypeSI, TypeUI, TypeFP, Type, Void, Operator, Return, Import, End, After,
         Extern, Syscall, Public, Private, Protected, Let, Mut, Const, Comma, Dot, Member,
-        Break, Continue, Switch, If, While, Else, Case, Do, For, Address, Dereference
+        Break, Continue, Switch, If, While, Else, Case, Do, For
     };
 }
 
@@ -31,6 +31,7 @@ namespace Operator {
     enum Type {
         // enum order affects order of operations
         // lower code means being before the one with higher
+        Address, Dereference,
         Not, BinNot,
         // first kinda like PEMDAS
         Increment, Decrement, Power, Multiply, Divide, Modulo, Add, Subtract,
@@ -83,6 +84,7 @@ struct LexerToken {
     [[nodiscard]] bool MatchKeyword (uint64_t type) const;
     [[nodiscard]] bool MatchNumber (uint64_t type) const;
 
+    bool operator==(const LexerToken& other) const;
 
     LexerToken(LexerToken&& other) noexcept ;
     LexerToken(LexerToken& other);

@@ -4,7 +4,7 @@
 #include "../ParserVariables.hpp"
 
 // TODO: add name syntax checks
-void CreateType(Generator<const LexerToken*>& generator, const LexerToken*& firstToken) {
+void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
     TypeObject type;
 
     // check if it's primitive

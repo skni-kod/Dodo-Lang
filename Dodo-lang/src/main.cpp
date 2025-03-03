@@ -1,9 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <string>
-#include "LexicalAnalysis.hpp"
-#include <memory>
 
 #include "Misc/Increment.hpp"
 #include "Cli/Cli.hpp"

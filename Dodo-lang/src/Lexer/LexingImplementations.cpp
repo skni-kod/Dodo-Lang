@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include "LexicalToken.hpp"
 #include "Lexing.hpp"
 #include "LexingInternal.hpp"
 
@@ -102,6 +101,26 @@ LexerToken::LexerToken(const LexerToken& other) {
     _unsigned = other._unsigned;
     if (other.type == Token::Identifier and other.text != nullptr) {
         text = new std::string(*other.text);
+    }
+}
+
+bool LexerToken::operator==(const LexerToken& other) const {
+    if (type != other.type) {
+        return false;
+    }
+    switch (type) {
+        case Token::Identifier:
+            return *text == *other.text;
+        case Token::Operator:
+            return op == other.op;
+        case Token::Keyword:
+            return kw == other.kw;
+        case Token::Number:
+            return literalType == other.literalType and _unsigned == other._unsigned;
+        case Token::String:
+            return *text == *other.text;
+        default:
+        return false;
     }
 }
 
