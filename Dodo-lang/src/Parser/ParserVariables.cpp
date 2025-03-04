@@ -27,13 +27,13 @@ std::ostream& operator<<(std::ostream& out, const VariableType& type) {
         }
     }
     switch (type.type) {
-        case ParserType::Type::unsignedInteger:
+        case Type::unsignedInteger:
             out << "unsigned integer variable ";
             break;
-        case ParserType::Type::signedInteger:
+        case Type::signedInteger:
             out << "signed integer variable ";
             break;
-        case ParserType::Type::floatingPoint:
+        case Type::floatingPoint:
             out << "floating point variable ";
             break;
         default:

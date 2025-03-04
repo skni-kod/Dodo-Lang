@@ -5,7 +5,7 @@
 #include <string>
 #include <print>
 
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 bool ApplyCommandLineArguments(int argc, char** argv) {
 

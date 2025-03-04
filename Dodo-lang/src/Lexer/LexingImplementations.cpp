@@ -1,7 +1,9 @@
 #include <iostream>
+#include <generator>
 
 #include "Lexing.hpp"
 #include "LexingInternal.hpp"
+
 
 const char* LexerException::what() {
     return "Lexer has encountered unexpected input";
@@ -21,17 +23,17 @@ LexerToken::~LexerToken() {
 }
 
 LexerToken::LexerToken(const uint8_t type, uint64_t value, const uint32_t characterNumber, uint8_t isVerboseOperator) {
-    this->type = type;
+    this->type = static_cast <Token::Type>(type);
     this->_unsigned = value;
     this->characterNumber = characterNumber;
-    this->literalType = Value::unsignedInteger;
+    this->literalType = Type::unsignedInteger;
     this->isVerboseOperator = isVerboseOperator;
 }
 
 LexerToken::LexerToken(const uint8_t type, int64_t value, const uint32_t characterNumber) {
-    this->type = type;
+    this->type = static_cast <Token::Type>(type);
     this->_signed = value;
-    this->literalType = Value::signedInteger;
+    this->literalType = Type::signedInteger;
     this->characterNumber = characterNumber;
 }
 
@@ -44,20 +46,20 @@ LexerToken::LexerToken(const LexerToken& value, const uint32_t characterNumber) 
 }
 
 LexerToken::LexerToken(const uint8_t type, const double value, const uint32_t characterNumber) {
-    this->type = type;
+    this->type = static_cast <Token::Type>(type);
     this->_double = value;
-    this->literalType = Value::floatingPoint;
+    this->literalType = Type::floatingPoint;
     this->characterNumber = characterNumber;
 }
 
 LexerToken::LexerToken(const uint8_t type, const std::string& text, const uint32_t characterNumber) {
-    this->type = type;
+    this->type = static_cast <Token::Type>(type);
     this->text = new std::string(text);
     this->characterNumber = characterNumber;
 }
 
 LexerToken::LexerToken(const std::string& key, const uint32_t characterNumber) {
-    auto result = keywordsAndOperators[key];
+    const auto result = keywordsAndOperators[key];
     this->type = result.type;
     this->_unsigned = result._unsigned;
     this->characterNumber = characterNumber;

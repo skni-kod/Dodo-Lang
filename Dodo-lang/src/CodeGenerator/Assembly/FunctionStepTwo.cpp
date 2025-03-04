@@ -3,7 +3,7 @@
 #include "Assembly/X86_64/X86_64Assembly.hpp"
 #include "LinearAnalysis.hpp"
 #include "TheGenerator.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 void GenerateFunctionStepTwo(const ParserFunction& function) {
     // this step converts the bytecode into platform specific instructions

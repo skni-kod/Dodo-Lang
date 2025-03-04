@@ -2,7 +2,7 @@
 #include "Bytecode.hpp"
 #include "GenerateCode.hpp"
 #include "Assembly/MemoryStructure.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 #define MIN_16_BIT_FLOAT_PRECISE 0.000000059604644l
 #define MIN_32_BIT_FLOAT_PRECISE 0.000000000000000000000000000000000000000000001401298l
@@ -230,48 +230,48 @@ VariableType NegotiateOperationType(const ParserValue& expression) {
             long double number = std::stold(*expression.value);
             if ((number <= MAX_16_BIT_FLOAT_PRECISE and number > MIN_16_BIT_FLOAT_PRECISE) or
                 (number >= -MAX_16_BIT_FLOAT_PRECISE and number < -MIN_16_BIT_FLOAT_PRECISE)) {
-                return {2, ParserType::Type::floatingPoint};
+                return {2, Type::floatingPoint};
             }
 
             if ((number <= MAX_32_BIT_FLOAT_PRECISE and number > MIN_32_BIT_FLOAT_PRECISE) or
                 (number >= -MAX_32_BIT_FLOAT_PRECISE and number < -MIN_32_BIT_FLOAT_PRECISE)) {
-                return {4, ParserType::Type::floatingPoint};
+                return {4, Type::floatingPoint};
             }
 
-            return {8, ParserType::Type::floatingPoint};
+            return {8, Type::floatingPoint};
         }
 
         if (expression.value->front() == '-') {
             int64_t number = std::stoll(*expression.value);
             if (number <= 127 and number >= -128) {
-                return {1, ParserType::Type::signedInteger};
+                return {1, Type::signedInteger};
             }
 
             if (number <= 32767 and number >= -32768) {
-                return {2, ParserType::Type::signedInteger};
+                return {2, Type::signedInteger};
             }
 
             if (number <= 2147483647 and number >= -2147483648) {
-                return {4, ParserType::Type::signedInteger};
+                return {4, Type::signedInteger};
             }
 
-            return {8, ParserType::Type::signedInteger};
+            return {8, Type::signedInteger};
         }
 
         uint64_t number = std::stoull(*expression.value);
         if (number <= 255) {
-            return {1, ParserType::Type::unsignedInteger};
+            return {1, Type::unsignedInteger};
         }
 
         if (number <= 65535) {
-            return {2, ParserType::Type::unsignedInteger};
+            return {2, Type::unsignedInteger};
         }
 
         if (number <= 4294967295) {
-            return {4, ParserType::Type::unsignedInteger};
+            return {4, Type::unsignedInteger};
         }
 
-        return {8, ParserType::Type::unsignedInteger};
+        return {8, Type::unsignedInteger};
     }
 
     if (expression.nodeType == ParserValue::Node::operation) {

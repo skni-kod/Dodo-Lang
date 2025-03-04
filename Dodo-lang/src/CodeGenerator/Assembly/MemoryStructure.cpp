@@ -5,7 +5,7 @@
 #include "Assembly/X86_64/X86_64Assembly.hpp"
 #include "TheGenerator.hpp"
 #include "GenerateCodeInternal.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 namespace internal {
     ContentEntry::ContentEntry(std::string value) : value(std::move(value)) {}

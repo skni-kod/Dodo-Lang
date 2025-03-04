@@ -1,15 +1,18 @@
 #ifndef TYPE_OBJECT_HPP
 #define TYPE_OBJECT_HPP
+
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "Options.hpp"
+#include "LexingEnums.hpp"
 
 struct LexerToken;
 
 #define INSERT_TYPE_ENUM \
-enum Type { \
+enum TypeEnum { \
 unsignedInteger, signedInteger, floatingPoint, none \
 }; \
 
@@ -42,8 +45,13 @@ namespace Primitive {
 }
 
 struct TypeInfo {
+#ifdef ENUM_VARIABLES
+    Type::TypeEnum type : 8 = Type::none;
+    Subtype::Subtype subType : 8 = Subtype::none;
+#else
     uint8_t type = Type::none;
     uint8_t subType = Subtype::none;
+#endif
     uint8_t pointerLevel = 0;
     uint8_t isMutable = false;
 };
@@ -57,7 +65,11 @@ struct TypeObjectValue {
     enum DefaultValueType {
         defaultConstructor, numeric
     };
+#ifdef ENUM_VARIABLES
+    DefaultValueType type = defaultConstructor;
+#else
     uint8_t type = defaultConstructor;
+#endif
     uint8_t isMemberValid = false;
     union {
         uint64_t numericValue = 0;
@@ -92,11 +104,12 @@ struct ParserArgument {
 
 namespace ParserOperation {
     enum Type {
+        None,
         // an operation of 2 operators, resolved by the bytecode generator with possible overloads
         // lvalue and rvalue of the operation
         Operator,
         // a group operation, resolved by the bytecode generator with possible overloads, used by (), [], {}
-        // next for members, etc. and left for value calculated
+        // next for members, etc. and left for value calculated, code for operator type
         Group,
         // represents a member of given variable
         // next value for next member
@@ -124,11 +137,13 @@ namespace ParserOperation {
         Declaration
     };
 }
-
-// defines a single operation in lvalue or rvalue expression
-// and sadly due to the damn pointer it takes up 16 bytes
+// defines a single operation in expression
 struct ParserTreeValue {
+#ifdef ENUM_VARIABLES
     ParserOperation::Type operation = ParserOperation::Operator;
+#else
+    uint8_t operation = ParserOperation::Operator;
+#endif
     uint8_t isLValued = false;
     union {
         uint16_t left = 0;
@@ -143,6 +158,7 @@ struct ParserTreeValue {
         std::string* identifier = nullptr;
         const LexerToken* literal;
         uint64_t code;
+        Operator::Type operatorType;
     };
 };
 
@@ -154,7 +170,11 @@ namespace Instruction {
 }
 
 struct ParserFunctionMethodInstructionObject {
+#ifdef ENUM_VARIABLES
+    Instruction::Type type = Instruction::None;
+#else
     uint8_t type = Instruction::None;
+#endif
     uint16_t rValueIndex = 0;
     // lValue index might be not needed
     uint16_t lValueIndex = 0;
@@ -172,7 +192,11 @@ struct ParserFunctionMethodObject {
 struct TypeObject {
     std::string typeName;
     uint64_t isPrimitive   : 1 = false;
-    uint64_t primitiveType : 2 = Type::none;
+#ifdef ENUM_VARIABLES
+    Type::TypeEnum primitiveType : 2 = Type::none;
+#else
+    uint8_t primitiveType : 2 = Type::none;
+#endif
     uint64_t typeAlignment : 4 = 0;
     uint64_t typeSize : 57 = 0;
     std::vector <ParserTypeObjectMember> members;

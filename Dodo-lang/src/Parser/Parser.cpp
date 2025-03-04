@@ -3,8 +3,8 @@
 #include "ParserVariables.hpp"
 #include "SyntaxAnalysis/SyntaxAnalysis.hpp"
 #include "GenerateCode.hpp"
-#include "Lexer/Lexing.hpp"
-#include "Misc/Options.hpp"
+#include "Lexing.hpp"
+#include "Options.hpp"
 
 
 //uint64_t currentLine = 0;

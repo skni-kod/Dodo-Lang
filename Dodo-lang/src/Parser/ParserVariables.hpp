@@ -33,7 +33,7 @@ struct ParserType {
 struct VariableType {
     uint32_t size: 20 = 0;
     INSERT_SUBTYPE_ENUM
-    uint8_t type: 2 = ParserType::Type::signedInteger;
+    uint8_t type: 2 = Type::signedInteger;
     uint8_t isAddress: 1 = false;
     uint8_t isString: 1 = false;
     uint8_t subtype = Subtype::value;

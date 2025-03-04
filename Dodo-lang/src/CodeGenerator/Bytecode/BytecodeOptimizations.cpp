@@ -1,5 +1,5 @@
 #include "Bytecode.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 void OptimizeBytecode() {
 

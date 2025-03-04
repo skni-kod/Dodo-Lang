@@ -52,23 +52,70 @@ bool IsSplittableOperator(const LexerToken* token) {
     }
 }
 
-// TODO: DODODODODODODODODODODDODODODODODODODODODODODO change address and dereference to be operator types
+// takes a range where arguments should be and returns the number the first one is at
+// assumes there is at least one argument
+uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
+    std::vector <LexerToken*>& tokens);
 
-ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range, std::vector <LexerToken*>& tokens) {
+ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
+    std::vector <LexerToken*>& tokens, ParserOperation::Type previousOperation = ParserOperation::None, const LexerToken* auxToken = nullptr) {
+
     auto [start, end] = range;
+
+    uint32_t length = end - start;
+    if (length == 0) {
+        ParserError("Internal bug: Empty expression step!");
+    }
+
     LexerToken* mostImportant = nullptr;
     uint32_t firstChosen = 0, lastChosen = 0;
+    uint16_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
 
     // searching through the array to find the element with the highest split priority
     for (uint32_t n = start; n < end; n++) {
-        if (tokens[n]->type == Token::Operator and IsSplittableOperator(tokens[n])
+        if (tokens[n]->type == Token::Operator) {
+            switch (tokens[n]->op) {
+                case Operator::BraceOpen:
+                    braceLevel++;
+                continue;
+                case Operator::BracketOpen:
+                    bracketLevel++;
+                continue;
+                case Operator::IndexOpen:
+                    indexLevel++;
+                continue;
+                case Operator::BraceClose:
+                    if (braceLevel == 0) {
+                        ParserError("Invalid braces!");
+                    }
+                braceLevel--;
+                continue;
+                case Operator::BracketClose:
+                    if (bracketLevel == 0) {
+                        ParserError("Invalid brackets!");
+                    }
+                bracketLevel--;
+                continue;
+                case Operator::IndexClose:
+                    if (indexLevel == 0) {
+                        ParserError("Invalid index brackets!");
+                    }
+                indexLevel--;
+                continue;
+                default:
+                    break;
+            }
+        }
+        if (braceLevel == 0 and bracketLevel == 0 and indexLevel == 0) {
+            if (tokens[n]->type == Token::Operator and IsSplittableOperator(tokens[n])
             and (mostImportant == nullptr or mostImportant->op < tokens[n]->op)) {
 
-            mostImportant = tokens[n];
-            firstChosen = lastChosen = n;
-        }
-        else if (mostImportant != nullptr and *tokens[n] == *mostImportant) {
-            lastChosen = n;
+                mostImportant = tokens[n];
+                firstChosen = lastChosen = n;
+            }
+            else if (mostImportant != nullptr and *tokens[n] == *mostImportant) {
+                lastChosen = n;
+            }
         }
     }
 
@@ -76,12 +123,30 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
 
     // now we have found (or not) the most important splitting operand and can construct something out of it
     if (mostImportant != nullptr) {
-        ParserError("Expression splitting not implemented!");
+        if (length < 3) {
+            ParserError("Invalid expression!");
+        }
+
+        // TODO: add support for things like ++, -- and !
+
+        out.operation = ParserOperation::Operator;
+        out.code = mostImportant->op;
+        if (IsRightToLeftOrdered(mostImportant)) {
+            valueArray.push_back(ParseExpressionStep(valueArray, {start, lastChosen}, tokens));
+            out.left = valueArray.size() - 1;
+            valueArray.push_back(ParseExpressionStep(valueArray, {lastChosen + 1, end}, tokens));
+            out.right = valueArray.size() - 1;
+        }
+        else {
+            valueArray.push_back(ParseExpressionStep(valueArray, {start, firstChosen}, tokens));
+            out.left = valueArray.size() - 1;
+            valueArray.push_back(ParseExpressionStep(valueArray, {firstChosen + 1, end}, tokens));
+            out.right = valueArray.size() - 1;
+        }
     }
     else {
         // that one is more complicated
-        uint32_t length = end - start;
-
+        // TODO: add support for mixed bracket/index/brace expressions like a[b].c(d, e)
         if (length == 1) {
             // that should be the simplest case, right?
             if (tokens[start]->type == Token::Identifier) {
@@ -106,11 +171,191 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             else {
                 ParserError("Invalid single token remained in expression!");
             }
+        }
+        else if (tokens[start]->MatchOperator(Operator::BracketOpen) and tokens[end - 1]->MatchOperator(Operator::BracketClose)) {
+            // bracket
+            if (previousOperation == ParserOperation::Variable or previousOperation == ParserOperation::Member) {
+                // function call
+                out.operation = ParserOperation::Call;
+                out.identifier = auxToken->text;
+                // now parsing arguments...
+                if (length >2) {
+                    out.argument = ParserArgumentsStep(valueArray, {start + 1, end - 1}, tokens);
+                }
+                out.isLValued = true;
+            }
+            else if (auxToken != nullptr and previousOperation == ParserOperation::None) {
+                // probably syscall
+                if (not auxToken->MatchKeyword(Keyword::Syscall)) {
+                    ParserError("Internal bug: Called syscall from non syscall expression!");
+                }
+                if (length < 3) {
+                    ParserError("Syscall MUST have a number!");
+                }
+                out.operation = ParserOperation::Syscall;
+                out.argument = ParserArgumentsStep(valueArray, {start + 1, end - 1}, tokens);
+                if (valueArray[valueArray[out.argument].value].operation != ParserOperation::Constant or not valueArray[valueArray[out.argument].value].literal->MatchNumber(Type::unsignedInteger)) {
+                    ParserError("First argument of syscall needs to be an unsigned constant!");
+                }
+                out.code = valueArray[valueArray[out.argument].value].literal->_unsigned;
+            }
+            else {
+                // just a normal bracket operation
+                out.operation = ParserOperation::Group;
+                out.code = Operator::Bracket;
+                valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end - 1}, tokens));
+                out.value = valueArray.size() - 1;
+                out.isLValued = true;
+            }
+        }
+        else if (tokens[start]->MatchOperator(Operator::BracketOpen) and tokens[end - 1]->MatchOperator(Operator::BracketClose)) {
+            // brace
+            out.operation = ParserOperation::Group;
+            out.code = Operator::Brace;
+            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end - 1}, tokens));
+            out.value = valueArray.size() - 1;
+            out.isLValued = true;
+        }
+        else if (tokens[start]->MatchOperator(Operator::IndexOpen) and tokens[end - 1]->MatchOperator(Operator::IndexClose)) {
+            // index
+            out.operation = ParserOperation::Group;
+            out.code = Operator::Index;
+            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end - 1}, tokens));
+            out.value = valueArray.size() - 1;
+            out.isLValued = true;
+        }
+        else if (tokens[start]->type == Token::Identifier) {
+            // a variable with members or call
+            out.operation = ParserOperation::Variable;
+            out.identifier = tokens[start]->text;
+            auto result = ParseExpressionStep(valueArray, {start + 1, end}, tokens, ParserOperation::Variable, tokens[start]);
+            if (result.operation == ParserOperation::Call) {
+                out = result;
+            }
+            else {
+                valueArray.push_back(result);
+                out.next = valueArray.size() - 1;
+                out.isLValued = true;
+            }
 
         }
+        else if (tokens[start]->MatchKeyword(Keyword::Dot) and tokens[start + 1]->type == Token::Identifier) {
+            out.operation = ParserOperation::Member;
+            out.identifier = tokens[start + 1]->text;
+            if (length > 2) {
+                auto result = ParseExpressionStep(valueArray, {start + 2, end}, tokens, ParserOperation::Member, tokens[start + 1]);
+                if (result.operation == ParserOperation::Call) {
+                    out = result;
+                }
+                else {
+                    valueArray.push_back(result);
+                    out.next = valueArray.size() - 1;
+                    out.isLValued = true;
+                }
+            }
+            else {
+                out.isLValued = true;
+            }
+        }
+        else if (tokens[start]->MatchKeyword(Keyword::Syscall)) {
+            out.operation = ParserOperation::Member;
+            out.identifier = tokens[start + 1]->text;
+            if (length < 4) {
+                ParserError("Invalid syscall!");
+            }
+            out = ParseExpressionStep(valueArray, {start + 1, end}, tokens, ParserOperation::None, tokens[start]);
+        }
+        else {
+            ParserError("Unsupported expression step!");
+        }
+    }
+
+    if (auxToken != nullptr and auxToken->MatchKeyword(Keyword::Syscall) and out.operation != ParserOperation::Syscall) {
+        ParserError("Expected a syscall after syscall keyword!");
     }
     
-    return std::move(out);
+    return out;
+}
+
+uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
+    std::vector <LexerToken*>& tokens) {
+
+
+
+    auto [start, end] = range;
+    uint16_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
+    uint16_t firstIndex = 0, lastIndex = 0, startIndex = start;
+
+    // searching through the array to find the commas and parsing arguments in between
+    for (uint32_t n = start; n < end; n++) {
+        if (tokens[n]->type == Token::Operator) {
+            switch (tokens[n]->op) {
+                case Operator::BraceOpen:
+                    braceLevel++;
+                continue;
+                case Operator::BracketOpen:
+                    bracketLevel++;
+                continue;
+                case Operator::IndexOpen:
+                    indexLevel++;
+                continue;
+                case Operator::BraceClose:
+                    if (braceLevel == 0) {
+                        ParserError("Invalid braces!");
+                    }
+                braceLevel--;
+                continue;
+                case Operator::BracketClose:
+                    if (bracketLevel == 0) {
+                        ParserError("Invalid brackets!");
+                    }
+                bracketLevel--;
+                continue;
+                case Operator::IndexClose:
+                    if (indexLevel == 0) {
+                        ParserError("Invalid index brackets!");
+                    }
+                indexLevel--;
+                continue;
+                default:
+                    break;
+            }
+        }
+        if (braceLevel == 0 and bracketLevel == 0 and indexLevel == 0 and tokens[n]->MatchKeyword(Keyword::Comma)) {
+            ParserTreeValue out;
+
+            out.operation = ParserOperation::Argument;
+            out.identifier = tokens[start]->text;
+            valueArray.push_back(ParseExpressionStep(valueArray, {startIndex, n}, tokens));
+            startIndex = n + 1;
+            out.value = valueArray.size() - 1;
+            out.isLValued = true;
+            if (firstIndex == 0) {
+                lastIndex = firstIndex = valueArray.size();
+            }
+            else {
+                valueArray[lastIndex].next = valueArray.size();
+                lastIndex = valueArray.size();
+            }
+            valueArray.push_back(out);
+        }
+    }
+
+    // now the argument that does not have a comma
+    ParserTreeValue out;
+
+    out.operation = ParserOperation::Argument;
+    out.identifier = tokens[start]->text;
+    valueArray.push_back(ParseExpressionStep(valueArray, {startIndex, end}, tokens));
+    out.value = valueArray.size() - 1;
+    out.isLValued = true;
+    if (firstIndex != 0) {
+        valueArray[lastIndex].next = valueArray.size();
+    }
+    valueArray.push_back(out);
+
+
+    return firstIndex;
 }
 
 bool IsExpressionEndToken(const LexerToken* token) {
@@ -142,6 +387,9 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
     // first of all let's
     LexerToken* last = nullptr;
     uint16_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
+    if (tokens.empty()) {
+        tokens.push_back(generator());
+    }
     for (uint32_t n = 0; n < tokens.size(); n++) {
         if (bracketLevel == 0 and braceLevel == 0 and indexLevel == 0 and IsExpressionEndToken(tokens[n])) {
             if (n != tokens.size() - 1) {
@@ -190,7 +438,7 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         }
     }
 
-    if (tokens.size() == 0) {
+    if (tokens.empty()) {
         ParserError("Empty expression!");
     }
 

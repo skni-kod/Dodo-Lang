@@ -6,8 +6,15 @@
 #include <queue>
 #include <filesystem>
 
-namespace fs = std::filesystem;
+// DEVELOPMENT DEFINITIONS
 
+// due to the fact that enums use 4 bytes many of the structures will grow with this enabled
+// it's very useful for debugging things and checking for correct enums though
+#define ENUM_VARIABLES
+
+
+
+namespace fs = std::filesystem;
 
 namespace Options {
     // default values inside
@@ -26,10 +33,10 @@ namespace Options {
     inline uint8_t addressSize = 8;
     inline uint8_t targetArchitecture = TargetArchitecture::x86_64;
     inline std::queue <fs::path> inputFiles;
-#ifdef __unix__
+#if defined(__linux__) or defined(__unix__)
     inline fs::path stdlibDirectory = "/usr/include/DodoLang/";
 #else
-    // if you're on windows you need to set the dir yourself, I'm not going into that mess of a system
+    // if you're on windows or other non-unix you need to set the dir yourself
     inline fs::path stdlibDirectory = "";
 #endif
     inline std::vector <fs::path> importDirectories;

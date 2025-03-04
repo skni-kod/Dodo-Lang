@@ -24,11 +24,11 @@ Bytecode::Bytecode(uint64_t code, std::string source, std::string target, uint64
 
 std::string EnumToVarType(uint8_t type) {
     switch (type) {
-        case ParserType::Type::signedInteger:
+        case Type::signedInteger:
             return "signed integer";
-        case ParserType::Type::unsignedInteger:
+        case Type::unsignedInteger:
             return "unsigned integer";
-        case ParserType::Type::floatingPoint:
+        case Type::floatingPoint:
             return "floating point";
         default:
             CodeGeneratorError("Invalid type in string conversion!");

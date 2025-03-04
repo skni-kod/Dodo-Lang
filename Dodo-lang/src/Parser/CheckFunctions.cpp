@@ -1,7 +1,7 @@
 #include "Parser.hpp"
 #include "ParserVariables.hpp"
 #include "Assembly/MemoryStructure.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 
 inline void AddX86_64ArgumentPlaces(std::vector <FunctionArgument>& args) {

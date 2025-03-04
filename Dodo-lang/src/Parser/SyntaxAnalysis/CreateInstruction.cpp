@@ -136,7 +136,6 @@ ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& g
                 output.type = Instruction::Assign;
             }
 
-            // TODO: check if function
             auto result = ParseExpression(generator, output.valueArray, {current});
             if (result->MatchOperator(Operator::Assign)) {
                 if (not IsLValue(output.valueArray, 0)) {
@@ -144,10 +143,13 @@ ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& g
                 }
 
                 output.rValueIndex = output.valueArray.size();
-                result = ParseExpression(generator, output.valueArray, {current});
+                result = ParseExpression(generator, output.valueArray, {});
 
             }
             else if (result->MatchKeyword(Keyword::End)) {
+                if (output.valueArray.empty() or output.valueArray.front().operation != ParserOperation::Call) {
+                    ParserError("Expected a function call in a single part expression!");
+                }
                 output.type = Instruction::Call;
             }
             else {

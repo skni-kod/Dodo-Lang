@@ -1,9 +1,8 @@
 #ifndef DODO_LANG_ANALYSIS_INTERNAL_HPP
 #define DODO_LANG_ANALYSIS_INTERNAL_HPP
 
-#include "../../LexicalToken.hpp"
-#include "../Generator.tpp"
-#include "../ParserVariables.hpp"
+#include "Generator.tpp"
+#include "ParserVariables.hpp"
 
 void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken);
 

@@ -1,12 +1,12 @@
 #include "GenerateCode.hpp"
 #include "GenerateCodeInternal.hpp"
-#include "CodeGenerator/Assembly/MemoryStructure.hpp"
-#include "CodeGenerator/Bytecode/Bytecode.hpp"
+#include "MemoryStructure.hpp"
+#include "Bytecode/Bytecode.hpp"
 #include "Assembly/X86_64/X86_64Assembly.hpp"
 #include <filesystem>
 #include <fstream>
 
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 namespace fs = std::filesystem;
 

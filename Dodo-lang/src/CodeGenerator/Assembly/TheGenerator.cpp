@@ -5,7 +5,7 @@
 #include "GenerateCode.hpp"
 #include "Assembly/X86_64/X86_64Assembly.hpp"
 #include "LinearAnalysis.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 uint8_t GetOperandType(const std::string& operand) {
     if (operand.front() == '%') {
@@ -360,14 +360,14 @@ VariableInfo::VariableInfo(const std::string& name) {
         // it's literally nothing
         location.type = Operand::none;
         // and type
-        value.type = ParserType::Type::none;
+        value.type = Type::none;
         return;
     }
     if (identifier.starts_with("\"")) {
         // it's a const string somewhere in memory
         location.type = Operand::sla;
         location.number = std::stoull(identifier.substr(1));
-        value.type = ParserType::Type::none;
+        value.type = Type::none;
         value.isAddress = true;
         value.isString = true;
         return;
@@ -378,7 +378,7 @@ VariableInfo::VariableInfo(const std::string& name) {
         location.value = std::stoull(identifier.substr(1));
 
         // and type
-        value.type = ParserType::Type::none;
+        value.type = Type::none;
         return;
     }
     if (identifier.starts_with("%")) {
@@ -390,7 +390,7 @@ VariableInfo::VariableInfo(const std::string& name) {
         auto& content = generatorMemory.registers[location.value].content.value;
         if (content == "!" or content.starts_with("$")) {
             // it's nothing, let's assume nothing is there
-            value.type = ParserType::Type::none;
+            value.type = Type::none;
             return;
         }
 
@@ -441,7 +441,7 @@ VariableInfo::VariableInfo(const std::string& name) {
         auto& content = FindStackVariableByOffset(location.offset)->content.value;
         if (content == "!" or content.starts_with("$")) {
             // it's nothing, let's assume nothing is there
-            value.type = ParserType::Type::none;
+            value.type = Type::none;
             return;
         }
 

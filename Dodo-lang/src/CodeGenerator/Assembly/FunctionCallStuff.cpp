@@ -3,7 +3,7 @@
 #include "MemoryStructure.hpp"
 #include "GenerateCode.hpp"
 #include "Assembly/X86_64/X86_64Assembly.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 void AddFunctionHeaders() {
     // in this function we need to find the max stack offset and used registers

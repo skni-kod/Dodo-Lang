@@ -4,8 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "../LexicalToken.hpp"
-#include "Lexer/Lexing.hpp"
+#include "../Lexer/Lexing.hpp"
 
 //inline const LexicalToken* lastTokenDEPRECATED = nullptr;
 

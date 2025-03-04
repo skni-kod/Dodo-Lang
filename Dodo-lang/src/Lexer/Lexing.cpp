@@ -6,7 +6,7 @@
 #include <print>
 
 #include "LexingInternal.hpp"
-#include "Misc/Options.hpp"
+#include "Options.hpp"
 
 bool IsSpecialCharacter(uint32_t code) {
     switch (code) {
