@@ -35,8 +35,8 @@ namespace Operator {
         // assign and compare last so that they are evaluated after everything
         Assign, Lesser, Greater, Equals, LesserEqual, GreaterEqual, NotEqual,
         // these are special cases that do not use order of operations
-        Macro, BracketOpen, BracketClose, Bracket, Brace,
-        BraceOpen, BraceClose, IndexOpen, IndexClose, Index
+        Macro, BracketOpen, BracketClose, Bracket,
+        BraceOpen, BraceClose, Brace, IndexOpen, IndexClose, Index
 
     };
 }

@@ -37,8 +37,9 @@ ParserFunctionMethodObject CreateMethodOrFunction(Generator<LexerToken*>& genera
     if (not generator()->MatchOperator(Operator::BraceOpen)) {
         ParserError("Expected an opening brace after function prototype!");
     }
-    while (not (current = generator())->MatchOperator(Operator::BraceClose)) {
-        output.instructions.emplace_back(ParseInstruction(generator, current));
+    uint32_t braceLevel = 0;
+    while (not (current = generator())->MatchOperator(Operator::BraceClose) or braceLevel != 0) {
+        output.instructions.emplace_back(ParseInstruction(generator, current, &braceLevel));
     }
 
     return std::move(output);

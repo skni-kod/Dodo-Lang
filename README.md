@@ -1,19 +1,15 @@
 # Dodo-Lang
 
-## General info:
-The goal of this project is to create a custom programming language compiler written in C++.
+#### The programming language nobody asked for!
 
 ## Technologies:
 - C++
-- GNU Assembler
-- GNU Linker
-- assembler support will expand in the future
+- CMake
 
 ## About dodo-lang:
 The language itself is to be statically typed, have objects and possibly bindings for more advanced features such as graphics. As of now it is being developed for x86-64 linux, with plans for it to work at least on 32 and 64 bit x86 linux and windows, arm is possible too. There will be no need for header files or specific definition order. The compilation order is as follows: .dodo file -- dodo-lang compiler -> .s file -- gnu as -> .o file -- gnu ld -> executable.
 
-#### [Documentation can be found here](./Dodo-lang/documentation/Index.md)
-
+#### [Documentation can be found here (WIP!)](./Dodo-lang/documentation/Index.md)
 
 The project is being developed as a SKNI "KOD" project.
 
@@ -21,6 +17,7 @@ The project is being developed as a SKNI "KOD" project.
 - complete rework of type system
 - structures
 - removal of data kept in strings
+- complete replacement of old lexer (done!)
 
 ## Currently achieved goals:
 - custom type declaration

@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 #if defined(_MSC_VER)
             "MSVC\n";
 #elif defined(__GNUC__)
-            "GCC\n";
+            "Gcc\n";
 #elif defined(__clang__)
             "Clang\n";
 #elif defined(__MINGW32) or defined(__MINGW64__)

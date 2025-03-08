@@ -52,6 +52,26 @@ bool IsSplittableOperator(const LexerToken* token) {
     }
 }
 
+uint32_t FindFirstClosed(const Operator::Type groupType, const std::pair<uint32_t, uint32_t>& range, const std::vector <LexerToken*>& tokens, uint32_t startLevel = 0) {
+    for (uint32_t n = range.first; n < range.second; n++) {
+        // opening
+        if (tokens[n]->MatchOperator(static_cast <Operator::Type>(groupType - 2))) {
+            startLevel++;
+        }
+        else if (tokens[n]->MatchOperator(static_cast <Operator::Type>(groupType - 1))) {
+            if (startLevel == 0) {
+                ParserError("Invalid bracket/brace/index sequence!");
+            }
+            if (startLevel == 1) {
+                return n;
+            }
+            startLevel--;
+        }
+    }
+    ParserError("Could not find closing bracket/brace/index!");
+    return 0;
+}
+
 // takes a range where arguments should be and returns the number the first one is at
 // assumes there is at least one argument
 uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
@@ -122,7 +142,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
     ParserTreeValue out;
 
     // now we have found (or not) the most important splitting operand and can construct something out of it
-    if (mostImportant != nullptr) {
+    if (mostImportant != nullptr and mostImportant->op != Operator::Address and mostImportant->op != Operator::Dereference) {
         if (length < 3) {
             ParserError("Invalid expression!");
         }
@@ -172,15 +192,16 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 ParserError("Invalid single token remained in expression!");
             }
         }
-        else if (tokens[start]->MatchOperator(Operator::BracketOpen) and tokens[end - 1]->MatchOperator(Operator::BracketClose)) {
+        else if (tokens[start]->MatchOperator(Operator::BracketOpen)) {
+            auto closing = FindFirstClosed(Operator::Bracket, {start + 1, end}, tokens, 1);
             // bracket
-            if (previousOperation == ParserOperation::Variable or previousOperation == ParserOperation::Member) {
+            if (previousOperation == ParserOperation::Variable or previousOperation == ParserOperation::Member and auxToken != nullptr) {
                 // function call
                 out.operation = ParserOperation::Call;
                 out.identifier = auxToken->text;
                 // now parsing arguments...
                 if (length >2) {
-                    out.argument = ParserArgumentsStep(valueArray, {start + 1, end - 1}, tokens);
+                    out.argument = ParserArgumentsStep(valueArray, {start + 1, closing}, tokens);
                 }
                 out.isLValued = true;
             }
@@ -193,7 +214,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                     ParserError("Syscall MUST have a number!");
                 }
                 out.operation = ParserOperation::Syscall;
-                out.argument = ParserArgumentsStep(valueArray, {start + 1, end - 1}, tokens);
+                out.argument = ParserArgumentsStep(valueArray, {start + 1, closing}, tokens);
                 if (valueArray[valueArray[out.argument].value].operation != ParserOperation::Constant or not valueArray[valueArray[out.argument].value].literal->MatchNumber(Type::unsignedInteger)) {
                     ParserError("First argument of syscall needs to be an unsigned constant!");
                 }
@@ -203,26 +224,41 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 // just a normal bracket operation
                 out.operation = ParserOperation::Group;
                 out.code = Operator::Bracket;
-                valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end - 1}, tokens));
+                valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, closing}, tokens));
                 out.value = valueArray.size() - 1;
                 out.isLValued = true;
             }
+            // there's something after it
+            if (closing != end - 1) {
+                valueArray.push_back(ParseExpressionStep(valueArray, {closing + 1, end}, tokens));
+                out.next = valueArray.size() - 1;
+            }
         }
-        else if (tokens[start]->MatchOperator(Operator::BracketOpen) and tokens[end - 1]->MatchOperator(Operator::BracketClose)) {
+        else if (tokens[start]->MatchOperator(Operator::BraceOpen)) {
+            auto closing = FindFirstClosed(Operator::Brace, {start + 1, end}, tokens, 1);
             // brace
             out.operation = ParserOperation::Group;
             out.code = Operator::Brace;
-            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end - 1}, tokens));
+            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, closing}, tokens));
             out.value = valueArray.size() - 1;
             out.isLValued = true;
+            if (closing != end - 1) {
+                valueArray.push_back(ParseExpressionStep(valueArray, {closing + 1, end}, tokens));
+                out.next = valueArray.size() - 1;
+            }
         }
-        else if (tokens[start]->MatchOperator(Operator::IndexOpen) and tokens[end - 1]->MatchOperator(Operator::IndexClose)) {
+        else if (tokens[start]->MatchOperator(Operator::IndexOpen)) {
+            auto closing = FindFirstClosed(Operator::Index, {start + 1, end}, tokens, 1);
             // index
             out.operation = ParserOperation::Group;
             out.code = Operator::Index;
-            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end - 1}, tokens));
+            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, closing}, tokens));
             out.value = valueArray.size() - 1;
             out.isLValued = true;
+            if (closing != end - 1) {
+                valueArray.push_back(ParseExpressionStep(valueArray, {closing + 1, end}, tokens));
+                out.next = valueArray.size() - 1;
+            }
         }
         else if (tokens[start]->type == Token::Identifier) {
             // a variable with members or call
@@ -258,12 +294,22 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             }
         }
         else if (tokens[start]->MatchKeyword(Keyword::Syscall)) {
-            out.operation = ParserOperation::Member;
-            out.identifier = tokens[start + 1]->text;
             if (length < 4) {
                 ParserError("Invalid syscall!");
             }
             out = ParseExpressionStep(valueArray, {start + 1, end}, tokens, ParserOperation::None, tokens[start]);
+        }
+        else if (tokens[start]->MatchOperator(Operator::Dereference)) {
+            out.operation = ParserOperation::Dereference;
+            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end}, tokens));
+            out.next = valueArray.size() - 1;
+            out.isLValued = true;
+        }
+        else if (tokens[start]->MatchOperator(Operator::Address)) {
+            out.operation = ParserOperation::Address;
+            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end}, tokens));
+            out.next = valueArray.size() - 1;
+            out.isLValued = true;
         }
         else {
             ParserError("Unsupported expression step!");
@@ -373,7 +419,6 @@ bool IsExpressionEndToken(const LexerToken* token) {
                 case Operator::BraceClose:
                 case Operator::BracketClose:
                 case Operator::IndexClose:
-                case Operator::Assign:
                     return true;
                 default:
                     return false;
@@ -386,18 +431,11 @@ bool IsExpressionEndToken(const LexerToken* token) {
 LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <ParserTreeValue>& valueArray, std::vector <LexerToken*> tokens) {
     // first of all let's
     LexerToken* last = nullptr;
-    uint16_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
+    int32_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
     if (tokens.empty()) {
         tokens.push_back(generator());
     }
     for (uint32_t n = 0; n < tokens.size(); n++) {
-        if (bracketLevel == 0 and braceLevel == 0 and indexLevel == 0 and IsExpressionEndToken(tokens[n])) {
-            if (n != tokens.size() - 1) {
-                ParserError("Invalid expression!");
-            }
-            last = tokens.back();
-            tokens.pop_back();
-        }
 
         if (tokens[n]->type == Token::Operator) {
             switch (tokens[n]->op) {
@@ -411,26 +449,27 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
                     indexLevel++;
                 break;
                 case Operator::BraceClose:
-                    if (braceLevel == 0) {
-                        ParserError("Invalid braces!");
-                    }
                     braceLevel--;
                     break;
                 case Operator::BracketClose:
-                    if (bracketLevel == 0) {
-                        ParserError("Invalid brackets!");
-                    }
                     bracketLevel--;
                 break;
                 case Operator::IndexClose:
-                    if (indexLevel == 0) {
-                        ParserError("Invalid index brackets!");
-                    }
                     indexLevel--;
                 break;
                 default:
                     break;
             }
+        }
+
+        if ((bracketLevel == 0 and braceLevel == 0 and indexLevel == 0 and IsExpressionEndToken(tokens[n])
+                and not tokens[n]->MatchOperator(Operator::BraceClose, Operator::BracketClose, Operator::IndexClose))
+            or braceLevel == -1 or bracketLevel == -1 or indexLevel == 1) {
+            if (n != tokens.size() - 1) {
+                ParserError("Invalid expression!");
+            }
+            last = tokens.back();
+            tokens.pop_back();
         }
 
         if (n == tokens.size() - 1) {

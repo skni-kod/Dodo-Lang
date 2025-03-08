@@ -13,12 +13,12 @@ struct LexerToken;
 
 #define INSERT_TYPE_ENUM \
 enum TypeEnum { \
-unsignedInteger, signedInteger, floatingPoint, none \
+none, unsignedInteger, signedInteger, floatingPoint \
 }; \
 
 #define INSERT_SUBTYPE_ENUM \
 enum Subtype { \
-value, pointer, none, reference \
+none, value, pointer, reference \
 };
 
 #define INSERT_CONDITION_ENUM \
@@ -134,7 +134,13 @@ namespace ParserOperation {
         String,
         // declaration
         // pointer to string with typename, next value for its value, etc.
-        Declaration
+        Declaration,
+        // address operator
+        // next value to the thing the address is taken from
+        Address,
+        // dereference
+        // next is the pointer being dereferenced
+        Dereference
     };
 }
 // defines a single operation in expression
@@ -146,26 +152,33 @@ struct ParserTreeValue {
 #endif
     uint8_t isLValued = false;
     union {
-        uint16_t left = 0;
-        uint16_t next;
+        TypeInfo typeInfo = {};
+        struct {
+            union {
+                uint16_t left;
+                uint16_t next;
+            };
+            union {
+                uint16_t right;
+                uint16_t value;
+                uint16_t argument;
+            };
+        };
     };
-    union {
-        uint16_t right = 0;
-        uint16_t value;
-        uint16_t argument;
-    };
+
     union {
         std::string* identifier = nullptr;
         const LexerToken* literal;
         uint64_t code;
         Operator::Type operatorType;
+        TypeObject* declarationType;
     };
 };
 
 namespace Instruction {
     // TODO: think about how to classify instructions
     enum Type {
-        None, Assign, Declare, Return, Call, If, Else, ElseIf, Switch, While, For, Do, Break, Continue
+        None, Expression, Return, If, Else, ElseIf, Switch, While, For, Do, Break, Continue, BeginScope, EndScope
     };
 }
 
@@ -175,9 +188,9 @@ struct ParserFunctionMethodInstructionObject {
 #else
     uint8_t type = Instruction::None;
 #endif
-    uint16_t rValueIndex = 0;
-    // lValue index might be not needed
-    uint16_t lValueIndex = 0;
+    uint16_t expression1Index = 0;
+    uint16_t expression2Index = 0;
+    uint16_t expression3Index = 0;
     std::vector <ParserTreeValue> valueArray;
 };
 

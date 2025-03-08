@@ -13,10 +13,10 @@ std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
                 out << " floating point value sized ";
             break;
             case Primitive::unsignedInteger:
-                out << "n unsigned integer sized ";
+                out << "n unsigned integer value sized ";
             break;
             case Primitive::signedInteger:
-                out << "n integer sized ";
+                out << "n integer value sized ";
             break;
             default:
                 break;

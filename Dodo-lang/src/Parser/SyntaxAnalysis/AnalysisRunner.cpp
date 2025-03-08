@@ -17,6 +17,7 @@ std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToke
             while ((current = generator())->MatchOperator(Operator::Multiply)) {
                 output.type.pointerLevel++;
             }
+            break;
             // TODO: what to do with references
             default:
                 ParserError("Invalid type modifier!");

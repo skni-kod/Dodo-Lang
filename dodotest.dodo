@@ -1,31 +1,9 @@
-// a test operator/function thing
-primitive SIGNED_INTEGER <8> type dumb64 {
-    dumb64 operator=(i64 other) {
-        break;
-    }
-}
-
-// complex types cannot declare primitive members directly, at least not for now
-type Vec2i8 {
-    i8 x;
-    i8 y;
-    // optional default overrides and methods
-}
-
-type Vec2i64 {
-    i64 x;
-    i64 y;
-}
-
-type Vec2Vec2i8i64 {
-    Vec2i8 x;
-    Vec2i64 y;
-}
-
 i32 Main() {
     //syscall(1, 0, "Hello world! The return value of this mess is: ", 47);
     //return 123;
-    x.y = syscall(2, 5);
-    break;
+    for (k = 5; k < 5; k = k + 1) {
+        k -= 1;
+    }
+    return 0;
 }
 

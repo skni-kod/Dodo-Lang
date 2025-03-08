@@ -22,7 +22,7 @@ LexerToken::~LexerToken() {
     }
 }
 
-LexerToken::LexerToken(const uint8_t type, uint64_t value, const uint32_t characterNumber, uint8_t isVerboseOperator) {
+LexerToken::LexerToken(const uint8_t type, const uint64_t value, const uint32_t characterNumber, const uint8_t isVerboseOperator) {
     this->type = static_cast <Token::Type>(type);
     this->_unsigned = value;
     this->characterNumber = characterNumber;
@@ -30,7 +30,7 @@ LexerToken::LexerToken(const uint8_t type, uint64_t value, const uint32_t charac
     this->isVerboseOperator = isVerboseOperator;
 }
 
-LexerToken::LexerToken(const uint8_t type, int64_t value, const uint32_t characterNumber) {
+LexerToken::LexerToken(const uint8_t type, const int64_t value, const uint32_t characterNumber) {
     this->type = static_cast <Token::Type>(type);
     this->_signed = value;
     this->literalType = Type::signedInteger;
@@ -274,7 +274,7 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
                 case Operator::IndexClose:
                     return out << "Operator: ],";
                 case Operator::Index:
-                    return out << "Operator: [],";
+                    return out << "Operator: index,";
                 case Operator::Increment:
                     return out << "Operator: ++,";
                 case Operator::Decrement:
@@ -284,9 +284,13 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
                 case Operator::ShiftLeft:
                     return out << "Operator: shift left,";
                 case Operator::Bracket:
-                    return out << "Operator: (),";
+                    return out << "Operator: bracket,";
                 case Operator::Brace:
-                    return out << "Operator: {},";
+                    return out << "Operator: brace,";
+                case Operator::Address:
+                    return out << "Operator: address of,";
+                case Operator::Dereference:
+                    return out << "Operator: dereference pointer,";
                 default:
                     LexerError("Internal bug - invalid operator in printing!");
             }
@@ -320,30 +324,208 @@ std::generator<const LexerToken*> TokenGenerator(std::vector <LexerFile>& files)
     }
 }
 
-bool LexerToken::MatchOperator(const uint64_t type) const {
-    if (this->type != Token::Operator) {
-        return false;
-    }
-    if (op == type) {
-        return true;
-    }
-    return false;
-}
-bool LexerToken::MatchKeyword (const uint64_t type) const {
-    if (this->type != Token::Keyword) {
-        return false;
-    }
-    if (kw == type) {
-        return true;
+bool LexerToken::MatchOperator(const Operator::Type type) const {
+    if (this->type == Token::Operator) {
+        if (this->op == type) {
+            return true;
+        }
     }
     return false;
 }
-bool LexerToken::MatchNumber (const uint64_t type) const {
-    if (this->type != Token::Number) {
-        return false;
+bool LexerToken::MatchOperator(const Operator::Type type1, const Operator::Type type2) const {
+    if (this->type == Token::Operator) {
+        if (this->op == type1) {
+            return true;
+        }
+        if (this->op == type2) {
+            return true;
+        }
     }
-    if (literalType == type) {
-        return true;
+    return false;
+}
+bool LexerToken::MatchOperator(const Operator::Type type1, const Operator::Type type2, const Operator::Type type3) const {
+    if (this->type == Token::Operator) {
+        if (this->op == type1) {
+            return true;
+        }
+        if (this->op == type2) {
+            return true;
+        }
+        if (this->op == type3) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchOperator(const Operator::Type type1, const Operator::Type type2, const Operator::Type type3, const Operator::Type type4) const {
+    if (this->type == Token::Operator) {
+        if (this->op == type1) {
+            return true;
+        }
+        if (this->op == type2) {
+            return true;
+        }
+        if (this->op == type3) {
+            return true;
+        }
+        if (this->op == type4) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchOperator(const Operator::Type type1, const Operator::Type type2, const Operator::Type type3, const Operator::Type type4, const Operator::Type type5) const {
+    if (this->type == Token::Operator) {
+        if (this->op == type1) {
+            return true;
+        }
+        if (this->op == type2) {
+            return true;
+        }
+        if (this->op == type3) {
+            return true;
+        }
+        if (this->op == type4) {
+            return true;
+        }
+        if (this->op == type5) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchOperator(const Operator::Type type1, const Operator::Type type2, const Operator::Type type3, const Operator::Type type4, const Operator::Type type5, const Operator::Type type6) const {
+    if (this->type == Token::Operator) {
+        if (this->op == type1) {
+            return true;
+        }
+        if (this->op == type2) {
+            return true;
+        }
+        if (this->op == type3) {
+            return true;
+        }
+        if (this->op == type4) {
+            return true;
+        }
+        if (this->op == type5) {
+            return true;
+        }
+        if (this->op == type6) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchKeyword (const Keyword::KeywordType type) const {
+    if (this->type == Token::Keyword) {
+        if (this->kw == type) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchKeyword (const Keyword::KeywordType type1, const Keyword::KeywordType type2) const {
+    if (this->type == Token::Keyword) {
+        if (this->kw == type1) {
+            return true;
+        }
+        if (this->kw == type2) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchKeyword (const Keyword::KeywordType type1, const Keyword::KeywordType type2, const Keyword::KeywordType type3) const {
+    if (this->type == Token::Keyword) {
+        if (this->kw == type1) {
+            return true;
+        }
+        if (this->kw == type2) {
+            return true;
+        }
+        if (this->kw == type3) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchKeyword (const Keyword::KeywordType type1, const Keyword::KeywordType type2, const Keyword::KeywordType type3, const Keyword::KeywordType type4) const {
+    if (this->type == Token::Keyword) {
+        if (this->kw == type1) {
+            return true;
+        }
+        if (this->kw == type2) {
+            return true;
+        }
+        if (this->kw == type3) {
+            return true;
+        }
+        if (this->kw == type4) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchKeyword (const Keyword::KeywordType type1, const Keyword::KeywordType type2, const Keyword::KeywordType type3, const Keyword::KeywordType type4, const Keyword::KeywordType type5) const {
+    if (this->type == Token::Keyword) {
+        if (this->kw == type1) {
+            return true;
+        }
+        if (this->kw == type2) {
+            return true;
+        }
+        if (this->kw == type3) {
+            return true;
+        }
+        if (this->kw == type4) {
+            return true;
+        }
+        if (this->kw == type5) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchKeyword (const Keyword::KeywordType type1, const Keyword::KeywordType type2, const Keyword::KeywordType type3, const Keyword::KeywordType type4, const Keyword::KeywordType type5, const Keyword::KeywordType type6) const {
+    if (this->type == Token::Keyword) {
+        if (this->kw == type1) {
+            return true;
+        }
+        if (this->kw == type2) {
+            return true;
+        }
+        if (this->kw == type3) {
+            return true;
+        }
+        if (this->kw == type4) {
+            return true;
+        }
+        if (this->kw == type5) {
+            return true;
+        }
+        if (this->kw == type6) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchNumber (const Type::TypeEnum type) const {
+    if (this->type == Token::Number) {
+        if (this->literalType == type) {
+            return true;
+        }
+    }
+    return false;
+}
+bool LexerToken::MatchNumber (const Type::TypeEnum type1, const Type::TypeEnum type2) const {
+    if (this->type == Token::Number) {
+        if (this->literalType == type1) {
+            return true;
+        }
+        if (this->literalType == type2) {
+            return true;
+        }
     }
     return false;
 }

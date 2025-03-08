@@ -19,7 +19,8 @@
 // Break    - break;
 // Continue - continue;
 
-ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first) {
+// TODO: change declarations to be parsed in expressions
+ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first, uint32_t* braceCounter) {
     ParserFunctionMethodInstructionObject output;
 
     uint8_t keyword1 = Keyword::None;
@@ -29,134 +30,140 @@ ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& g
 
     if (current->type == Token::Keyword) {
         keyword1 = current->kw;
-        current = generator();
-    }
-    if (current->type == Token::Keyword) {
-        keyword2 = current->kw;
-        if (current->kw != Keyword::End) {
+        if (keyword1 != Keyword::Do and keyword1 != Keyword::Let and keyword1 != Keyword::Mut) {
             current = generator();
+            if (current->type == Token::Keyword) {
+                keyword2 = current->kw;
+                if (keyword2 != Keyword::End) {
+                    current = generator();
+                }
+            }
         }
     }
 
     switch (keyword1) {
-        case Keyword::Return:
+        case Keyword::Return: {
             // valueless return
+            output.type = Instruction::Return;
             if (keyword2 == Keyword::End) {
-                output.type = Instruction::Return;
                 return std::move(output);
             }
             if (keyword2) {
                 ParserError("Unexpected keyword after return!");
             }
             // return with value
-            ParserError("Unimplemented!");
-            break;
-        case Keyword::If:
+            if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->MatchKeyword(Keyword::End)) {
+                ParserError("Expected a ';' after expression!");
+            }
+            return std::move(output);
+        }
+
+        case Keyword::If:{
             if (keyword2) {
                 ParserError("Expected an opening bracket, not a keyword!");
             }
-            // if
-            ParserError("Unimplemented!");
-            break;
+            output.type = Instruction::If;
+            // return with value
+            auto result = ParseExpression(generator, output.valueArray, {});
+            if (not result->MatchOperator(Operator::BracketClose)) {
+                ParserError("Expected a ')' after if expression!");
+            }
+            return std::move(output);
+        }
+
         case Keyword::Else:
             if (keyword2 == Keyword::If) {
-                // else if
-                ParserError("Unimplemented!");
-            }
-            else {
-                if (keyword2) {
-                    ParserError("Expected an opening brace, not a keyword!");
+                if (not current->MatchOperator(Operator::BracketOpen)) {
+                    ParserError("Expected an opening bracket!");
                 }
-                // else
-                ParserError("Unimplemented!");
+                output.type = Instruction::ElseIf;
+                if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+                    ParserError("Expected a closing bracket after expression!");
+                }
+                return std::move(output);
             }
+            if (not current->MatchOperator(Operator::BracketOpen)) {
+                ParserError("Expected an opening bracket!");
+            }
+            output.type = Instruction::Else;
+            return std::move(output);
 
-            break;
-        case Keyword::Syscall:
-            if (keyword2) {
-                ParserError("Expected an opening bracket, not a keyword!");
-            }
-            ParserError("Unimplemented!");
-        break;
         case Keyword::Switch:
             ParserError("Due to their mind boggling mathematics switches are not implemented yet!");
-            break;
+            if (keyword2 or not current->MatchOperator(Operator::BracketOpen)) {
+                ParserError("Expected an opening bracket!");
+            }
+            output.type = Instruction::Switch;
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+                ParserError("Expected a closing bracket after expression!");
+            }
+            return std::move(output);
+
         case Keyword::While:
-            // while loop
-            if (keyword2) {
-                ParserError("Expected an opening bracket, not a keyword!");
+            if (keyword2 or not current->MatchOperator(Operator::BracketOpen)) {
+                ParserError("Expected an opening bracket!");
             }
-            ParserError("Unimplemented!");
-            break;
+            output.type = Instruction::While;
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+                ParserError("Expected a closing bracket after expression!");
+            }
+            return std::move(output);
+
         case Keyword::For:
-            if (keyword2) {
-                ParserError("Expected an opening bracket, not a keyword!");
+            if (keyword2 or not current->MatchOperator(Operator::BracketOpen)) {
+                ParserError("Expected an opening bracket!");
             }
-            // for loop
-            ParserError("Unimplemented!");
-            break;
+            output.type = Instruction::For;
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchKeyword(Keyword::End)) {
+                ParserError("Expected a ';' after expression!");
+            }
+            output.expression2Index = output.valueArray.size();
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchKeyword(Keyword::End)) {
+                ParserError("Expected a ';' after expression!");
+            }
+            output.expression3Index = output.valueArray.size();
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+                ParserError("Expected a closing bracket after expression!");
+            }
+            return std::move(output);
+
         case Keyword::Do:
-            if (keyword2) {
-                ParserError("Expected an opening brace, not a keyword!");
-            }
-            // do
-            ParserError("Unimplemented!");
-            break;
+            output.type = Instruction::Do;
+            return std::move(output);
+
         case Keyword::Break:
             if (keyword2 != Keyword::End) {
                 ParserError("Expected a ';' after break!");
             }
-            // break
             output.type = Instruction::Break;
             return std::move(output);
+
         case Keyword::Continue:
             if (keyword2 != Keyword::End) {
                 ParserError("Expected a ';' after continue!");
             }
-            // break
             output.type = Instruction::Continue;
             return std::move(output);
+
         case Keyword::None:
         case Keyword::Let:
         case Keyword::Mut:
-            if (keyword2) {
-                ParserError("Unexpected keyword after variable declaration!");
-            }{
-            // instruction declare, assign or call
-            if (keyword1 != Keyword::None) {
-                output.type = Instruction::Declare;
-                ParserTreeValue temp;
-                temp.operation = ParserOperation::Declaration;
-                temp.next = 1;
-                // TODO: finish implementing
-                ParserError("Declaration not fully implemented!");
-                //temp.type
+            if (current->MatchOperator(Operator::BraceClose)) {
+                output.type = Instruction::EndScope;
+                (*braceCounter)--;
+                return std::move(output);
             }
-            else {
-                output.type = Instruction::Assign;
-            }
-
-            auto result = ParseExpression(generator, output.valueArray, {current});
-            if (result->MatchOperator(Operator::Assign)) {
-                if (not IsLValue(output.valueArray, 0)) {
-                    ParserError("Cannot assign to non-lvalue!");
-                }
-
-                output.rValueIndex = output.valueArray.size();
-                result = ParseExpression(generator, output.valueArray, {});
-
-            }
-            else if (result->MatchKeyword(Keyword::End)) {
-                if (output.valueArray.empty() or output.valueArray.front().operation != ParserOperation::Call) {
-                    ParserError("Expected a function call in a single part expression!");
-                }
-                output.type = Instruction::Call;
-            }
-            else {
-                ParserError("Unexpected token after expression!");
-            }
-            break;
+        if (current->MatchOperator(Operator::BraceOpen)) {
+            output.type = Instruction::BeginScope;
+            (*braceCounter)++;
+            return std::move(output);
         }
+        // expression
+        output.type = Instruction::Expression;
+        if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->MatchKeyword(Keyword::End)) {
+            ParserError("Expected a ';' after expression!");
+        }
+        return std::move(output);
         default:
             ParserError("Malformed instruction!");
     }
