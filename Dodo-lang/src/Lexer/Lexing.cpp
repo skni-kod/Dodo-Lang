@@ -109,6 +109,7 @@ enum State {
 };
 uint8_t lexerState = State::normal;
 bool doubleOperator = false;
+uint32_t doubleOperatorBracket = 0;
 
 LexerToken PushWrapper(const std::string& result, uint32_t characterNumber) {
     if (keywordsAndOperators.contains(result)) {
@@ -339,7 +340,7 @@ LexerLine LexLine(std::string& line) {
                 if (IsSpecialCharacter(current.code) and CanConstructFurther(result + current.toString())) {
                     result += current.toString();
                     if (n == characters.size() - 1) {
-                        if (doubleOperator and result == ";") {
+                        if (doubleOperator and (result == ";" or (result == ")" and doubleOperatorBracket == 0))) {
                             doubleOperator = false;
                             output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
                         }
@@ -359,6 +360,12 @@ LexerLine LexLine(std::string& line) {
                             result.erase(result.begin());
                                 }
                         output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
+                        if (result == "(") {
+                            doubleOperatorBracket++;
+                        }
+                        else if (result == ")") {
+                            doubleOperatorBracket--;
+                        }
                         result.clear();
                         lexerState = normal;
                     }
@@ -372,7 +379,7 @@ LexerLine LexLine(std::string& line) {
                         lexerState = State::longComment;
                         continue;
                     }
-                    if (doubleOperator and result == ";") {
+                    if (doubleOperator and (result == ";" or (result == ")" and doubleOperatorBracket == 0))) {
                         doubleOperator = false;
                         output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
                     }
@@ -396,6 +403,12 @@ LexerLine LexLine(std::string& line) {
                     output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
                     // minimum index here is 1
                     n--;
+                    if (result == "(") {
+                        doubleOperatorBracket++;
+                    }
+                    else if (result == ")") {
+                        doubleOperatorBracket--;
+                    }
                     result.clear();
                     lexerState = State::normal;
                 }
@@ -413,6 +426,7 @@ LexerLine LexLine(std::string& line) {
                         LexerError("Use of another double operator before ending last one's area");
                     }
                     doubleOperator = true;
+                    doubleOperatorBracket = 0;
                     output.tokens.emplace_back(output.tokens[output.tokens.size() - 2]);
                     output.tokens.emplace_back(std::move(operation));
                     output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketOpen), 0);

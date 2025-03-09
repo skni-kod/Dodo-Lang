@@ -133,7 +133,7 @@ namespace ParserOperation {
         // pointer to string, next value for its members, etc.
         String,
         // declaration
-        // pointer to string with typename, next value for its value, etc.
+        // pointer to string with typename, value for value, next for variable name, pointer level also
         Declaration,
         // address operator
         // next value to the thing the address is taken from
@@ -151,6 +151,7 @@ struct ParserTreeValue {
     uint8_t operation = ParserOperation::Operator;
 #endif
     uint8_t isLValued = false;
+    uint8_t pointerLevel;
     union {
         TypeInfo typeInfo = {};
         struct {

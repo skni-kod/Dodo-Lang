@@ -166,7 +166,6 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
     }
     else {
         // that one is more complicated
-        // TODO: add support for mixed bracket/index/brace expressions like a[b].c(d, e)
         if (length == 1) {
             // that should be the simplest case, right?
             if (tokens[start]->type == Token::Identifier) {
@@ -487,6 +486,64 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         if (tokens[n]->MatchOperator(Operator::Multiply)) {
             if (n >= 2 and tokens[n - 1]->type == Token::Operator and tokens.size() > n - 2) {
                 tokens[n]->op = Operator::Dereference;
+            }
+        }
+    }
+
+    // detecting if it's a declaration, if it is then some structure must be built
+    if (tokens.size() >= 2) {
+        bool isMutable = false;
+        uint32_t first = 0;
+
+        if (tokens[0]->MatchKeyword(Keyword::Mut, Keyword::Let)) {
+            if (tokens[0]->kw == Keyword::Mut) {
+                isMutable = true;
+            }
+            first = 1;
+        }
+        if (tokens[first]->type == Token::Identifier) {
+            uint8_t pointerLevel = 0;
+            uint32_t name = 0;
+            for (uint32_t n = first + 1; n < tokens.size(); n++) {
+                if (tokens[n]->MatchOperator(Operator::Multiply, Operator::Dereference)) {
+                    pointerLevel++;
+                }
+                else if (tokens[n]->type == Token::Identifier) {
+                    name = n;
+                    break;
+                }
+                else {
+                    break;
+                }
+            }
+            if (name != 0) {
+                // we have a variable declaration!
+                valueArray.reserve(valueArray.size() + tokens.size());
+
+                uint32_t startIndex = valueArray.size();
+                ParserTreeValue declaration;
+                declaration.operation = ParserOperation::Declaration;
+                declaration.pointerLevel = pointerLevel;
+                declaration.identifier = tokens[first]->text;
+                declaration.next = startIndex + 1;
+                valueArray.emplace_back(declaration);
+
+                ParserTreeValue var;
+                var.operation = ParserOperation::Variable;
+                var.identifier = tokens[name]->text;
+                valueArray.emplace_back(var);
+
+                if (name != tokens.size() - 1) {
+                    if (not tokens[name + 1]->MatchOperator(Operator::Assign)) {
+                        ParserError("Invalid use of newly declared variable!");
+                    }
+                    valueArray[startIndex].value = valueArray.size();
+                    valueArray.emplace_back();
+                    valueArray[valueArray[startIndex].value] = ParseExpressionStep(valueArray, {name + 2, tokens.size()}, tokens);
+                }
+                valueArray.shrink_to_fit();
+
+                return last;
             }
         }
     }

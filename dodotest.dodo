@@ -1,9 +1,7 @@
 i32 Main() {
     //syscall(1, 0, "Hello world! The return value of this mess is: ", 47);
     //return 123;
-    for (k = 5; k < 5; k = k + 1) {
-        k -= 1;
-    }
+    let i32** k = 1 + 2;
     return 0;
 }
 
