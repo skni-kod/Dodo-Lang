@@ -4,33 +4,23 @@
 
 std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToken*>& generator, LexerToken* first) {
     ParserValueTypeObject output;
+    LexerToken* current;
 
     if (not first->MatchKeyword(Keyword::Void)) {
-        output.typeName = *first->text;
-    }
-    auto current = generator();
-    if (current->type == Token::Operator) {
-        switch (current->op) {
-            case Operator::Multiply:
-                output.type.subType = Subtype::pointer;
-            output.type.pointerLevel = 1;
-            while ((current = generator())->MatchOperator(Operator::Multiply)) {
-                output.type.pointerLevel++;
-            }
-            break;
-            // TODO: what to do with references
-            default:
-                ParserError("Invalid type modifier!");
-            break;
+        if (first->MatchKeyword(Keyword::Mut)) {
+            first = generator();
+            output.type.isMutable = true;
         }
-    }
-    else {
-        if (not first->MatchKeyword(Keyword::Void)) {
-            output.type.subType = Subtype::value;
+        if (first->type != Token::Identifier) {
+            ParserError("Expected an identifier!");
         }
+        output.typeName = first->text;
 
+        while ((current = generator())->MatchOperator(Operator::Multiply, Operator::Dereference)) {
+            output.type.pointerLevel++;
+        }
     }
-    return {std::move(output), current};
+    return {output, current};
 }
 
 bool IsOperatorOverloadAllowed(uint32_t type) {
@@ -105,79 +95,40 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
             return didFail;
         }
 
-        bool isFunction = false;
-        bool isMutable = false;
-        bool isOperator = false;
-        uint32_t operatorId = 0;
+        // variable or member
+        if (current->MatchKeyword(Keyword::Let)) {
+            ParserMemberVariableParameter out;
+            ParseExpression(generator, out.definition, {current});
 
-        if (current->MatchKeyword(Keyword::Mut)) {
-            isMutable = true;
-            current = generator();
-        }
-        else if (current->MatchKeyword(Keyword::Let)) {
-            current == generator();
-        }
-
-        if (current->type != Token::Identifier and not current->MatchKeyword(Keyword::Void)) {
-            ParserError("Expected a type identifier!");
-        }
-
-        auto [thingType, thingIdentifier] = ParseValueType(generator, current);
-        thingType.type.isMutable = isMutable;
-
-        if (thingIdentifier->type != Token::Identifier) {
-            if (isInType and thingIdentifier->MatchKeyword(Keyword::Operator)) {
-                isOperator = true;
-                current = generator();
-                if (current->type != Token::Operator) {
-                    ParserError("Expected an operator after operator overload keyword!");
-                }
-                if (not IsOperatorOverloadAllowed(current->op)) {
-                    ParserError("This operator cannot be overloaded!");
-                }
-                operatorId = current->type;
-            }
-            else {
-                ParserError("Expected an identifier after value type!");
-            }
-        }
-
-        current = generator();
-
-        if (current->MatchOperator(Operator::BracketOpen)) {
-            // function or method
             if (isInType) {
-                type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, operatorId)));
+                type->members.push_back(std::move(out));
             }
             else {
-                unpreparedFunctions.emplace(*thingIdentifier->text, std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, operatorId)));
+                globalVariables.emplace(out.name(), std::move(out));
             }
         }
+        // function or method
         else {
-            if (isOperator) {
-                ParserError("Cannot create a variable of operator overload!");
-            }
-            if (thingType.typeName.empty() and thingType.type.pointerLevel == 0) {
-                ParserError("Cannot create a void type variable!");
-            }
-            // variable
-            if (current->MatchOperator(Operator::Assign)) {
-                ParserError("Default values for variables not implemented!");
-            }
-
-            if (not current->MatchKeyword(Keyword::End)) {
-                ParserError("Unexpected token after variable name!");
-            }
+            // TODO: somehow unify type interpolation into 1 function with math parser
+            auto [thingType, thingIdentifier] = ParseValueType(generator, current);
 
             if (isInType) {
-                ParserTypeObjectMember member;
-                member.type = thingType.type;
-                member.memberName = std::move(*thingIdentifier->text);
-                member.memberTypeName = std::make_unique<std::string>(thingType.typeName);
-                type->members.push_back(std::move(member));
+                if (thingIdentifier->MatchKeyword(Keyword::Operator)) {
+                    current = generator();
+                    if (current->type != Token::Operator) {
+                        ParserError("Expected an operator!");
+                    }
+                    if (not IsOperatorOverloadAllowed(current->op)) {
+                        ParserError("This operator cannot be overloaded!");
+                    }
+                    type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, current->op)));
+                }
+                else {
+                    type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, Operator::None)));
+                }
             }
             else {
-                ParserError("Global variables not implemented!");
+                functions.emplace(*thingIdentifier->text, std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, Operator::None)));
             }
         }
     }

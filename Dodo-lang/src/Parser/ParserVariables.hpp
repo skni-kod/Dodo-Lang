@@ -101,7 +101,7 @@ struct ParserVariable {
 
 inline MapWrapper <std::string, ParserVariable> globalVariablesOLD;
 
-void UpdateGlobalVariables();
+void CheckGlobalVariables();
 
 struct DeclarationInstruction {
     std::string name;

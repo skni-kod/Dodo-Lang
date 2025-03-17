@@ -20,8 +20,8 @@
 // Continue - continue;
 
 // TODO: change declarations to be parsed in expressions
-ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first, uint32_t* braceCounter) {
-    ParserFunctionMethodInstructionObject output;
+ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first, uint32_t* braceCounter) {
+    ParserInstructionObject output;
 
     uint8_t keyword1 = Keyword::None;
     uint8_t keyword2 = Keyword::None;

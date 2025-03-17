@@ -1,8 +1,11 @@
 #include "TypeObject.hpp"
 #include <ostream>
 
-std::ostream& operator<<(std::ostream& out, const ParserTypeObjectMember& member) {
-    return out << "INFO L3: \t" << member.memberType->typeName << " " << member.memberName << "\n";
+std::ostream& operator<<(std::ostream& out, const ParserMemberVariableParameter& variable) {
+    return out << "INFO L3: \t" << (variable.typeMeta().isMutable ? "mut " : "")
+    << variable.typeObject->typeName
+    << (variable.typeMeta().pointerLevel < 4 ? std::string(variable.typeMeta().pointerLevel, '*') : "*(" + std::to_string(variable.typeMeta().pointerLevel) + ")")
+    << " " << variable.name() << "\n";
 }
 
 std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
@@ -29,3 +32,17 @@ std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
     }
     return out << "INFO L3: It's total size is: " << type.typeSize << " byte(s), aligned to: " << type.typeAlignment << " byte(s)\n";
 }
+
+const TypeMeta& ParserMemberVariableParameter::typeMeta() const {
+    return definition[0].typeMeta;
+}
+
+
+const std::string& ParserMemberVariableParameter::name() const {
+    return *definition[1].identifier;
+}
+
+const std::string& ParserMemberVariableParameter::typeName() const {
+    return *definition[0].identifier;
+}
+

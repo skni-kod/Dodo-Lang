@@ -44,16 +44,9 @@ namespace Primitive {
     INSERT_TYPE_ENUM
 }
 
-struct TypeInfo {
-#ifdef ENUM_VARIABLES
-    Type::TypeEnum type : 8 = Type::none;
-    Subtype::Subtype subType : 8 = Subtype::none;
-#else
-    uint8_t type = Type::none;
-    uint8_t subType = Subtype::none;
-#endif
-    uint8_t pointerLevel = 0;
-    uint8_t isMutable = false;
+struct TypeMeta {
+    uint8_t pointerLevel : 7 = 0;
+    uint8_t isMutable : 1 = false;
 };
 
 struct TypeObject;
@@ -79,12 +72,42 @@ struct TypeObjectValue {
     };
 };
 
+namespace Instruction {
+    enum Type {
+        None, Expression, Return, If, Else, ElseIf, Switch, While, For, Do, Break, Continue, BeginScope, EndScope
+    };
+}
+
+struct ParserTreeValue;
+
+struct ParserInstructionObject {
+#ifdef ENUM_VARIABLES
+    Instruction::Type type = Instruction::None;
+#else
+    uint8_t type = Instruction::None;
+#endif
+    uint16_t expression1Index = 0;
+    uint16_t expression2Index = 0;
+    uint16_t expression3Index = 0;
+    std::vector <ParserTreeValue> valueArray{};
+};
+
+struct ParserMemberVariableParameter {
+    TypeObject* typeObject = nullptr;
+    uint32_t offset = 0;
+    std::vector <ParserTreeValue> definition{};
+
+    [[nodiscard]] const TypeMeta& typeMeta() const;
+    [[nodiscard]] const std::string& name() const;
+    [[nodiscard]] const std::string& typeName() const;
+};
+
 struct ParserTypeObjectMember {
     std::string memberName;
     TypeObject* memberType = nullptr;
     std::unique_ptr<std::string> memberTypeName = nullptr;
     uint32_t memberOffset = 0;
-    TypeInfo type;
+    TypeMeta type;
     TypeObjectValue memberDefaultValue;
 };
 
@@ -92,8 +115,8 @@ std::ostream& operator<<(std::ostream& out, const ParserTypeObjectMember& member
 
 
 struct ParserValueTypeObject {
-    std::string typeName;
-    TypeInfo type;
+    std::string* typeName = nullptr;
+    TypeMeta type;
 };
 
 struct ParserArgument {
@@ -151,9 +174,9 @@ struct ParserTreeValue {
     uint8_t operation = ParserOperation::Operator;
 #endif
     uint8_t isLValued = false;
-    uint8_t pointerLevel;
+    TypeMeta typeMeta;
     union {
-        TypeInfo typeInfo = {};
+        TypeMeta typeInfo = {};
         struct {
             union {
                 uint16_t left;
@@ -176,29 +199,10 @@ struct ParserTreeValue {
     };
 };
 
-namespace Instruction {
-    // TODO: think about how to classify instructions
-    enum Type {
-        None, Expression, Return, If, Else, ElseIf, Switch, While, For, Do, Break, Continue, BeginScope, EndScope
-    };
-}
-
-struct ParserFunctionMethodInstructionObject {
-#ifdef ENUM_VARIABLES
-    Instruction::Type type = Instruction::None;
-#else
-    uint8_t type = Instruction::None;
-#endif
-    uint16_t expression1Index = 0;
-    uint16_t expression2Index = 0;
-    uint16_t expression3Index = 0;
-    std::vector <ParserTreeValue> valueArray;
-};
-
-struct ParserFunctionMethodObject {
-    std::vector <ParserFunctionMethodInstructionObject> instructions;
+struct ParserFunctionMethod {
+    std::vector <ParserInstructionObject> instructions;
     std::string name;
-    std::vector<ParserArgument> arguments;
+    std::vector<ParserMemberVariableParameter> parameters;
     ParserValueTypeObject returnType;
 };
 
@@ -207,18 +211,20 @@ struct TypeObject {
     std::string typeName;
     uint64_t isPrimitive   : 1 = false;
 #ifdef ENUM_VARIABLES
-    Type::TypeEnum primitiveType : 2 = Type::none;
+    Type::TypeEnum primitiveType = Type::none;
 #else
     uint8_t primitiveType : 2 = Type::none;
 #endif
     uint64_t typeAlignment : 4 = 0;
     uint64_t typeSize : 57 = 0;
-    std::vector <ParserTypeObjectMember> members;
-    std::vector <ParserFunctionMethodObject> methods;
+    std::vector <ParserMemberVariableParameter> members;
+    std::vector <ParserFunctionMethod> methods;
 };
 
-inline std::unordered_map <std::string, ParserFunctionMethodObject> unpreparedFunctions;
+inline std::unordered_map <std::string, ParserFunctionMethod> functions;
+inline std::unordered_map <std::string, ParserMemberVariableParameter> globalVariables;
 
+std::ostream& operator<<(std::ostream& out, const ParserMemberVariableParameter& variable);
 std::ostream& operator<<(std::ostream& out, const TypeObject& type);
 
 

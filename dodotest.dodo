@@ -1,7 +1,18 @@
 i32 Main() {
     //syscall(1, 0, "Hello world! The return value of this mess is: ", 47);
     //return 123;
-    let i32** k = 1 + 2;
-    return 0;
+
+    return g.sum();
 }
 
+type test {
+    let i32 k = 10;
+    let i16 t = 5;
+    let i16 y = 5;
+
+    i32 sum() {
+        return k + t + y;
+    }
+}
+
+let mut test****** g;

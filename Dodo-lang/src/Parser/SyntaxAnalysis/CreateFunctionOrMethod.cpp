@@ -1,36 +1,24 @@
 #include "AnalysisInternal.hpp"
 
-ParserFunctionMethodObject CreateMethodOrFunction(Generator<LexerToken*>& generator,
+ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
     const ParserValueTypeObject& type, LexerToken* identifier, uint32_t operatorType) {
 
-    ParserFunctionMethodObject output;
+    ParserFunctionMethod output;
 
     auto* current = generator();
+    if (current->MatchOperator(Operator::BracketOpen)) {
+        current = generator();
+    }
     while (not current->MatchOperator(Operator::BracketClose)) {
-        bool isMutable = false;
-        if (current->type == Token::Keyword) {
-            if (current->kw == Keyword::Let) {
-                current = generator();
-            }
-            else if (current->kw == Keyword::Mut) {
-                current = generator();
-                isMutable = true;
-            }
-            else {
-                ParserError("Unexpected mutability keyword in parameter!");
-            }
+        if (not current->MatchKeyword(Keyword::Let)) {
+            ParserError("Expected a parameter!");
         }
 
-        if (current->type != Token::Identifier) {
-            ParserError("Expected parameter type identifier!");
-        }
-
-        auto [thingType, thingIdentifier] = ParseValueType(generator, current);
-        thingType.type.isMutable = isMutable;
-        output.arguments.emplace_back(*thingIdentifier->text, thingType, TypeObjectValue());
+        output.parameters.emplace_back();
+        const auto result = ParseExpression(generator, output.parameters.back().definition, {current});
 
         current = generator();
-        if (not current->MatchKeyword(Keyword::Comma) and not current->MatchOperator(Operator::BracketClose)) {
+        if (not result->MatchKeyword(Keyword::Comma) and not result->MatchOperator(Operator::BracketClose)) {
             ParserError("Expected a comma or bracket close after parameter!");
         }
     }

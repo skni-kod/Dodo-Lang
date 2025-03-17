@@ -68,7 +68,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
 
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished type parsing with " << types.size() << " type definition(s)\n";
+        std::cout << "INFO L2: Finished type parsing with: " << types.size() << " type definition(s)\n";
         if (Options::informationLevel > Options::InformationLevel::general) {
             std::cout << "INFO L3: Defined types:\n";
             for (const auto& n : types.map) {
@@ -77,7 +77,18 @@ void RunParsing(std::vector<LexerFile>& lexed) {
         }
     }
 
-    UpdateGlobalVariables();
+    CheckGlobalVariables();
+
+    if (Options::informationLevel > Options::InformationLevel::minimal) {
+        std::cout << "INFO L2: Finished global variable checks with: " << globalVariables.size() << " instance(s)\n";
+        if (Options::informationLevel > Options::InformationLevel::general and not globalVariables.empty()) {
+            std::cout << "INFO L3: Global variables:\n";
+            for (const auto& n : globalVariables) {
+                std::cout << n.second;
+            }
+        }
+    }
+
 
 
 

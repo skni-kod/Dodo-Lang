@@ -6,8 +6,8 @@
 
 void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken);
 
-ParserFunctionMethodObject CreateMethodOrFunction(Generator<LexerToken*>& generator, const ParserValueTypeObject& type, LexerToken* identifier, uint32_t operatorType = 0);
-ParserFunctionMethodInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first, uint32_t* braceCounter);
+ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator, const ParserValueTypeObject& type, LexerToken* identifier, uint32_t operatorType = 0);
+ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first, uint32_t* braceCounter);
 
 std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToken*>& generator, LexerToken* first);
 
