@@ -6,7 +6,7 @@
 #include "../MemoryStructure.hpp"
 
 namespace x86_64 {
-    void ConvertBytecode(Bytecode& bytecode, uint64_t index);
+    void ConvertBytecode(BytecodeOld& bytecode, uint64_t index);
     
     void AddGlobalVariables(std::ofstream& out);
 

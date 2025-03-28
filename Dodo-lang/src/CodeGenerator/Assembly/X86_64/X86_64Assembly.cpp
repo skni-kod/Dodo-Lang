@@ -55,7 +55,7 @@ namespace x86_64 {
     }
     
     uint64_t GetJumpType(uint32_t code, uint32_t comparison) {
-        if (code == Bytecode::jumpConditionalTrue) {
+        if (code == BytecodeOld::jumpConditionalTrue) {
             switch (comparison) {
                 case ParserCondition::greater:
                     return x86_64::jg;
@@ -207,9 +207,9 @@ namespace x86_64 {
         }
     }
 
-    void ConvertBytecode(Bytecode& bytecode, uint64_t index) {
+    void ConvertBytecode(BytecodeOld& bytecode, uint64_t index) {
         switch (bytecode.code) {
-            case Bytecode::add:
+            case BytecodeOld::add:
                 if (Optimizations::swapExpressionOperands) {
                     if (bytecode.target.starts_with("$")) {
                         std::swap(bytecode.source, bytecode.target);
@@ -235,7 +235,7 @@ namespace x86_64 {
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                 }, index);
                 break;
-            case Bytecode::subtract:
+            case BytecodeOld::subtract:
                 GenerateInstruction({
                     x86_64::sub, bytecode.type.size, bytecode.target, bytecode.source,
                     {
@@ -256,7 +256,7 @@ namespace x86_64 {
                                    {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                 }, index);
                 break;
-            case Bytecode::multiply:
+            case BytecodeOld::multiply:
                 if (Optimizations::swapExpressionOperands) {
                     if (bytecode.target.starts_with("$")) {
                         std::swap(bytecode.source, bytecode.target);
@@ -311,7 +311,7 @@ namespace x86_64 {
                     CodeGeneratorError("Unimplemented: Invalid type for multiplication!");
                 }
                 break;
-            case Bytecode::divide:
+            case BytecodeOld::divide:
                 if (bytecode.type.size == 1) {
                     // TODO: add something that does a movzbw on al to ax to set zeroes to ah
                     std::cout << "INFO L1: Due to the nature of 8 bit integer division result value may be invalid!\n";
@@ -352,7 +352,7 @@ namespace x86_64 {
                     CodeGeneratorError("Unimplemented: Invalid type for division!");
                 }
                 break;
-            case Bytecode::getAddress:
+            case BytecodeOld::getAddress:
                 {
                     auto& life = variableLifetimes[VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"];
                     if (life.assignStatus == Operand::reg) {
@@ -364,7 +364,7 @@ namespace x86_64 {
                     }
                 }
                 break;
-            case Bytecode::getValue:
+            case BytecodeOld::getValue:
             {
                 auto& life = variableLifetimes[VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype - 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"];
                 if (life.assignStatus == Operand::reg) {
@@ -380,30 +380,30 @@ namespace x86_64 {
                 }
             }
                 break;
-            case Bytecode::callFunction:
+            case BytecodeOld::callFunction:
                 CallX86_64Function(&parserFunctions[bytecode.source], index, bytecode.target);
                 argumentNames.clear();
                 break;
-            case Bytecode::moveArgument:
+            case BytecodeOld::moveArgument:
                 argumentNames.push_back(bytecode.source);
                 break;
-            case Bytecode::returnValue:
+            case BytecodeOld::returnValue:
                 // move returned value into register a
                 // MoveValue(bytecode.source, "%0", bytecode.source, bytecode.type.size, index);
                 MoveValue(VariableInfo(bytecode.source), VariableInfo("%0"), bytecode.source, bytecode.type.size);
                 // insert a return statement
                 GenerateInstruction({x86_64::ret}, index);
                 break;
-            case Bytecode::pushLevel:
+            case BytecodeOld::pushLevel:
                 FillDesignatedPlaces(index);
                 generatorMemory.pushLevel();
                 break;
-            case Bytecode::popLevel:
+            case BytecodeOld::popLevel:
                 FillDesignatedPlaces(index);
                 generatorMemory.popLevel();
                 break;
-            case Bytecode::jumpConditionalFalse:
-            case Bytecode::jumpConditionalTrue:
+            case BytecodeOld::jumpConditionalFalse:
+            case BytecodeOld::jumpConditionalTrue:
                 FillDesignatedPlaces(index);
                 {
                     DEPRECATEDInstruction ins;
@@ -414,7 +414,7 @@ namespace x86_64 {
                 }
                 break;
 
-            case Bytecode::jump:
+            case BytecodeOld::jump:
                 FillDesignatedPlaces(index);
                 {
                     DEPRECATEDInstruction ins;
@@ -424,7 +424,7 @@ namespace x86_64 {
                     finalInstructions.push_back(ins);
                 }
                 break;
-            case Bytecode::compare:
+            case BytecodeOld::compare:
                 if (Optimizations::swapExpressionOperands) {
                     if (bytecode.target.starts_with("$")) {
                         std::swap(bytecode.source, bytecode.target);
@@ -462,7 +462,7 @@ namespace x86_64 {
                                    Operand::imm, {})}
                 }, index);
                 break;
-            case Bytecode::declare:
+            case BytecodeOld::declare:
             {
                 auto& var = variableLifetimes[bytecode.target];
                 if (Optimizations::skipUnusedVariables and var.usageAmount == 0) {
@@ -474,7 +474,7 @@ namespace x86_64 {
                                             "@" + std::to_string(AddStackVariable(bytecode.target)->offset))), bytecode.target, bytecode.type.size);
                 break;
             }
-            case Bytecode::assign:
+            case BytecodeOld::assign:
                 if (bytecode.number == 1) {
                     // in that case we need to set the variable at it's address
                     DataLocation where;
@@ -498,7 +498,7 @@ namespace x86_64 {
                     }
                 }
                 break;
-            case Bytecode::addLabel:
+            case BytecodeOld::addLabel:
                 FillDesignatedPlaces(index);
                 if (bytecode.source.starts_with(Options::jumpLabelPrefix)) {
                     DEPRECATEDInstruction ins;
@@ -511,7 +511,7 @@ namespace x86_64 {
                     CodeGeneratorError("Unsupported: non jump x86_64 label!");
                 }
                 break;
-            case Bytecode::moveValue:
+            case BytecodeOld::moveValue:
             {
                 auto target = generatorMemory.findThing(bytecode.target);
                 if (target.type == Operand::reg) {
@@ -535,7 +535,7 @@ namespace x86_64 {
                 }
             }
                 break;
-            case Bytecode::addFromArgument:
+            case BytecodeOld::addFromArgument:
                 if (Optimizations::skipUnusedVariables and variableLifetimes[bytecode.target].usageAmount == 0) {
                     break;
                 }
@@ -546,7 +546,7 @@ namespace x86_64 {
                     CodeGeneratorError("Unimplemented: Stack argument at start of function!");
                 }
                 break;
-            case Bytecode::syscall:
+            case BytecodeOld::syscall:
                 CallX86_64Syscall(bytecode.number, false);
                 break;
             default:

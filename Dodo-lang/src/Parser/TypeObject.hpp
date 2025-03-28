@@ -47,6 +47,8 @@ namespace Primitive {
 struct TypeMeta {
     uint8_t pointerLevel : 7 = 0;
     uint8_t isMutable : 1 = false;
+
+    bool operator==(const TypeMeta& type_meta) const = default;
 };
 
 struct TypeObject;
@@ -115,6 +117,7 @@ std::ostream& operator<<(std::ostream& out, const ParserTypeObjectMember& member
 
 
 struct ParserValueTypeObject {
+    // TODO: change to pointer to type in union
     std::string* typeName = nullptr;
     TypeMeta type;
 };
@@ -131,6 +134,9 @@ namespace ParserOperation {
         // an operation of 2 operators, resolved by the bytecode generator with possible overloads
         // lvalue and rvalue of the operation
         Operator,
+        // an operation of an operator and identifier, resolved by the bytecode generator with possible overloads
+        // depending on the side variable on left for postfix and right for prefix
+        SingleOperator,
         // a group operation, resolved by the bytecode generator with possible overloads, used by (), [], {}
         // next for members, etc. and left for value calculated, code for operator type
         Group,
@@ -155,15 +161,9 @@ namespace ParserOperation {
         // string
         // pointer to string, next value for its members, etc.
         String,
-        // declaration
+        // definition
         // pointer to string with typename, value for value, next for variable name, pointer level also
-        Declaration,
-        // address operator
-        // next value to the thing the address is taken from
-        Address,
-        // dereference
-        // next is the pointer being dereferenced
-        Dereference
+        Definition
     };
 }
 // defines a single operation in expression
@@ -180,10 +180,12 @@ struct ParserTreeValue {
         struct {
             union {
                 uint16_t left;
+                uint16_t postfix;
                 uint16_t next;
             };
             union {
                 uint16_t right;
+                uint16_t prefix;
                 uint16_t value;
                 uint16_t argument;
             };
@@ -195,13 +197,14 @@ struct ParserTreeValue {
         const LexerToken* literal;
         uint64_t code;
         Operator::Type operatorType;
-        TypeObject* declarationType;
+        TypeObject* definitionType;
     };
 };
 
 struct ParserFunctionMethod {
     std::vector <ParserInstructionObject> instructions;
     std::string name;
+    Operator::Type overloaded = Operator::None;
     std::vector<ParserMemberVariableParameter> parameters;
     ParserValueTypeObject returnType;
 };

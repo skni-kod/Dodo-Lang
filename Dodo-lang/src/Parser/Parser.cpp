@@ -60,13 +60,6 @@ void RunParsing(std::vector<LexerFile>& lexed) {
     // Step 2: processing type sizes, alignments and names
     CalculateTypeSizes();
 
-    // Step 3: processing method and function prototypes
-
-    // Step 4: processing method and function contents
-
-    // Step 5: ... profit?
-
-
     if (Options::informationLevel > Options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with: " << types.size() << " type definition(s)\n";
         if (Options::informationLevel > Options::InformationLevel::general) {
@@ -77,6 +70,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
         }
     }
 
+    // Step 3: processing global variables
     CheckGlobalVariables();
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
@@ -88,19 +82,4 @@ void RunParsing(std::vector<LexerFile>& lexed) {
             }
         }
     }
-
-
-
-
-    /*
-    PrepareFunctionArguments();
-    if (not parserFunctions.isKey("Main")) {
-        ParserError("No main function found!");
-    }
-
-    if (Options::informationLevel > Options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished function parsing with " << parserFunctions.size()
-                  << " function definition(s)\n";
-    }
-    */
 }

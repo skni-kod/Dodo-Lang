@@ -1,0 +1,19 @@
+#ifndef BYTECODE_INTERNAL_HPP
+#define BYTECODE_INTERNAL_HPP
+
+#include <vector>
+#include "Bytecode.hpp"
+
+struct BytecodeContext {
+    std::vector <Bytecode> codes;
+    // if it's constant then
+    bool isConstExpr = false;
+    bool isMutable = false;
+};
+
+// generates any bytecode instruction
+BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index = 0, bool isGlobal = false);
+// only inserts default or non default operators
+BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index = 0, bool isGlobal = false);
+
+#endif //BYTECODE_INTERNAL_HPP

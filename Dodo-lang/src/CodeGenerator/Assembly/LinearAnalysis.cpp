@@ -146,19 +146,19 @@ void CalculateLifetimes() {
     std::vector <uint64_t> argumentAdds;
     for (uint64_t n = 0; n < bytecodes.size(); n++) {
         switch (bytecodes[n].code) {
-            case Bytecode::declare:
+            case BytecodeOld::declare:
                 variableLifetimes.insert(bytecodes[n].target, {n});
                 variableLifetimes[bytecodes[n].target].isMainValue = true;
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 break;
-            case Bytecode::addFromArgument:
+            case BytecodeOld::addFromArgument:
                 variableLifetimes.insert(bytecodes[n].target, {n});
                 variableLifetimes[bytecodes[n].target].isMainValue = true;
                 break;
-            case Bytecode::add:
-            case Bytecode::subtract:
-            case Bytecode::multiply:
-            case Bytecode::divide:
+            case BytecodeOld::add:
+            case BytecodeOld::subtract:
+            case BytecodeOld::multiply:
+            case BytecodeOld::divide:
                 // create the expression
                 variableLifetimes.insert(bytecodes[n].type.getPrefix() +
                         "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
@@ -167,7 +167,7 @@ void CalculateLifetimes() {
                 // handle target
                 AddLifetimeOrInsert(bytecodes[n].target, n);
                 break;
-            case Bytecode::getAddress:
+            case BytecodeOld::getAddress:
                 // create the expression
                 variableLifetimes.insert(VariableType(bytecodes[n].type.size, bytecodes[n].type.type, bytecodes[n].type.subtype + 1).getPrefix() +
                                     "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
@@ -175,7 +175,7 @@ void CalculateLifetimes() {
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 variableLifetimes[bytecodes[n].source].isPointedTo = true;
                 break;
-            case Bytecode::getValue:
+            case BytecodeOld::getValue:
                 // create the expression
                 variableLifetimes.insert(VariableType(bytecodes[n].type.size, bytecodes[n].type.type, bytecodes[n].type.subtype - 1).getPrefix() +
                                         "=#" + std::to_string(bytecodes[n].number) + "-0", {n, true});
@@ -183,7 +183,7 @@ void CalculateLifetimes() {
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 variableLifetimes[bytecodes[n].source].isPointedTo = true;
                 break;
-            case Bytecode::callFunction:
+            case BytecodeOld::callFunction:
                 if (not bytecodes[n].target.empty()) {
                     variableLifetimes.insert(bytecodes[n].target, {n, true});
                 }
@@ -191,7 +191,7 @@ void CalculateLifetimes() {
                 {
                     auto& fun = parserFunctions[bytecodes[n].source];
                     for (uint64_t k = n - 1, arguments = 0; arguments < fun.arguments.size(); k--) {
-                        if (bytecodes[k].code == Bytecode::moveArgument) {
+                        if (bytecodes[k].code == BytecodeOld::moveArgument) {
                             if (IsVariable(bytecodes[k].source)) {
                                 // extend the life of the result
                                 auto& temp = variableLifetimes.find(bytecodes[k].source);
@@ -204,7 +204,7 @@ void CalculateLifetimes() {
                 }
                 argumentAdds.clear();
                 break;
-            case Bytecode::syscall:
+            case BytecodeOld::syscall:
                 // find all the arguments and extend their life
                 for (auto& m : argumentAdds) {
                     if (IsVariable(bytecodes[m].source)) {
@@ -216,29 +216,29 @@ void CalculateLifetimes() {
                 }
                 argumentAdds.clear();
                 break;
-            case Bytecode::compare:
+            case BytecodeOld::compare:
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 // handle target
                 AddLifetimeOrInsert(bytecodes[n].target, n);
                 break;
-            case Bytecode::returnValue:
+            case BytecodeOld::returnValue:
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 break;
-            case Bytecode::moveArgument:
+            case BytecodeOld::moveArgument:
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 // now find the last function call to put into bytecode
                 for (uint64_t k = n; n < bytecodes.size(); k++) {
-                    if (bytecodes[k].code == Bytecode::callFunction) {
+                    if (bytecodes[k].code == BytecodeOld::callFunction) {
                         bytecodes[n].number = k;
                         break;
                     }
                 }
                 argumentAdds.push_back(n);
                 break;
-            case Bytecode::moveValue:
+            case BytecodeOld::moveValue:
                 // handle target
             {
                 variableLifetimes.insert(bytecodes[n].target, {n});
@@ -250,7 +250,7 @@ void CalculateLifetimes() {
                 // handle source
                 AddLifetimeOrInsert(bytecodes[n].source, n);
                 break;
-            case Bytecode::assign:
+            case BytecodeOld::assign:
                 // handle target
             {
                 variableLifetimes.insert(bytecodes[n].target, {n});
@@ -265,10 +265,10 @@ void CalculateLifetimes() {
             }
 
                 break;
-            case Bytecode::pushLevel:
+            case BytecodeOld::pushLevel:
                 variablesToExtend.emplace();
                 break;
-            case Bytecode::popLevel:
+            case BytecodeOld::popLevel:
                 for (auto& m : variablesToExtend.top()) {
                     variableLifetimes[m].lastUse = n;
                 }

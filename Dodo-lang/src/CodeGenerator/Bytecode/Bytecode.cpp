@@ -1,25 +1,184 @@
-#include "Bytecode.hpp"
+#include "BytecodeInternal.hpp"
 #include <iostream>
-#include "GenerateCode.hpp"
 
-Bytecode::Bytecode(uint64_t code) : code(code) {}
 
-Bytecode::Bytecode(uint64_t code, std::string source) : code(code), source(source) {}
+// this function takes a vector of existing bytecode, a tree value table, expression type and starting index
+// it recursively creates bytecode instructions needed to make the expression work
+// it is the most important function of the entire bytecode generator, probably
+// TODO: make this return some type to assign an operand
+BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal) {
+    // first off let's do a switch to know what is going on
+    auto current = values[index];
 
-Bytecode::Bytecode(uint64_t code, std::string source, uint64_t number) : code(code), source(source), number(number) {}
+    Bytecode code;
+    code.opType = type;
+    code.opTypeMeta = typeMeta;
+    switch (current.operation) {
+        case ParserOperation::None:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::Operator:
+        case ParserOperation::SingleOperator:
+            return InsertOperatorExpression(context, values, type, typeMeta, index, isGlobal);
+        case ParserOperation::Group:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::Member:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::Call:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::Syscall:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::Argument:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::Constant:
+            CodeGeneratorError("How to handle literals? Probably their types need to added to BytecodeOperand");
+        case ParserOperation::Variable:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::String:
+            CodeGeneratorError("Not implemented!");
+        case ParserOperation::Definition:
+            code.type = Bytecode::Define;
+            if (isGlobal) {
+                // if it's global give it a number and push back a pointer
+                code.op1Value.variable = converterGlobals.size();
+                converterGlobals.push_back(&globalVariables[*values[current.next].identifier]);
+            }
+            else CodeGeneratorError("Local variables not implemented!");
 
-Bytecode::Bytecode(uint64_t code, std::string source, VariableType type) : code(code), source(source), type(type) {}
+            if (current.value) {
+                return code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal));
+            }
+            // TODO: add user definable default values for types!
+            CodeGeneratorError("Default value support incomplete!");
+        default:
+            CodeGeneratorError("Invalid parsed operation!");
+    }
+    return {};
+}
 
-Bytecode::Bytecode(uint64_t code, std::string source, uint64_t number, VariableType type) : code(code), source(source),
+std::vector<Bytecode> GenerateGlobalVariablesBytecode() {
+    // global variable bytecode is used for things before main is called
+    // they cannot use any variables, though this might be changed in the future
+
+    // at the very least this will take up 1 instruction per variable, so let's prepare it
+    BytecodeContext context;
+    context.isConstExpr = true;
+    context.codes.reserve(globalVariables.size());
+
+    // let's go through every variable and parse their codes
+    for (auto& n : globalVariables) {
+        if (n.second.definition[0].operation != ParserOperation::Definition) CodeGeneratorError("Expected a variable definition!");
+        GenerateExpressionBytecode(context, n.second.definition, n.second.typeObject, n.second.definition[0].typeMeta, 0, true);
+    }
+
+    return context.codes;
+}
+
+std::vector<Bytecode> GenerateFunctionBytecode(ParserFunction& function) {
+
+    return {};
+}
+
+// methods
+
+BytecodeOperand Bytecode::op1() const {
+    BytecodeOperand op;
+    op.location = op1Location;
+    op.value = op1Value;
+    return op;
+}
+
+BytecodeOperand Bytecode::op1(BytecodeOperand op) {
+    op1Value = op.value;
+    op1Location = op.location;
+    return op;
+}
+
+BytecodeOperand Bytecode::op1(Location::Type location, BytecodeValue value) {
+    op1Location = location;
+    op1Value = value;
+    return op1();
+}
+
+BytecodeOperand Bytecode::op2() const {
+    BytecodeOperand op;
+    op.location = op2Location;
+    op.value = op2Value;
+    return op;
+}
+
+BytecodeOperand Bytecode::op2(BytecodeOperand op) {
+    op2Value = op.value;
+    op2Location = op.location;
+    return op;
+}
+
+BytecodeOperand Bytecode::op2(Location::Type location, BytecodeValue value) {
+    op2Location = location;
+    op2Value = value;
+    return op2();
+}
+
+BytecodeOperand Bytecode::op3() const {
+    BytecodeOperand op;
+    op.location = op3Location;
+    op.value = op3Value;
+    return op;
+}
+
+BytecodeOperand Bytecode::op3(BytecodeOperand op) {
+    op1Value = op.value;
+    op1Location = op.location;
+    return op;
+}
+
+BytecodeOperand Bytecode::op3(Location::Type location, BytecodeValue value) {
+    op3Location = location;
+    op3Value = value;
+    return op3();
+}
+
+BytecodeOperand Bytecode::result() const {
+    BytecodeOperand op;
+    op.location = op3Location;
+    op.value = op3Value;
+    return op;
+}
+
+BytecodeOperand Bytecode::result(BytecodeOperand op) {
+    op3Value = op.value;
+    op3Location = op.location;
+    return op;
+}
+
+BytecodeOperand Bytecode::result(Location::Type location, BytecodeValue value) {
+    op3Location = location;
+    op3Value = value;
+    return result();
+}
+
+
+// printing functions
+
+// old code
+
+BytecodeOld::BytecodeOld(uint64_t code) : code(code) {}
+
+BytecodeOld::BytecodeOld(uint64_t code, std::string source) : code(code), source(source) {}
+
+BytecodeOld::BytecodeOld(uint64_t code, std::string source, uint64_t number) : code(code), source(source), number(number) {}
+
+BytecodeOld::BytecodeOld(uint64_t code, std::string source, VariableType type) : code(code), source(source), type(type) {}
+
+BytecodeOld::BytecodeOld(uint64_t code, std::string source, uint64_t number, VariableType type) : code(code), source(source),
                                                                                             number(number),
                                                                                             type(type) {}
 
-Bytecode::Bytecode(uint64_t code, std::string source, std::string target, VariableType type) : code(code),
+BytecodeOld::BytecodeOld(uint64_t code, std::string source, std::string target, VariableType type) : code(code),
                                                                                                source(source),
                                                                                                target(target),
                                                                                                type(type) {}
 
-Bytecode::Bytecode(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type) : code(
+BytecodeOld::BytecodeOld(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type) : code(
         code), source(source), target(target), number(number), type(type) {}
 
 std::string EnumToVarType(uint8_t type) {
@@ -38,17 +197,17 @@ std::string EnumToVarType(uint8_t type) {
 
 std::string EnumToComparisonType(uint8_t type) {
     switch (type) {
-        case Bytecode::Condition::notEquals:
+        case BytecodeOld::Condition::notEquals:
             return "is not equal";
-        case Bytecode::Condition::equals:
+        case BytecodeOld::Condition::equals:
             return "is equal";
-        case Bytecode::Condition::greaterEqual:
+        case BytecodeOld::Condition::greaterEqual:
             return "is greater or equal";
-        case Bytecode::Condition::greater:
+        case BytecodeOld::Condition::greater:
             return "is greater";
-        case Bytecode::Condition::lesserEqual:
+        case BytecodeOld::Condition::lesserEqual:
             return "is lesser or equal";
-        case Bytecode::Condition::lesser:
+        case BytecodeOld::Condition::lesser:
             return "is lesser";
         default:
             CodeGeneratorError("Invalid type in string conversion!");
@@ -58,17 +217,17 @@ std::string EnumToComparisonType(uint8_t type) {
 
 std::string EnumToComparisonTypeNegative(uint8_t type) {
     switch (type) {
-        case Bytecode::Condition::notEquals:
+        case BytecodeOld::Condition::notEquals:
             return "is equal";
-        case Bytecode::Condition::equals:
+        case BytecodeOld::Condition::equals:
             return "is not equal";
-        case Bytecode::Condition::greaterEqual:
+        case BytecodeOld::Condition::greaterEqual:
             return "is lesser";
-        case Bytecode::Condition::greater:
+        case BytecodeOld::Condition::greater:
             return "is lesser or equal";
-        case Bytecode::Condition::lesserEqual:
+        case BytecodeOld::Condition::lesserEqual:
             return "is greater";
-        case Bytecode::Condition::lesser:
+        case BytecodeOld::Condition::lesser:
             return "is greater or equal";
         default:
             CodeGeneratorError("Invalid type in string conversion!");
@@ -76,30 +235,30 @@ std::string EnumToComparisonTypeNegative(uint8_t type) {
     return "";
 }
 
-std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
+std::ostream& operator<<(std::ostream& out, const BytecodeOld& code) {
     // none, add, subtract, multiply, divide, callFunction, returnValue, pushLevel, popLevel, jump,
     //        compare, declare, assign
     switch (code.code) {
-        case Bytecode::none:
+        case BytecodeOld::none:
             out << "Invalid instruction\n";
             break;
-        case Bytecode::add:
+        case BytecodeOld::add:
             out << "Add: " << code.source << " to: " << code.target << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN << "#"
                 << code.number << "-0 using type: " << code.type << "\n";
             break;
-        case Bytecode::subtract:
+        case BytecodeOld::subtract:
             out << "Subtract: " << code.source << " from: " << code.target << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
                 << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
-        case Bytecode::multiply:
+        case BytecodeOld::multiply:
             out << "Multiply: " << code.target << " by: " << code.source << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
                 << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
-        case Bytecode::divide:
+        case BytecodeOld::divide:
             out << "Divide: " << code.target << " by: " << code.source << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
                 << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
-        case Bytecode::callFunction:
+        case BytecodeOld::callFunction:
             if (code.target.empty()) {
                 out << "Call function: " << code.source << "( ... )\n";
             }
@@ -108,44 +267,44 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
                     << code.target << "\n";
             }
             break;
-        case Bytecode::getAddress:
+        case BytecodeOld::getAddress:
             out << "Extract address of: " << code.source  << " and store result as: " << VariableType(code.type.size, code.type.type, code.type.subtype + 1).getPrefix() << EXPRESSION_SIGN
                 << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
-        case Bytecode::getValue:
+        case BytecodeOld::getValue:
             out << "Extract value at: " << code.source  << " and store result as: " << VariableType(code.type.size, code.type.type, code.type.subtype - 1).getPrefix() << EXPRESSION_SIGN
                 << "#" << code.number << "-0 using type: " << code.type << "\n";
             break;
-        case Bytecode::moveArgument:
+        case BytecodeOld::moveArgument:
             out << "Move: " << code.source << " as a function argument, using type: " << code.type << "\n";
             break;
-        case Bytecode::returnValue:
+        case BytecodeOld::returnValue:
             out << "Return value of: " << code.source << " using type: " << code.type << "\n";
             break;
-        case Bytecode::pushLevel:
+        case BytecodeOld::pushLevel:
             out << "Push variable level\n";
             break;
-        case Bytecode::popLevel:
+        case BytecodeOld::popLevel:
             out << "Pop variable level\n";
             break;
-        case Bytecode::jumpConditionalFalse:
+        case BytecodeOld::jumpConditionalFalse:
             out << "Jump to: " << code.source << " if left is " << EnumToComparisonTypeNegative(code.number)
                 << " than right\n";
             break;
-        case Bytecode::jumpConditionalTrue:
+        case BytecodeOld::jumpConditionalTrue:
             out << "Jump to: " << code.source << " if left is " << EnumToComparisonType(code.number) << " than right\n";
             break;
-        case Bytecode::jump:
+        case BytecodeOld::jump:
             out << "Jump to: " << code.source << "\n";
             break;
-        case Bytecode::compare:
+        case BytecodeOld::compare:
             out << "Compare: " << code.source << " with: " << code.target << " using type: " << code.type << "\n";
             break;
-        case Bytecode::declare:
+        case BytecodeOld::declare:
             out << "Declare variable: " << code.target << " of type: " << code.type << " with assigned value of: "
                 << code.source << "\n";
             break;
-        case Bytecode::assign:
+        case BytecodeOld::assign:
             if (code.number) {
                 out << "Assign value of: " << code.source << " to the value pointed at by: " << code.target << " using type: " << code.type << "\n";
             }
@@ -153,16 +312,16 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
                 out << "Assign value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
             }
             break;
-        case Bytecode::addLabel:
+        case BytecodeOld::addLabel:
             out << "Add label: " << code.source << "\n";
             break;
-        case Bytecode::moveValue:
+        case BytecodeOld::moveValue:
             out << "Move value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
             break;
-        case Bytecode::addFromArgument:
+        case BytecodeOld::addFromArgument:
             out << "Add variable named: " << code.target << " from argument located at: " << code.source << "\n";
             break;
-        case Bytecode::syscall:
+        case BytecodeOld::syscall:
             out << "Call syscall number: " << code.number << "\n";
         break;
         default:

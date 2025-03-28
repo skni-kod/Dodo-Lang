@@ -180,11 +180,11 @@ std::string CalculateBytecodeExpression(const ParserValue& expression, VariableT
             return BytecodeFunctionCall(expression);
         }
         else if (expression.operationType == ParserValue::Operation::getAddress) {
-            bytecodes.emplace_back(Bytecode::getAddress, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype));
+            bytecodes.emplace_back(BytecodeOld::getAddress, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype));
             return AddVariableInstance(EXPRESSION_SIGN);
         }
         else if (expression.operationType == ParserValue::Operation::getValue) {
-            bytecodes.emplace_back(Bytecode::getValue, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype + 1));
+            bytecodes.emplace_back(BytecodeOld::getValue, GetVariableInstance(*expression.value), expressionCounter++, VariableType(type.size, type.type, type.subtype + 1));
             return AddVariableInstance(EXPRESSION_SIGN);
         }
         else {
@@ -310,7 +310,7 @@ VariableType NegotiateOperationType(const ParserValue& first, const ParserValue&
 void BytecodeReturn(const ReturnInstruction& instruction, const ParserFunction& function) {
     const auto& type = parserTypes[function.returnType];
     auto source = CalculateBytecodeExpression(instruction.expression, VariableType(type, VariableType::Subtype::value));
-    bytecodes.emplace_back(Bytecode::returnValue, source, VariableType(type));
+    bytecodes.emplace_back(BytecodeOld::returnValue, source, VariableType(type));
 }
 
 void BytecodeDeclare(DeclarationInstruction& instruction) {
@@ -319,7 +319,7 @@ void BytecodeDeclare(DeclarationInstruction& instruction) {
     instruction.content.type.type = type.type;
     instruction.content.type.size = type.size;
     earlyVariables.add({instruction.content.type, name, instruction.content.isMutable});
-    bytecodes.emplace_back(Bytecode::declare, CalculateBytecodeExpression(instruction.content.expression,
+    bytecodes.emplace_back(BytecodeOld::declare, CalculateBytecodeExpression(instruction.content.expression,
                                                                           instruction.content.type),
                            name, instruction.content.type);
 }
@@ -328,14 +328,14 @@ void BytecodeDeclare(const ForLoopVariable& var) {
     auto& type = parserTypes[var.typeName];
     std::string name = AddVariableInstance(var.identifier);
     earlyVariables.add({{type.size, type.type, var.subtype}, name, true});
-    bytecodes.emplace_back(Bytecode::declare,
+    bytecodes.emplace_back(BytecodeOld::declare,
                            CalculateBytecodeExpression(var.value, {type.size, type.type, var.subtype}),
                            name, VariableType(type.size, type.type));
 }
 
 void BytecodeAssign(const ValueChangeInstruction& instruction) {
     auto& type = earlyVariables.find(GetVariableInstance(instruction.name)).type;
-    bytecodes.emplace_back(Bytecode::assign, CalculateBytecodeExpression(instruction.expression, type), "", type);
+    bytecodes.emplace_back(BytecodeOld::assign, CalculateBytecodeExpression(instruction.expression, type), "", type);
     bytecodes.back().target = ReassignVariableInstance(instruction.name, type);
     if (instruction.pointerValue) {
         bytecodes.back().number = 1;
@@ -348,7 +348,7 @@ void BytecodeAssign(const ValueChangeInstruction& instruction) {
 
 void BytecodePushLevel() {
     earlyVariables.pushLevel();
-    bytecodes.emplace_back(Bytecode::pushLevel);
+    bytecodes.emplace_back(BytecodeOld::pushLevel);
 }
 
 void BytecodePopLevel() {
@@ -388,7 +388,7 @@ void BytecodePopLevel() {
                         std::string oldName = var.name;
                         std::string name = ReassignVariableInstance(oldName.substr(0, var.name.find_last_of('#')), var.type);
                         auto& newVar = earlyVariables.find(name);
-                        bytecodes.emplace_back(Bytecode::moveValue, oldName, name, newVar.type);
+                        bytecodes.emplace_back(BytecodeOld::moveValue, oldName, name, newVar.type);
                         earlyVariables.variables[n].emplace_back(newVar);
                         found = true;
                         break;
@@ -398,7 +398,7 @@ void BytecodePopLevel() {
         }
 
         earlyVariables.popLevel();
-        bytecodes.emplace_back(Bytecode::popLevel);
+        bytecodes.emplace_back(BytecodeOld::popLevel);
         return;
     }
 
@@ -412,7 +412,7 @@ void BytecodePopLevel() {
             // also search for the newest instance of that variable
             for (int64_t m = earlyVariables.variables[n].size() - 1; m >= 0; m--) {
                 if (earlyVariables.variables[n][m].name.starts_with(searched)) {
-                    bytecodes.emplace_back(Bytecode::moveValue, var.name,
+                    bytecodes.emplace_back(BytecodeOld::moveValue, var.name,
                                            earlyVariables.variables[n][m].name, earlyVariables.variables[n][m].type);
                     RollbackVariableInstance(var.name.substr(0, var.name.find_last_of('#')),
                                              std::stoull(earlyVariables.variables[n][m].name.substr(earlyVariables.variables[n][m].name.find_last_of('-') + 1, earlyVariables.variables[n][m].name.size() - 1 - earlyVariables.variables[n][m].name.find_last_of('-'))));
@@ -423,7 +423,7 @@ void BytecodePopLevel() {
         }
     }
     earlyVariables.popLevel();
-    bytecodes.emplace_back(Bytecode::popLevel);
+    bytecodes.emplace_back(BytecodeOld::popLevel);
 }
 
 void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) {
@@ -437,10 +437,10 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
                 return;
             }
             auto type = NegotiateOperationType(*argument->right);
-            bytecodes.emplace_back(Bytecode::moveArgument, CalculateBytecodeExpression(*argument->right, type), type);
+            bytecodes.emplace_back(BytecodeOld::moveArgument, CalculateBytecodeExpression(*argument->right, type), type);
             argument = argument->left.get();
         }
-        bytecodes.emplace_back(Bytecode::syscall, "", std::stoull(instruction.functionName));
+        bytecodes.emplace_back(BytecodeOld::syscall, "", std::stoull(instruction.functionName));
         return;
     }
     
@@ -460,7 +460,7 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
             const auto& type = parserTypes[function.arguments[n].typeName];
             VariableType argType(type);
             argType.subtype = function.arguments[n].subtype;
-            bytecodes.emplace_back(Bytecode::moveArgument,
+            bytecodes.emplace_back(BytecodeOld::moveArgument,
                                    CalculateBytecodeExpression(*argument->right, {type.size, type.type}), argType);
 
             // get the next argument
@@ -468,7 +468,7 @@ void BytecodeFunctionCallStandalone(const FunctionCallInstruction& instruction) 
         }
     }
 
-    bytecodes.emplace_back(Bytecode::callFunction, instruction.functionName, "", VariableType());
+    bytecodes.emplace_back(BytecodeOld::callFunction, instruction.functionName, "", VariableType());
     //BytecodePopLevel();
 }
 
@@ -490,7 +490,7 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
             const auto& type = parserTypes[function.arguments[n].typeName];
             VariableType argType(type);
             argType.subtype = function.arguments[n].subtype;
-            bytecodes.emplace_back(Bytecode::moveArgument,
+            bytecodes.emplace_back(BytecodeOld::moveArgument,
                                    CalculateBytecodeExpression(*argument->right, {type.size, type.type}), argType);
 
             // get the next argument
@@ -504,7 +504,7 @@ std::string BytecodeFunctionCall(const ParserValue& expression) {
 
     const auto& type = parserTypes[function.returnType];
     std::string result = "=#" + std::to_string(expressionCounter++) + "-0";
-    bytecodes.emplace_back(Bytecode::callFunction, *expression.value, result, VariableType(type.size, type.type));
+    bytecodes.emplace_back(BytecodeOld::callFunction, *expression.value, result, VariableType(type.size, type.type));
     //BytecodePopLevel();
     AddVariableInstance(EXPRESSION_SIGN);
     return result;
@@ -516,16 +516,16 @@ void BytecodeIf(const ParserFunction& function, const IfInstruction& instruction
     std::string left = CalculateBytecodeExpression(instruction.condition.left, type);
     std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
-    bytecodes.emplace_back(Bytecode::compare, left, right, type);
+    bytecodes.emplace_back(BytecodeOld::compare, left, right, type);
     std::string label = Options::jumpLabelPrefix + std::to_string(labelCounter++);
-    bytecodes.emplace_back(Bytecode::jumpConditionalFalse, label, instruction.condition.type);
+    bytecodes.emplace_back(BytecodeOld::jumpConditionalFalse, label, instruction.condition.type);
     counter++;
     for (; counter < function.instructions.size() and
            function.instructions[counter].type != FunctionInstruction::Type::endScope; counter++) {
         HandleInstruction(function, function.instructions[counter], counter);
     }
     BytecodePopLevel();
-    bytecodes.emplace_back(Bytecode::addLabel, label);
+    bytecodes.emplace_back(BytecodeOld::addLabel, label);
 
 }
 
@@ -535,13 +535,13 @@ void BytecodeElse(const ParserFunction& function, uint64_t& counter) {
     if (bytecodes.size() < 5) {
         CodeGeneratorError("There cannot be a valid statement before this else!");
     }
-    if (bytecodes.back().code != Bytecode::addLabel) {
+    if (bytecodes.back().code != BytecodeOld::addLabel) {
         CodeGeneratorError("Invalid expression before else statement!");
     }
 
     bool found = false;
     for (int64_t n = bytecodes.size() - 2; n >= 0; n--) {
-        if (bytecodes[n].code == Bytecode::jumpConditionalFalse and bytecodes[n].source == bytecodes.back().source) {
+        if (bytecodes[n].code == BytecodeOld::jumpConditionalFalse and bytecodes[n].source == bytecodes.back().source) {
             found = true;
             break;
         }
@@ -552,36 +552,36 @@ void BytecodeElse(const ParserFunction& function, uint64_t& counter) {
 
     // adding the label to jump at the end
     std::string label = Options::jumpLabelPrefix + std::to_string(labelCounter++);
-    bytecodes.emplace(bytecodes.end() - 1, Bytecode::jump, label);
+    bytecodes.emplace(bytecodes.end() - 1, BytecodeOld::jump, label);
     counter++;
     for (; counter < function.instructions.size() and
            function.instructions[counter].type != FunctionInstruction::Type::endScope; counter++) {
         HandleInstruction(function, function.instructions[counter], counter);
     }
     BytecodePopLevel();
-    bytecodes.emplace_back(Bytecode::addLabel, label);
+    bytecodes.emplace_back(BytecodeOld::addLabel, label);
 }
 
 void BytecodeWhile(const ParserFunction& function, const WhileInstruction& instruction, uint64_t& counter) {
     // add label to return for before every comparison
     std::string labelBefore = Options::jumpLabelPrefix + std::to_string(labelCounter++);
-    bytecodes.emplace_back(Bytecode::addLabel, labelBefore);
+    bytecodes.emplace_back(BytecodeOld::addLabel, labelBefore);
     // get ingredients for comp
     auto type = NegotiateOperationType(instruction.condition.left, instruction.condition.right);
     std::string left = CalculateBytecodeExpression(instruction.condition.left, type);
     std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
-    bytecodes.emplace_back(Bytecode::compare, left, right, type);
+    bytecodes.emplace_back(BytecodeOld::compare, left, right, type);
     std::string labelAfter = Options::jumpLabelPrefix + std::to_string(labelCounter++);
-    bytecodes.emplace_back(Bytecode::jumpConditionalFalse, labelAfter, instruction.condition.type);
+    bytecodes.emplace_back(BytecodeOld::jumpConditionalFalse, labelAfter, instruction.condition.type);
     counter++;
     for (; counter < function.instructions.size() and
            function.instructions[counter].type != FunctionInstruction::Type::endScope; counter++) {
         HandleInstruction(function, function.instructions[counter], counter);
     }
     BytecodePopLevel();
-    bytecodes.emplace_back(Bytecode::jump, labelBefore, instruction.condition.type);
-    bytecodes.emplace_back(Bytecode::addLabel, labelAfter);
+    bytecodes.emplace_back(BytecodeOld::jump, labelBefore, instruction.condition.type);
+    bytecodes.emplace_back(BytecodeOld::addLabel, labelAfter);
 
 }
 
@@ -595,15 +595,15 @@ void BytecodeFor(const ParserFunction& function, const ForInstruction& instructi
 
     // add label to return for before every comparison
     std::string labelBefore = Options::jumpLabelPrefix + std::to_string(labelCounter++);
-    bytecodes.emplace_back(Bytecode::addLabel, labelBefore);
+    bytecodes.emplace_back(BytecodeOld::addLabel, labelBefore);
     // get ingredients for comp
     auto type = NegotiateOperationType(instruction.condition.left, instruction.condition.right);
     std::string left = CalculateBytecodeExpression(instruction.condition.left, type);
     std::string right = CalculateBytecodeExpression(instruction.condition.right, type);
     // do the comp
-    bytecodes.emplace_back(Bytecode::compare, left, right, type);
+    bytecodes.emplace_back(BytecodeOld::compare, left, right, type);
     std::string labelAfter = Options::jumpLabelPrefix + std::to_string(labelCounter++);
-    bytecodes.emplace_back(Bytecode::jumpConditionalFalse, labelAfter, instruction.condition.type);
+    bytecodes.emplace_back(BytecodeOld::jumpConditionalFalse, labelAfter, instruction.condition.type);
     counter++;
     for (; counter < function.instructions.size() and
            function.instructions[counter].type != FunctionInstruction::Type::endScope; counter++) {
@@ -615,8 +615,8 @@ void BytecodeFor(const ParserFunction& function, const ForInstruction& instructi
     }
     BytecodePopLevel();
     BytecodePopLevel();
-    bytecodes.emplace_back(Bytecode::jump, labelBefore, instruction.condition.type);
-    bytecodes.emplace_back(Bytecode::addLabel, labelAfter);
+    bytecodes.emplace_back(BytecodeOld::jump, labelBefore, instruction.condition.type);
+    bytecodes.emplace_back(BytecodeOld::addLabel, labelAfter);
 }
 
 void HandleInstruction(const ParserFunction& function, const FunctionInstruction& instruction, uint64_t& counter) {
@@ -664,10 +664,10 @@ void BytecodeAddArguments(const ParserFunction& function) {
         VariableType type(parserTypes[n.typeName]);
         type.subtype = n.subtype;
         if (n.locationType == Operand::reg) {
-            bytecodes.emplace_back(Bytecode::addFromArgument, "%" + std::to_string(n.locationValue), n.name + "#0-0", type);
+            bytecodes.emplace_back(BytecodeOld::addFromArgument, "%" + std::to_string(n.locationValue), n.name + "#0-0", type);
         }
         else if (n.locationType == Operand::sta) {
-            bytecodes.emplace_back(Bytecode::addFromArgument, "@" + std::to_string(n.locationValue), n.name + "#0-0", type);
+            bytecodes.emplace_back(BytecodeOld::addFromArgument, "@" + std::to_string(n.locationValue), n.name + "#0-0", type);
         }
         // TODO: add mutability here
         earlyVariables.add({type, AddVariableInstance(n.name), true});
@@ -689,20 +689,20 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
     // adding size prefixes to things
     for (auto& n : bytecodes) {
         switch (n.code) {
-            case Bytecode::addLabel:
-            case Bytecode::jumpConditionalFalse:
-            case Bytecode::jumpConditionalTrue:
-            case Bytecode::jump:
+            case BytecodeOld::addLabel:
+            case BytecodeOld::jumpConditionalFalse:
+            case BytecodeOld::jumpConditionalTrue:
+            case BytecodeOld::jump:
                 continue;
             default:
-                if (not n.source.empty() and n.code != Bytecode::callFunction) {
+                if (not n.source.empty() and n.code != BytecodeOld::callFunction) {
                     if (n.source.front() != '$' and n.source.front() != '%' and n.source.front() != '@' and n.source.front() != '\"') {
                         n.source = n.type.getPrefix() + n.source;
                     }
                 }
                 if (not n.target.empty()) {
                     if (n.target.front() != '$' and n.target.front() != '%' and n.target.front() != '@' and n.target.front() != '\"') {
-                        if (n.code == Bytecode::assign and n.number == 1) {
+                        if (n.code == BytecodeOld::assign and n.number == 1) {
                             auto type = n.type;
                             type.subtype++;
                             n.target = type.getPrefix() + n.target;
@@ -722,14 +722,14 @@ void GenerateFunctionStepOne(const ParserFunction& function) {
         uint64_t k = 1;
         for (auto& n: bytecodes) {
             std::cout << "INFO L3: ";
-            if (n.code == Bytecode::popLevel) {
+            if (n.code == BytecodeOld::popLevel) {
                 k--;
             }
             for (uint64_t m = 0; m < k; m++) {
 
                 std::cout << "\t";
             }
-            if (n.code == Bytecode::pushLevel) {
+            if (n.code == BytecodeOld::pushLevel) {
                 k++;
             }
             std::cout << n;

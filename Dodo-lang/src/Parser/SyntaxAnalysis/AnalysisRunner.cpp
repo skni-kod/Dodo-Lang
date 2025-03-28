@@ -122,6 +122,7 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
                         ParserError("This operator cannot be overloaded!");
                     }
                     type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, current->op)));
+                    type->methods.back().overloaded = current->op;
                 }
                 else {
                     type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, Operator::None)));

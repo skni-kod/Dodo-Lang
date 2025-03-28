@@ -147,8 +147,6 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             ParserError("Invalid expression!");
         }
 
-        // TODO: add support for things like ++, -- and !
-
         out.operation = ParserOperation::Operator;
         out.code = mostImportant->op;
         if (IsRightToLeftOrdered(mostImportant)) {
@@ -298,16 +296,20 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             }
             out = ParseExpressionStep(valueArray, {start + 1, end}, tokens, ParserOperation::None, tokens[start]);
         }
-        else if (tokens[start]->MatchOperator(Operator::Dereference)) {
-            out.operation = ParserOperation::Dereference;
+        else if (tokens[start]->MatchOperator(Operator::Dereference, Operator::Address, Operator::Increment, Operator::Decrement, Operator::Not, Operator::BinNot)) {
+            out.operation = ParserOperation::SingleOperator;
+            out.operatorType = tokens[start]->op;
             valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end}, tokens));
-            out.next = valueArray.size() - 1;
+            out.prefix = valueArray.size() - 1;
+            // TODO: lvalue at this point is probably  useless
             out.isLValued = true;
         }
-        else if (tokens[start]->MatchOperator(Operator::Address)) {
-            out.operation = ParserOperation::Address;
-            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end}, tokens));
-            out.next = valueArray.size() - 1;
+        else if (tokens[end - 1]->MatchOperator(Operator::Increment, Operator::Decrement)) {
+            out.operation = ParserOperation::SingleOperator;
+            out.operatorType = tokens[end - 1]->op;
+            valueArray.push_back(ParseExpressionStep(valueArray, {start, end - 1}, tokens));
+            out.postfix = valueArray.size() - 1;
+            // TODO: lvalue at this point is probably  useless
             out.isLValued = true;
         }
         else {
@@ -481,10 +483,9 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
     }
 
     // finding dereference operators
-    // TODO: make this more reliable, cases for ++, -- and such
     for (int32_t n = 0; n < tokens.size(); n++) {
         if (tokens[n]->MatchOperator(Operator::Multiply)) {
-            if (n >= 2 and tokens[n - 1]->type == Token::Operator and tokens.size() > n - 2) {
+            if ((n >= 1 and tokens[n - 1]->type == Token::Operator and tokens.size() > n - 2) or n == 0) {
                 tokens[n]->op = Operator::Dereference;
             }
         }
@@ -528,7 +529,7 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
 
         const uint32_t startIndex = valueArray.size();
         ParserTreeValue declaration;
-        declaration.operation = ParserOperation::Declaration;
+        declaration.operation = ParserOperation::Definition;
         declaration.typeMeta.pointerLevel = pointerLevel;
         declaration.typeMeta.isMutable = first == 2;
         declaration.identifier = tokens[first]->text;
