@@ -179,7 +179,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             }
             else if (tokens[start]->type == Token::Number) {
                 // a constant number
-                out.operation = ParserOperation::Constant;
+                out.operation = ParserOperation::Literal;
                 out.literal = tokens[start];
             }
             else if (tokens[start]->type == Token::Keyword) {
@@ -212,7 +212,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 }
                 out.operation = ParserOperation::Syscall;
                 out.argument = ParserArgumentsStep(valueArray, {start + 1, closing}, tokens);
-                if (valueArray[valueArray[out.argument].value].operation != ParserOperation::Constant or not valueArray[valueArray[out.argument].value].literal->MatchNumber(Type::unsignedInteger)) {
+                if (valueArray[valueArray[out.argument].value].operation != ParserOperation::Literal or not valueArray[valueArray[out.argument].value].literal->MatchNumber(Type::unsignedInteger)) {
                     ParserError("First argument of syscall needs to be an unsigned constant!");
                 }
                 out.code = valueArray[valueArray[out.argument].value].literal->_unsigned;

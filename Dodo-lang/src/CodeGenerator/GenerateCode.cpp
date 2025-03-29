@@ -62,6 +62,20 @@ void GenerateCode() {
         // global variables
         //x86_64::AddGlobalVariables(out);
         auto globalBytecode = GenerateGlobalVariablesBytecode();
+
+        if (Options::informationLevel >= Options::InformationLevel::general) {
+            std::cout << "INFO L2: Finished global variable bytecode generation with " << globalBytecode.size() << " instructions";
+            if (Options::informationLevel >= Options::InformationLevel::full) {
+                std::cout << ":\n";
+                for (auto& n : globalBytecode) {
+                    std::cout << "INFO L3: " << n;
+                }
+            }
+            else {
+                std::cout << "\n";
+            }
+        }
+
         out << "\n.section .text\n";
         // global text declaration
 

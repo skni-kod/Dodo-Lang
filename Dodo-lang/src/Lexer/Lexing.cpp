@@ -521,6 +521,7 @@ LexerLine LexLine(std::string& line) {
                 if ((current.whitespaceBefore > 0 and not result.empty())
                     or (current.specialWhitespace and current.code != '.' and current.code != '-')) {
                     parse = true;
+                    n--;
                 }
 
                 if (not parse) {
@@ -710,9 +711,9 @@ LexerLine LexLine(std::string& line) {
 
                     result.clear();
                     lexerState = normal;
-                    if (current.specialWhitespace and current.code != '.' and current.code != '-') {
-                        n--;
-                    }
+                    // if (current.specialWhitespace and current.code != '.' and current.code != '-') {
+                    //     n--;
+                    // }
                 }
 
             }

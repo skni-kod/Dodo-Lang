@@ -6,6 +6,7 @@
 
 struct BytecodeContext {
     std::vector <Bytecode> codes;
+    uint64_t tempCounter = 0;
     // if it's constant then
     bool isConstExpr = false;
     bool isMutable = false;

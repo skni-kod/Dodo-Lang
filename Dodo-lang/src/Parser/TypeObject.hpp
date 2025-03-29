@@ -154,7 +154,7 @@ namespace ParserOperation {
         Argument,
         // constant literal
         // pointer to token with value
-        Constant,
+        Literal,
         // variable
         // pointer to identifier, next value for its members, etc.
         Variable,

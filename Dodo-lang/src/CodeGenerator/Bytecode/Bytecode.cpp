@@ -29,23 +29,25 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             CodeGeneratorError("Not implemented!");
         case ParserOperation::Argument:
             CodeGeneratorError("Not implemented!");
-        case ParserOperation::Constant:
-            CodeGeneratorError("How to handle literals? Probably their types need to added to BytecodeOperand");
+        case ParserOperation::Literal:
+            return {Location::Literal, current.literal->literalType, {current.literal->_unsigned}};
         case ParserOperation::Variable:
-            CodeGeneratorError("Not implemented!");
+            CodeGeneratorError("Variables not implemented!");
         case ParserOperation::String:
-            CodeGeneratorError("Not implemented!");
+            CodeGeneratorError("String not implemented!");
         case ParserOperation::Definition:
             code.type = Bytecode::Define;
             if (isGlobal) {
                 // if it's global give it a number and push back a pointer
-                code.op1Value.variable = converterGlobals.size();
+                code.op1(Location::Variable, {converterGlobals.size()});
                 converterGlobals.push_back(&globalVariables[*values[current.next].identifier]);
             }
             else CodeGeneratorError("Local variables not implemented!");
 
             if (current.value) {
-                return code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal));
+                code.result(GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal));
+                context.codes.push_back(code);
+                return code.result();
             }
             // TODO: add user definable default values for types!
             CodeGeneratorError("Default value support incomplete!");
@@ -82,82 +84,91 @@ std::vector<Bytecode> GenerateFunctionBytecode(ParserFunction& function) {
 
 BytecodeOperand Bytecode::op1() const {
     BytecodeOperand op;
-    op.location = op1Location;
-    op.value = op1Value;
+    op.location    = op1Location;
+    op.value       = op1Value;
+    op.literalType = op1LiteralType;
     return op;
 }
 
 BytecodeOperand Bytecode::op1(BytecodeOperand op) {
-    op1Value = op.value;
-    op1Location = op.location;
+    op1Value       = op.value;
+    op1Location    = op.location;
+    op1LiteralType = op.literalType;
     return op;
 }
 
-BytecodeOperand Bytecode::op1(Location::Type location, BytecodeValue value) {
-    op1Location = location;
-    op1Value = value;
+BytecodeOperand Bytecode::op1(Location::Type location, BytecodeValue value, Type::TypeEnum literalType) {
+    op1Location    = location;
+    op1Value       = value;
+    op1LiteralType = literalType;
     return op1();
 }
 
 BytecodeOperand Bytecode::op2() const {
     BytecodeOperand op;
-    op.location = op2Location;
-    op.value = op2Value;
+    op.location    = op2Location;
+    op.value       = op2Value;
+    op.literalType = op2LiteralType;
     return op;
 }
 
 BytecodeOperand Bytecode::op2(BytecodeOperand op) {
-    op2Value = op.value;
-    op2Location = op.location;
+    op2Value       = op.value;
+    op2Location    = op.location;
+    op2LiteralType = op.literalType;
     return op;
 }
 
-BytecodeOperand Bytecode::op2(Location::Type location, BytecodeValue value) {
-    op2Location = location;
-    op2Value = value;
+BytecodeOperand Bytecode::op2(Location::Type location, BytecodeValue value, Type::TypeEnum literalType) {
+    op2Location    = location;
+    op2Value       = value;
+    op2LiteralType = literalType;
     return op2();
 }
 
 BytecodeOperand Bytecode::op3() const {
     BytecodeOperand op;
-    op.location = op3Location;
-    op.value = op3Value;
+    op.location    = op3Location;
+    op.value       = op3Value;
+    op.literalType = op3LiteralType;
     return op;
 }
 
 BytecodeOperand Bytecode::op3(BytecodeOperand op) {
-    op1Value = op.value;
-    op1Location = op.location;
+    op3Value       = op.value;
+    op3Location    = op.location;
+    op3LiteralType = op.literalType;
     return op;
 }
 
-BytecodeOperand Bytecode::op3(Location::Type location, BytecodeValue value) {
-    op3Location = location;
-    op3Value = value;
+BytecodeOperand Bytecode::op3(Location::Type location, BytecodeValue value, Type::TypeEnum literalType) {
+    op3Location    = location;
+    op3Value       = value;
+    op3LiteralType = literalType;
     return op3();
 }
 
 BytecodeOperand Bytecode::result() const {
     BytecodeOperand op;
-    op.location = op3Location;
-    op.value = op3Value;
+    op.location    = op3Location;
+    op.value       = op3Value;
+    op.literalType = op3LiteralType;
     return op;
 }
 
 BytecodeOperand Bytecode::result(BytecodeOperand op) {
-    op3Value = op.value;
-    op3Location = op.location;
+    op3Value       = op.value;
+    op3Location    = op.location;
+    op3LiteralType = op.literalType;
     return op;
 }
 
-BytecodeOperand Bytecode::result(Location::Type location, BytecodeValue value) {
-    op3Location = location;
-    op3Value = value;
+BytecodeOperand Bytecode::result(Location::Type location, BytecodeValue value, Type::TypeEnum literalType) {
+    op3Location    = location;
+    op3Value       = value;
+    op3LiteralType = literalType;
     return result();
 }
-
-
-// printing functions
 
 // old code
 

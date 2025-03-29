@@ -91,12 +91,12 @@ inline std::vector<BytecodeOld> bytecodes;
 
 // new code
 
-#define LOCATION_SIZE 3
+#define LOCATION_SIZE 4
 // bytecode location size can be smaller, as it does not have the information in which type of memory something is
 #define BYTECODE_LOCATION_SIZE 3
 namespace Location {
     enum Type {
-        None = 0, Variable = 0, Constant, String, Label, Call, Register, Heap, Stack
+        None, Variable, Literal, String, Label, Call, Temporary, Register, Heap, Stack
     };
 }
 
@@ -117,8 +117,10 @@ inline std::vector <ParserMemberVariableParameter*> converterGlobals;
 struct BytecodeOperand {
 #ifdef ENUM_VARIABLES
     Location::Type location = Location::None;
+    Type::TypeEnum literalType = Type::none;
 #else
     uint8_t type : BYTECODE_LOCATION_SIZE = Location::None;
+    uint8_t literalType = Type::none;
 #endif
     BytecodeValue value;
 };
@@ -130,11 +132,11 @@ struct Bytecode {
     enum BytecodeInstruction {
         None,
         // variable manipulation
-        //      syntax: op1 (variable)
+        //      syntax: op1 (variable) = op3 / result
         Define,
-        //      syntax: op1 (variable) = op2
+        //      syntax: op1 (variable) = op3 / result
         Assign,
-        //      syntax: address of op1 (variable) => op3
+        //      syntax: address of op1 (variable) => op3 / result
         Address,
         //      syntax: value at op1 => op3 / result
         Dereference,
@@ -169,13 +171,17 @@ struct Bytecode {
         // arithmetic and logical statements
         //      syntax: op1 <operator> op2 => op3 / result
         //      TODO: rethink conditions storage
-        Increment, Decrement, Power, Multiply, Divide, Modulo, Add, Subtract,
+        //      syntax: op2 for prefix, op1 for postfix => op3 / result
+        Increment,
+        //      syntax: op2 for prefix, op1 for postfix => op3 / result
+        Decrement, Power, Multiply, Divide, Modulo, Add, Subtract,
         ShiftRight, ShiftLeft,
         NAnd, BinNAnd, And, BinAnd,
         XOr, BinXOr,
         NOr, BinNOr, Or, BinOr,
         NImply, Imply, BinNImply, BinImply,
         Lesser, Greater, Equals, LesserEqual, GreaterEqual, NotEqual,
+        Not, BinNot
     };
 
     // type of bytecode instruction
@@ -185,15 +191,20 @@ struct Bytecode {
     Location::Type op1Location    : BYTECODE_LOCATION_SIZE = Location::None;
     Location::Type op2Location    : BYTECODE_LOCATION_SIZE = Location::None;
     Location::Type op3Location    : BYTECODE_LOCATION_SIZE = Location::None;
-    Type::TypeEnum literalType = Type::unsignedInteger;
+    Type::TypeEnum op1LiteralType : 2 = Type::none;
+    Type::TypeEnum op2LiteralType : 2 = Type::none;
+    Type::TypeEnum op3LiteralType : 2 = Type::none;
 #else
     uint8_t type : 7 = BytecodeInstruction::None;
+    // types of locations of operands and result
     uint8_t op1Location    : BYTECODE_LOCATION_SIZE = Location::None;
     uint8_t op2Location    : BYTECODE_LOCATION_SIZE = Location::None;
     uint8_t op3Location    : BYTECODE_LOCATION_SIZE = Location::None;
-    uint8_t literalType = Type::unsignedInteger;
+    uint8_t op1LiteralType : 2 = Type::none;
+    uint8_t op2LiteralType : 2 = Type::none;
+    uint8_t op3LiteralType : 2 = Type::none;
 #endif
-    // probably 4 bits of space here
+    // probably 2 bits of space here
     // metadata of the used type
     TypeMeta opTypeMeta{};
     // 4 bytes used at this point
@@ -204,18 +215,18 @@ struct Bytecode {
 
     // methods
     // these return a reconstructed operand struct for easier use
-    BytecodeOperand op1() const;
+    [[nodiscard]] BytecodeOperand op1() const;
     BytecodeOperand op1(BytecodeOperand op);
-    BytecodeOperand op1(Location::Type location, BytecodeValue value);
-    BytecodeOperand op2() const;
+    BytecodeOperand op1(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
+    [[nodiscard]] BytecodeOperand op2() const;
     BytecodeOperand op2(BytecodeOperand op);
-    BytecodeOperand op2(Location::Type location, BytecodeValue value);
-    BytecodeOperand op3() const;
+    BytecodeOperand op2(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
+    [[nodiscard]] BytecodeOperand op3() const;
     BytecodeOperand op3(BytecodeOperand op);
-    BytecodeOperand op3(Location::Type location, BytecodeValue value);
-    BytecodeOperand result() const;
+    BytecodeOperand op3(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
+    [[nodiscard]] BytecodeOperand result() const;
     BytecodeOperand result(BytecodeOperand op);
-    BytecodeOperand result(Location::Type location, BytecodeValue value);
+    BytecodeOperand result(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
 };
 
 // export functions
