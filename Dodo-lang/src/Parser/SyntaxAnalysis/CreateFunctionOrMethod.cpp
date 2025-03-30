@@ -1,11 +1,13 @@
 #include "AnalysisInternal.hpp"
 
 ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
-    const ParserValueTypeObject& type, LexerToken* identifier, uint32_t operatorType) {
+    const ParserValueTypeObject& type, LexerToken* identifier, bool isMethod, uint32_t operatorType) {
 
     ParserFunctionMethod output;
+    output.returnType = type;
 
     auto* current = generator();
+
     if (current->MatchOperator(Operator::BracketOpen)) {
         current = generator();
     }
@@ -15,9 +17,10 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
         }
 
         output.parameters.emplace_back();
+        output.parameters.back().inMethod = isMethod;
         const auto result = ParseExpression(generator, output.parameters.back().definition, {current});
 
-        current = generator();
+        current = result;
         if (not result->MatchKeyword(Keyword::Comma) and not result->MatchOperator(Operator::BracketClose)) {
             ParserError("Expected a comma or bracket close after parameter!");
         }

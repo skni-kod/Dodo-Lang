@@ -21,4 +21,13 @@ void CodeGeneratorError(std::string message);
 
 void GenerateCode();
 
+void Warning(std::string message);
+
+struct StringData {
+    std::string* ptr = nullptr;
+    bool isMutable = false;
+};
+
+inline std::vector <StringData> Strings;
+
 #endif //DODO_LANG_GENERATE_CODE_HPP

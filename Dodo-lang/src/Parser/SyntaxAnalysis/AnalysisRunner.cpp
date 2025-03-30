@@ -121,15 +121,15 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
                     if (not IsOperatorOverloadAllowed(current->op)) {
                         ParserError("This operator cannot be overloaded!");
                     }
-                    type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, current->op)));
+                    type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, true, current->op)));
                     type->methods.back().overloaded = current->op;
                 }
                 else {
-                    type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, Operator::None)));
+                    type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, true, Operator::None)));
                 }
             }
             else {
-                functions.emplace(*thingIdentifier->text, std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, Operator::None)));
+                functions.emplace(*thingIdentifier->text, std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None)));
             }
         }
     }

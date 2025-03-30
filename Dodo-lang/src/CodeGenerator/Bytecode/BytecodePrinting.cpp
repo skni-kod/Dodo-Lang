@@ -6,8 +6,8 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::None:
             out << "";
             break;
-        case Bytecode::Define:
-            out << "define " << code.op1() << " of type " << code.opType->typeName;
+      case Bytecode::Define:
+            out << "define " << code.op1() << " of type " << code.opType->typeName << std::string(code.opTypeMeta.pointerLevel, '*');
             if (code.op3Location != Location::None) out << " using " << code.result();
             break;
         case Bytecode::Assign:
@@ -18,6 +18,12 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             break;
         case Bytecode::Dereference:
             out << "load value at address in " << code.op1() << " to " << code.result();
+            break;
+        case Bytecode::Member:
+            out << "load " << code.op1() << "'s member number " << code.op2() << " address into " << code.result();
+            break;
+        case Bytecode::Save:
+            out << "save the value in  " << code.op1() << " to " << code.result();
             break;
         case Bytecode::Index:
             out << "load value at index " << code.op2() << " of " << code.op1() << " to " << code.result();
@@ -38,9 +44,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             if (code.op3Location != Location::None) out << " and store result to " << code.result() << " using type " << code.opType->typeName;
             break;
         case Bytecode::Argument:
-            out << "argument";
-            if (code.op2Location != Location::None) out << " with next argument from " << code.op2();
-            out << " using value of " << code.result();
+            out << "argument for call number: " << code.op2Value.ui << " using value from " << code.op3();
             break;
         case Bytecode::If:
             out << "if with condition " << code.op1();
@@ -81,18 +85,6 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::EndScope:
             out << "end scope";
             break;
-        case Bytecode::Increment:
-            out << "increment ";
-            if (code.op1Location != Location::None) out << code.op1() << " after returning value to " << code.result();
-            else
-            if (code.op2Location != Location::None) out << code.op2() << " before returning value to " << code.result();
-            break;
-        case Bytecode::Decrement:
-            out << "decrement ";
-            if (code.op1Location != Location::None) out << code.op1() << " after returning value to " << code.result();
-            else
-            if (code.op2Location != Location::None) out << code.op2() << " before returning value to " << code.result();
-            break;
         case Bytecode::Power:
             out << code.op1() << " to power of " << code.op2() << " stored to " << code.result();
             break;
@@ -106,7 +98,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "modulo " << code.op1() << " of " << code.op2() << " stored to " << code.result();
             break;
         case Bytecode::Add:
-            out << "multiply " << code.op1() << " by " << code.op2() << " stored to " << code.result();
+            out << "add " << code.op1() << " to " << code.op2() << " stored to " << code.result();
             break;
         case Bytecode::Subtract:
             out << "subtract " << code.op2() << " from " << code.op1() << " stored to " << code.result();
@@ -189,33 +181,80 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
   return out << "\n";
 }
 
-std::ostream& operator<<(std::ostream& out, const BytecodeOperand& code) {
-    switch (code.location) {
+std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
+    switch (op.location) {
         case Location::None:
             return out << "none";
         case Location::Variable:
-            return out << "variable: " << code.value.variable;
+            return out << "variable: " << op.value.variable;
         case Location::Literal:
-            out << "literal: ";
-            switch (code.literalType) {
+            switch (op.literalType) {
+                case Type::address:
+                    switch (Options::addressSize) {
+                        case 1:
+                            return out << "fixed address: " << op.value.u8;
+                        case 2:
+                            return out << "fixed address: " << op.value.u16;
+                        case 4:
+                            return out << "fixed address: " << op.value.u32;
+                        case 8:
+                            return out << "fixed address: " << op.value.u64;
+                        default:
+                            break;
+                    }
                 case Type::floatingPoint:
-                    return out << code.value.fl;
-                case Type::unsignedInteger:
-                    return out << code.value.si;
+                    switch (op.literalSize) {
+                        case 2:
+                            CodeGeneratorError("16 bit floats not supported in printing!");
+                        case 4:
+                            return out << "floating point literal: " << op.value.f32;
+                        case 8:
+                            return out << "floating point literal: " << op.value.f64;
+                        default:
+                            break;
+                    }
+                    break;
                 case Type::signedInteger:
-                    return out << code.value.ui;
+                    switch (op.literalSize) {
+                        case 1:
+                            return out << "signed integer literal: " << op.value.i8;
+                        case 2:
+                            return out << "signed integer literal: " << op.value.i16;
+                        case 4:
+                            return out << "signed integer literal: " << op.value.i32;
+                        case 8:
+                            return out << "signed integer literal: " << op.value.i64;
+                        default:
+                            break;
+                    }
+                break;
+                case Type::unsignedInteger:
+                    switch (op.literalSize) {
+                        case 1:
+                            return out << "unsigned integer literal: " << op.value.u8;
+                        case 2:
+                            return out << "unsigned integer literal: " << op.value.u16;
+                        case 4:
+                            return out << "unsigned integer literal: " << op.value.u32;
+                        case 8:
+                            return out << "unsigned integer literal: " << op.value.u64;
+                        default:
+                            break;
+                    }
                 default:
+                    out << "\n";
                     CodeGeneratorError("Unhandled type in literal in bytecode operator printing!");
-                    return out;
+                CodeGeneratorError("Invalid literal size in printing!");
+                return out;
             }
         case Location::String:
-            return out << "string: \"" << *code.value.string << "\"";
+            return out << "string: \"" << *Strings[op.value.string].ptr << "\"";
         case Location::Label:
-            return out << "label: " << code.value.ui;
+            return out << "label: " << op.value.ui;
         case Location::Call:
-            return out << "call: " << code.value.ui;
+            return out << "call: " << op.value.ui;
         case Location::Temporary:
-            return out << "temporary: " << code.value.ui;
+            return out << "temporary: " << op.value.ui;
         default:
             CodeGeneratorError("Invalid bytecode operand location in printing!");
             return out;

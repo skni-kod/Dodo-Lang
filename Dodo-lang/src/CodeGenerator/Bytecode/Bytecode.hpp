@@ -93,7 +93,7 @@ inline std::vector<BytecodeOld> bytecodes;
 
 #define LOCATION_SIZE 4
 // bytecode location size can be smaller, as it does not have the information in which type of memory something is
-#define BYTECODE_LOCATION_SIZE 3
+#define BYTECODE_LOCATION_SIZE 4
 namespace Location {
     enum Type {
         None, Variable, Literal, String, Label, Call, Temporary, Register, Heap, Stack
@@ -102,9 +102,19 @@ namespace Location {
 
 union BytecodeValue {
     uint64_t ui = 0;
+    uint64_t u64;
+    uint32_t u32;
+    uint16_t u16;
+    uint8_t u8;
     int64_t si;
-    long double fl;
-    std::string* string;
+    int64_t i64;
+    int32_t i32;
+    int16_t i16;
+    int8_t i8;
+    double fl;
+    double f64;
+    float f32;
+    uint64_t string;
     uint64_t label;
     uint64_t function;
     // TODO: make this a dedicated structure
@@ -117,12 +127,16 @@ inline std::vector <ParserMemberVariableParameter*> converterGlobals;
 struct BytecodeOperand {
 #ifdef ENUM_VARIABLES
     Location::Type location = Location::None;
+    uint8_t literalSize : 4 = 0;
     Type::TypeEnum literalType = Type::none;
 #else
     uint8_t type : BYTECODE_LOCATION_SIZE = Location::None;
+    uint8_t literalSize : 4 = 0;
     uint8_t literalType = Type::none;
 #endif
     BytecodeValue value;
+    BytecodeOperand() = default;
+    BytecodeOperand(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
 };
 
 // represents a single bytecode instruction
@@ -140,6 +154,10 @@ struct Bytecode {
         Address,
         //      syntax: value at op1 => op3 / result
         Dereference,
+        //      syntax: op1 (member number) => op3 / result
+        Member,
+        //      syntax: op1 => op3 / result
+        Save,
         //      syntax: value at op1 + op2 * type size => op3 / result
         Index,
         //      syntax: function number at op1, first argument at op2 (optional) => op3 / result (optional)
@@ -171,10 +189,7 @@ struct Bytecode {
         // arithmetic and logical statements
         //      syntax: op1 <operator> op2 => op3 / result
         //      TODO: rethink conditions storage
-        //      syntax: op2 for prefix, op1 for postfix => op3 / result
-        Increment,
-        //      syntax: op2 for prefix, op1 for postfix => op3 / result
-        Decrement, Power, Multiply, Divide, Modulo, Add, Subtract,
+        Power, Multiply, Divide, Modulo, Add, Subtract,
         ShiftRight, ShiftLeft,
         NAnd, BinNAnd, And, BinAnd,
         XOr, BinXOr,
@@ -194,6 +209,9 @@ struct Bytecode {
     Type::TypeEnum op1LiteralType : 2 = Type::none;
     Type::TypeEnum op2LiteralType : 2 = Type::none;
     Type::TypeEnum op3LiteralType : 2 = Type::none;
+    uint8_t op1LiteralSize : 4 = 0;
+    uint8_t op2LiteralSize : 4 = 0;
+    uint8_t op3LiteralSize : 4 = 0;
 #else
     uint8_t type : 7 = BytecodeInstruction::None;
     // types of locations of operands and result
@@ -203,6 +221,9 @@ struct Bytecode {
     uint8_t op1LiteralType : 2 = Type::none;
     uint8_t op2LiteralType : 2 = Type::none;
     uint8_t op3LiteralType : 2 = Type::none;
+    uint8_t op1LiteralSize : 4 = 0;
+    uint8_t op2LiteralSize : 4 = 0;
+    uint8_t op3LiteralSize : 4 = 0;
 #endif
     // probably 2 bits of space here
     // metadata of the used type
@@ -217,16 +238,12 @@ struct Bytecode {
     // these return a reconstructed operand struct for easier use
     [[nodiscard]] BytecodeOperand op1() const;
     BytecodeOperand op1(BytecodeOperand op);
-    BytecodeOperand op1(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
     [[nodiscard]] BytecodeOperand op2() const;
     BytecodeOperand op2(BytecodeOperand op);
-    BytecodeOperand op2(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
     [[nodiscard]] BytecodeOperand op3() const;
     BytecodeOperand op3(BytecodeOperand op);
-    BytecodeOperand op3(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
     [[nodiscard]] BytecodeOperand result() const;
     BytecodeOperand result(BytecodeOperand op);
-    BytecodeOperand result(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none);
 };
 
 // export functions
@@ -238,6 +255,6 @@ void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 // printing functions
 
 std::ostream& operator<<(std::ostream& out, const Bytecode& code);
-std::ostream& operator<<(std::ostream& out, const BytecodeOperand& code);
+std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op);
 
 #endif //DODO_LANG_GENERAL_BYTECODE_HPP

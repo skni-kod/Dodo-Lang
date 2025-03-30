@@ -13,7 +13,7 @@ struct LexerToken;
 
 #define INSERT_TYPE_ENUM \
 enum TypeEnum { \
-none, unsignedInteger, signedInteger, floatingPoint \
+none = 0, address = 0, unsignedInteger, signedInteger, floatingPoint \
 }; \
 
 #define INSERT_SUBTYPE_ENUM \
@@ -49,6 +49,8 @@ struct TypeMeta {
     uint8_t isMutable : 1 = false;
 
     bool operator==(const TypeMeta& type_meta) const = default;
+    TypeMeta() = default;
+    TypeMeta(const TypeMeta& old, int8_t amountToChange);
 };
 
 struct TypeObject;
@@ -97,6 +99,7 @@ struct ParserInstructionObject {
 struct ParserMemberVariableParameter {
     TypeObject* typeObject = nullptr;
     uint32_t offset = 0;
+    bool inMethod = false;
     std::vector <ParserTreeValue> definition{};
 
     [[nodiscard]] const TypeMeta& typeMeta() const;
@@ -194,7 +197,7 @@ struct ParserTreeValue {
 
     union {
         std::string* identifier = nullptr;
-        const LexerToken* literal;
+        LexerToken* literal;
         uint64_t code;
         Operator::Type operatorType;
         TypeObject* definitionType;

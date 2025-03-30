@@ -28,12 +28,12 @@ namespace Operator {
         Increment, Decrement, Power, Multiply, Divide, Modulo, Add, Subtract,
         ShiftRight, ShiftLeft,
         // boolean order similar to C/C++ but expanded for more things
-        NAnd, BinNAnd, And, BinAnd,
-        XOr, BinXOr,
-        NOr, BinNOr, Or, BinOr,
-        NImply, Imply, BinNImply, BinImply,
-        // assign and compare last so that they are evaluated after everything
-        Assign, Lesser, Greater, Equals, LesserEqual, GreaterEqual, NotEqual,
+        BinNAnd, BinAnd,
+        BinXOr,
+        BinNOr, BinOr,
+        BinImply, BinNImply,
+        // assign, compare and logical last so that they are evaluated after everything
+        Lesser, Greater, Equals, LesserEqual, GreaterEqual, NotEqual, And, NAnd, XOr, Or, NOr, Imply, NImply, Assign,
         // these are special cases that do not use order of operations
         Macro, BracketOpen, BracketClose, Bracket,
         BraceOpen, BraceClose, Brace, IndexOpen, IndexClose, Index, None

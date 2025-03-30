@@ -1,4 +1,6 @@
 #include "TypeObject.hpp"
+
+#include <GenerateCode.hpp>
 #include <ostream>
 
 std::ostream& operator<<(std::ostream& out, const ParserMemberVariableParameter& variable) {
@@ -46,3 +48,8 @@ const std::string& ParserMemberVariableParameter::typeName() const {
     return *definition[0].identifier;
 }
 
+TypeMeta::TypeMeta(const TypeMeta& old, const int8_t amountToChange) {
+    if (amountToChange < 0 and old.pointerLevel < -amountToChange) CodeGeneratorError("Cannot get put address into a non pointer!");
+    pointerLevel = old.pointerLevel + amountToChange;
+    isMutable = old.isMutable;
+}

@@ -1,7 +1,7 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains definitions of basic primitive types.                                  ┃
 // ┃ They behave according to base function definitions.                                       ┃
-// ┃ Last revision: 27.02.2025                                                                 ┃
+// ┃ Last revision: 30.03.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 primitive SIGNED_INTEGER   <1> type i8 ;
@@ -17,3 +17,5 @@ primitive UNSIGNED_INTEGER <8> type u64;
 primitive FLOATING_POINT   <2> type f16;
 primitive FLOATING_POINT   <4> type f32;
 primitive FLOATING_POINT   <8> type f64;
+
+primitive UNSIGNED_INTEGER <1> type char;

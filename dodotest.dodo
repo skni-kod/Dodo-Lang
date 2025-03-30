@@ -7,16 +7,19 @@ i32 Main() {
 
 type test {
     let i32 k = 10;
-    let i16 t = 5;
+    /*let i16 t = 5;
     let i16 y = 5;
     let test* rec = 0;
 
     i32 sum() {
         return k + t + y;
-    }
+    }*/
 
-    i32 operator = () {}
+    i32 operator = (let i32 val) {
+        k = val;
+    }
 }
 
-//let mut test****** g = 5 + 6 / 5;
-let mut i32 k = 10 + 10 .& 10;
+let mut test g = 5;
+//let mut f32 k = k++;
+//let char* str = "I'm a string!";

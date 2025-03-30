@@ -26,6 +26,10 @@ void CodeGeneratorError(std::string message) {
     throw __CodeGeneratorException();
 }
 
+void Warning(std::string message) {
+    std::cout << "WARNING: " << message << "\n";
+}
+
 
 
 void GenerateCode() {

@@ -25,8 +25,19 @@ struct LexerToken {
         Keyword::KeywordType kw;
         uint64_t num = 0;
         uint64_t _unsigned;
+        uint64_t unsigned64;
+        uint32_t unsigned32;
+        uint16_t unsigned16;
+        uint8_t unsigned8;
         double _double;
+        double float64;
+        float float32;
+        // no 16 bit implementation!
         int64_t _signed;
+        int64_t signed64;
+        int32_t signed32;
+        int16_t signed16;
+        int8_t signed8;
         std::string* text;
         std::string* string;
     };

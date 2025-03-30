@@ -142,7 +142,9 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
     ParserTreeValue out;
 
     // now we have found (or not) the most important splitting operand and can construct something out of it
-    if (mostImportant != nullptr and mostImportant->op != Operator::Address and mostImportant->op != Operator::Dereference) {
+    if (mostImportant != nullptr and mostImportant->op != Operator::Address and mostImportant->op != Operator::Dereference
+        and not tokens[end - 1]->MatchOperator(Operator::Increment, Operator::Decrement)
+        and not tokens[start]->MatchOperator(Operator::Increment, Operator::Decrement)) {
         if (length < 3) {
             ParserError("Invalid expression!");
         }
@@ -257,7 +259,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 out.next = valueArray.size() - 1;
             }
         }
-        else if (tokens[start]->type == Token::Identifier) {
+        else if (tokens[start]->type == Token::Identifier and not tokens[end - 1]->MatchOperator(Operator::Increment, Operator::Decrement)) {
             // a variable with members or call
             out.operation = ParserOperation::Variable;
             out.identifier = tokens[start]->text;
