@@ -5,6 +5,8 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
 
     ParserFunctionMethod output;
     output.returnType = type;
+    output.isMethod = isMethod;
+    output.isOperator = operatorType != Operator::None;
 
     auto* current = generator();
 
@@ -12,12 +14,16 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
         current = generator();
     }
     while (not current->MatchOperator(Operator::BracketClose)) {
+        if (current->MatchKeyword(Keyword::Comma)) current = generator();
+
         if (not current->MatchKeyword(Keyword::Let)) {
             ParserError("Expected a parameter!");
         }
 
         output.parameters.emplace_back();
-        output.parameters.back().inMethod = isMethod;
+        output.parameters.back().isMethod = isMethod;
+        output.parameters.back().isOperator = operatorType != Operator::None;
+
         const auto result = ParseExpression(generator, output.parameters.back().definition, {current});
 
         current = result;

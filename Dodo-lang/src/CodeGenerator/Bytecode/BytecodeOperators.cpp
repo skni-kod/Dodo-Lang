@@ -29,7 +29,16 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
             }
             if (node.operation == ParserOperation::Argument or node.operation == ParserOperation::Call or node.operation == ParserOperation::Syscall)
                 operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), currentNode.value, isGlobal));
-            else operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), node.value, isGlobal));
+            else {
+                if (counter == 1) operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), node.value, isGlobal));
+                else {
+                    operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), node.left, isGlobal));
+                    counter++;
+                    parameterCounter++;
+                    continue;
+                }
+            }
+
         }
         catch (__CodeGeneratorException& e) {
             return false;
@@ -39,7 +48,8 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
         if (not currentNode.next) break;
         counter++;
     }
-    while (currentNode.operation == ParserOperation::Argument and counter != limit);
+    // TODO: add a case for when counter works with other operations
+    while ((currentNode.operation == ParserOperation::Argument or counter == 1) and counter != limit);
 
     if (parameterCounter != target.parameters.size()) return false;
 
@@ -49,7 +59,7 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
     Bytecode arg;
     arg.type = Bytecode::Argument;
     for (uint64_t n = 0; n < operands.size(); n++) {
-        arg.op2({Location::Literal, {0}});
+        arg.op2({Location::Literal, {n}});
         arg.op3(operands[n]);
         arg.opType = target.parameters[n].typeObject;
         arg.opTypeMeta = target.parameters[n].typeMeta();
@@ -63,6 +73,9 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
 
 // checks if the operator has been redefined for this type
 bool AssignOverloadedOperatorIfPossible(BytecodeContext& context, std::vector<ParserTreeValue>& values, Bytecode& code, ParserTreeValue& node, TypeObject* type, TypeMeta typeMeta, bool isGlobal) {
+
+    bool anyFound = false;
+
     for (uint32_t n = 0; n < type->methods.size(); n++) {
         // TODO: add support for overloading by arguments
         // TODO: also a check for multiple overloads of given type could be added here
@@ -71,16 +84,22 @@ bool AssignOverloadedOperatorIfPossible(BytecodeContext& context, std::vector<Pa
             and *type->methods[n].returnType.typeName == *type->methods[n].returnType.typeName
             and type->methods[n].returnType.type.pointerLevel == typeMeta.pointerLevel) {
 
-            // now we have a correct overload
-            code.type = Bytecode::Method;
-            code.op1({Location::Call, BytecodeValue{n}});
-            if (not DoArgumentTypesMatch(context, values, type->methods[n],node, isGlobal, 1)) continue;
-            if (not type->methods[n].returnType.typeName->empty()) code.op3({Location::Temporary, {context.tempCounter++}});
+            anyFound = true;
 
+            // now we have a correct overload
+            if (not DoArgumentTypesMatch(context, values, type->methods[n],node, isGlobal, 2)) continue;
+            if (not type->methods[n].returnType.typeName->empty()) code.op3({Location::Temporary, {context.tempCounter++}});
+            code.type = Bytecode::Method;
+            code.op1Location = Location::Call;
+            code.op1Value.function = &type->methods[n];
             context.codes.push_back(code);
+
+            type->methods[n].parentType = type;
             return true;
         }
     }
+
+    if (anyFound) CodeGeneratorError("Could not find any viable overload!");
 
     return false;
 }
@@ -92,28 +111,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
     code.opTypeMeta = typeMeta;
     if (AssignOverloadedOperatorIfPossible(context, values, code, values[index], type, typeMeta, isGlobal)) {
         if (values[index].operation != ParserOperation::Operator) CodeGeneratorError("Non double operator overloads not implemented!");
-        // it's a method so the first argument needs to be the variable we are initializing
-        // the variable must be in left value of the tree value
-        // incrementing the argument number for the
-        uint64_t n = context.codes.size() - 2;
-        for (; ; n--) {
-            if (context.codes[n].op2Value.ui == 0) {
-                for (uint64_t m = n; m < context.codes.size() - 1; m++) {
-                    context.codes[m].op2Value.ui++;
-                }
-                break;
-            }
-        }
-        // now let's insert the argument at the position of n
-        Bytecode var;
-        var.type = Bytecode::Argument;
-        var.opType = type;
-        if (typeMeta.pointerLevel) CodeGeneratorError("Cannot call methods for pointer type!");
-        var.opTypeMeta = TypeMeta(typeMeta, 1);
-        var.op2Value.ui = 0;
-        CodeGeneratorError("How to handle the left side of overloaded operations? the dreaded inlining?");
-        context.codes.insert(context.codes.begin() + n, var);
-
+        // it's an operator so we don't add a pointer to the type "object"
         return code.result();
     }
 

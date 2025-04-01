@@ -99,7 +99,8 @@ struct ParserInstructionObject {
 struct ParserMemberVariableParameter {
     TypeObject* typeObject = nullptr;
     uint32_t offset = 0;
-    bool inMethod = false;
+    bool isMethod : 1 = false;
+    bool isOperator : 1 = false;
     std::vector <ParserTreeValue> definition{};
 
     [[nodiscard]] const TypeMeta& typeMeta() const;
@@ -176,7 +177,8 @@ struct ParserTreeValue {
 #else
     uint8_t operation = ParserOperation::Operator;
 #endif
-    uint8_t isLValued = false;
+    uint8_t isLValued : 1 = false;
+    uint8_t isBeingDefined : 1 = false;
     TypeMeta typeMeta;
     union {
         TypeMeta typeInfo = {};
@@ -208,8 +210,11 @@ struct ParserFunctionMethod {
     std::vector <ParserInstructionObject> instructions;
     std::string name;
     Operator::Type overloaded = Operator::None;
+    bool isMethod = false;
+    bool isOperator = false;
     std::vector<ParserMemberVariableParameter> parameters;
     ParserValueTypeObject returnType;
+    TypeObject* parentType = nullptr;
 };
 
 // TODO: figure out a way to change this to temp type

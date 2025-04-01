@@ -116,7 +116,7 @@ union BytecodeValue {
     float f32;
     uint64_t string;
     uint64_t label;
-    uint64_t function;
+    ParserFunctionMethod* function;
     // TODO: make this a dedicated structure
     uint64_t variable;
 };

@@ -144,6 +144,8 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             CheckLiteralMatch(current.literal, type, typeMeta);
             return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
         case ParserOperation::Variable:
+            // TODO: make this work correctly
+            if (current.isBeingDefined) return {Location::Variable, {globalVariables.size() - 1}};
             if (isGlobal) CodeGeneratorError("Cannot initialize global variables with other variables!");
             CodeGeneratorError("Variables not implemented!");
         case ParserOperation::String:
@@ -163,13 +165,15 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
                 converterGlobals.push_back(&globalVariables[*values[current.next].identifier]);
             }
             else CodeGeneratorError("Local variables not implemented!");
+            values[current.next].isBeingDefined = true;
 
             if (current.value) {
                 current.operation = ParserOperation::Operator;
                 current.operatorType = Operator::Assign;
-
-                GenerateExpressionBytecode(context, values, type, typeMeta, index, isGlobal);
                 context.codes.push_back(code);
+                
+                GenerateExpressionBytecode(context, values, type, typeMeta, index, isGlobal);
+
                 return {};
             }
             // TODO: add user definable default values for primitive types!

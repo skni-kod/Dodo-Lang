@@ -252,7 +252,10 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
         case Location::Label:
             return out << "label: " << op.value.ui;
         case Location::Call:
-            return out << "call: " << op.value.ui;
+            out << "call: ";
+            if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
+            if (op.value.function->isOperator) return out << "operator::<something>";
+            return out << op.value.function->name;
         case Location::Temporary:
             return out << "temporary: " << op.value.ui;
         default:
