@@ -49,7 +49,7 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
                 Bytecode code;
                 code.type = Bytecode::Address;
                 code.op1(operands.back());
-                code.result({Location::Temporary, {tempContext.tempCounter++}});
+                code.result(context.insertTemporary(currentParameter.typeObject, currentParameter.typeMeta()));
                 tempContext.codes.push_back(code);
                 operands.back() = code.result();
             }
@@ -105,7 +105,7 @@ bool AssignOverloadedOperatorIfPossible(BytecodeContext& context, std::vector<Pa
 
             // now we have a correct overload
             if (not DoArgumentTypesMatch(context, values, type->methods[n],node, isGlobal, 2)) continue;
-            if (not type->methods[n].returnType.typeName->empty()) code.op3({Location::Temporary, {context.tempCounter++}});
+            if (not type->methods[n].returnType.typeName->empty()) code.op3(context.insertTemporary(type, typeMeta));
             code.type = Bytecode::Method;
             code.op1Location = Location::Call;
             code.op1Value.function = &type->methods[n];
@@ -141,7 +141,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                 case Operator::Address:
                     code.type = Bytecode::Address;
                     code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, -1}, current.prefix, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Dereference:
                     code.type = Bytecode::Dereference;
@@ -150,12 +150,12 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                 case Operator::Not:
                     code.type = Bytecode::Not;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinNot:
                     code.type = Bytecode::BinNot;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Increment:
                     if (current.prefix) {
@@ -165,7 +165,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         code.type = Bytecode::Add;
                         code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
                         code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-                        code.op3({Location::Temporary, {context.tempCounter++}});
+                        code.op3(context.insertTemporary(type, typeMeta));
                         context.codes.push_back(code);
 
                         // assigning
@@ -181,12 +181,12 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         // saving the needed value into a temporary
                         code.type = Bytecode::Save;
                         code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.postfix, isGlobal));
-                        auto value = code.op3({Location::Temporary, {context.tempCounter++}});
+                        auto value = code.op3(context.insertTemporary(type, typeMeta));
 
                         // adding
                         code.type = Bytecode::Add;
                         code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-                        code.op3({Location::Temporary, {context.tempCounter++}});
+                        code.op3(context.insertTemporary(type, typeMeta));
                         context.codes.push_back(code);
 
                         // assigning
@@ -205,7 +205,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         code.type = Bytecode::Subtract;
                         code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
                         code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-                        code.op3({Location::Temporary, {context.tempCounter++}});
+                        code.op3(context.insertTemporary(type, typeMeta));
                         context.codes.push_back(code);
 
                         // assigning
@@ -221,12 +221,12 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         // saving the needed value into a temporary
                         code.type = Bytecode::Save;
                         code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.postfix, isGlobal));
-                        auto value = code.op3({Location::Temporary, {context.tempCounter++}});
+                        auto value = code.op3(context.insertTemporary(type, typeMeta));
 
                         // adding
                         code.type = Bytecode::Subtract;
                         code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-                        code.op3({Location::Temporary, {context.tempCounter++}});
+                        code.op3(context.insertTemporary(type, typeMeta));
                         context.codes.push_back(code);
 
                         // assigning
@@ -242,175 +242,175 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     code.type = Bytecode::Power;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Multiply:
                     code.type = Bytecode::Multiply;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Divide:
                     code.type = Bytecode::Divide;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Modulo:
                     code.type = Bytecode::Modulo;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Add:
                     code.type = Bytecode::Add;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Subtract:
                     code.type = Bytecode::Subtract;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::ShiftRight:
                     code.type = Bytecode::ShiftRight;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::ShiftLeft:
                     code.type = Bytecode::ShiftLeft;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::NAnd:
                     code.type = Bytecode::NAnd;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinNAnd:
                     code.type = Bytecode::BinNAnd;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::And:
                     code.type = Bytecode::And;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinAnd:
                     code.type = Bytecode::BinAnd;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::XOr:
                     code.type = Bytecode::XOr;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinXOr:
                     code.type = Bytecode::BinXOr;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::NOr:
                     code.type = Bytecode::NOr;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinNOr:
                     code.type = Bytecode::BinNOr;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Or:
                     code.type = Bytecode::Or;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinOr:
                     code.type = Bytecode::BinOr;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::NImply:
                     code.type = Bytecode::NImply;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Imply:
                     code.type = Bytecode::Imply;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinNImply:
                     code.type = Bytecode::BinNImply;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BinImply:
                     code.type = Bytecode::BinImply;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Assign:
                     code.type = Bytecode::Assign;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Lesser:
                     code.type = Bytecode::Lesser;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Greater:
                     code.type = Bytecode::Greater;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Equals:
                     code.type = Bytecode::Equals;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::LesserEqual:
                     code.type = Bytecode::LesserEqual;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::GreaterEqual:
                     code.type = Bytecode::GreaterEqual;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::NotEqual:
                     code.type = Bytecode::NotEqual;
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3({Location::Temporary, {context.tempCounter++}});
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::BraceOpen:
                     code.type = Bytecode::BeginScope;
@@ -429,7 +429,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     if (not current.next) {
                         // TODO: what about the variable information in index?
                         code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal));
-                        code.op3({Location::Temporary, {context.tempCounter++}});
+                        code.op3(context.insertTemporary(type, typeMeta));
                     }
                     else CodeGeneratorError("Next values for grouping not implemented!");
                     break;

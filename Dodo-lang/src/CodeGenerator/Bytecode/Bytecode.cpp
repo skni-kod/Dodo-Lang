@@ -151,7 +151,7 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
         case ParserOperation::Variable:
             // TODO: make this work correctly
-            if (current.isBeingDefined) return {Location::Variable, {globalVariables.size() - 1}};
+            if (current.isBeingDefined) return context.getVariable(current.identifier, type, typeMeta);
             if (isGlobal) CodeGeneratorError("Cannot initialize global variables with other variables!");
             CodeGeneratorError("Variables not implemented!");
         case ParserOperation::String:
@@ -167,10 +167,12 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             code.type = Bytecode::Define;
             if (isGlobal) {
                 // if it's global give it a number and push back a pointer
-                code.op1({Location::Variable, {converterGlobals.size()}});
-                converterGlobals.push_back(&globalVariables[*values[current.next].identifier]);
+                code.op1({Location::Variable, {{VariableLocation::Global, 0, converterGlobals.size()}}});
+                converterGlobals.emplace_back(type, values[current.next].identifier, typeMeta);
             }
-            else CodeGeneratorError("Local variables not implemented!");
+            else {
+                code.op1(context.insertVariable(current.identifier, type, typeMeta));
+            }
             values[current.next].isBeingDefined = true;
 
             if (current.value) {
@@ -215,6 +217,13 @@ std::vector<Bytecode> GenerateFunctionBytecode(ParserFunction& function) {
 }
 
 // methods
+
+BytecodeValue::BytecodeValue(uint64_t val) {
+    ui = val;
+}
+BytecodeValue::BytecodeValue(VariableLocation val) {
+    variable = val;
+}
 
 BytecodeOperand Bytecode::op1() const {
     return {op1Location, op1Value, op1LiteralType, op1LiteralSize};
@@ -273,18 +282,64 @@ BytecodeOperand::BytecodeOperand(Location::Type location, BytecodeValue value, T
 
 BytecodeContext BytecodeContext::current() const {
     BytecodeContext newContext;
-    newContext.tempCounter = tempCounter;
+    newContext.localVariables = localVariables;
+    newContext.temporaries = temporaries;
     newContext.isConstExpr = isConstExpr;
     newContext.isMutable = isMutable;
     return newContext;
 }
 
-void BytecodeContext::merge(const BytecodeContext& context) {
+void BytecodeContext::merge(BytecodeContext& context) {
+    localVariables = std::move(context.localVariables);
+    temporaries = std::move(temporaries);
     const auto start = codes.size();
     codes.resize(codes.size() + context.codes.size());
     for (size_t n = 0; n < context.codes.size(); n++) {
         codes[start + n] = context.codes[n];
     }
+}
+
+BytecodeOperand BytecodeContext::insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
+    VariableLocation location;
+    location.type = VariableLocation::Local;
+    location.level = localVariables.size() - 1;
+    location.number = localVariables[location.level].size();
+    localVariables[location.level].emplace_back(type, identifier, meta);
+    return {Location::Variable, {location}};
+}
+
+BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta) {
+    VariableLocation location;
+    location.type = VariableLocation::Temporary;
+    location.number = temporaries.size();
+    temporaries.emplace_back(type, nullptr, meta);
+    return {Location::Variable, {location}};
+
+}
+
+BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
+    // first let's go through local variables from top and back
+    for (int64_t n = localVariables.size() - 1; n >= 0; n--) {
+        for (int64_t m = localVariables[n].size(); m >= 0; m--) {
+            auto& current = localVariables[n][m];
+            if (current.identifier == identifier or *current.identifier == *identifier) {
+                if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in variable get!");
+                return {Location::Variable, VariableLocation(VariableLocation::Local, n, m)};
+            }
+        }
+    }
+
+    // now global variables
+    for (uint64_t n = 0; n < converterGlobals.size(); n++) {
+        auto& current = converterGlobals[n];
+        if (current.identifier == identifier or *current.identifier == *identifier) {
+            if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in variable get!");
+            return {Location::Variable, VariableLocation(VariableLocation::Global, 0, n)};
+        }
+    }
+
+    CodeGeneratorError("Variable not found!");
+    return {};
 }
 
 // old code

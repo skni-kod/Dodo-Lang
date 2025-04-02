@@ -118,8 +118,9 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
     }
 
     if (Options::importDirectories.empty()) {
-        std::cout << "Warning: As it was not defined, project directory was automatically set to: " << Options::inputFiles.front().parent_path() << ". Remember to set it if using external imports!\n";
-        Options::importDirectories.push_back(Options::inputFiles.front().parent_path());
+        Options::importDirectories.push_back(absolute(Options::inputFiles.front()).parent_path());
+        std::cout << "Warning: As it was not defined, project directory was automatically set to: " << Options::importDirectories.back() << ". Remember to set it if using external imports!\n";
+
     }
 
     if (Options::stdlibDirectory == "") {

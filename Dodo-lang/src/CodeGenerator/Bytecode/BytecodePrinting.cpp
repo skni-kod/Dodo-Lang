@@ -181,6 +181,23 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
   return out << "\n";
 }
 
+std::ostream& operator<<(std::ostream& out, const VariableLocation& op) {
+    switch (op.type) {
+        case VariableLocation::None:
+            CodeGeneratorError("Invalid variable location type in printing!");
+        break;
+        case VariableLocation::Global:
+            return out <<  "global: " << *converterGlobals[op.number].identifier;
+        case VariableLocation::Local:
+            return out << "local: " << op.level << ", " << op.number;
+        case VariableLocation::Temporary:
+            return out << "temporary: " << op.number;
+        default:
+        return out;
+    }
+    return out;
+}
+
 std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
     switch (op.location) {
         case Location::None:
@@ -256,8 +273,6 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
             if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
             if (op.value.function->isOperator) return PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
             return out << op.value.function->name;
-        case Location::Temporary:
-            return out << "temporary: " << op.value.ui;
         default:
             CodeGeneratorError("Invalid bytecode operand location in printing!");
             return out;

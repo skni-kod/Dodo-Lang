@@ -96,9 +96,24 @@ inline std::vector<BytecodeOld> bytecodes;
 #define BYTECODE_LOCATION_SIZE 4
 namespace Location {
     enum Type {
-        None, Variable, Literal, String, Label, Call, Temporary, Register, Heap, Stack
+        None, Variable, Literal, String, Label, Call, Register, Heap, Stack
     };
 }
+
+struct VariableLocation {
+    enum Type {
+        None, Local, Global, Temporary
+    };
+
+    #ifdef ENUM_VARIABLES
+    VariableLocation::Type type = VariableLocation::None;
+    #else
+    uint64_t type : 2 = VariableLocation::None;
+    #endif
+
+    uint64_t level : 14 = 0;
+    uint64_t number : 48 = 0;
+};
 
 union BytecodeValue {
     uint64_t ui = 0;
@@ -117,12 +132,11 @@ union BytecodeValue {
     uint64_t string;
     uint64_t label;
     ParserFunctionMethod* function;
-    // TODO: make this a dedicated structure
-    uint64_t variable;
+    VariableLocation variable;
+    BytecodeValue() = default;
+    BytecodeValue(uint64_t val);
+    BytecodeValue(VariableLocation val);
 };
-
-inline std::vector <ParserFunctionMethod*> converterFunctions;
-inline std::vector <ParserMemberVariableParameter*> converterGlobals;
 
 struct BytecodeOperand {
 #ifdef ENUM_VARIABLES
@@ -246,6 +260,42 @@ struct Bytecode {
     BytecodeOperand result(BytecodeOperand op);
 };
 
+// represents a variable used in the context
+struct VariableObject {
+    TypeObject* type = nullptr;
+    std::string* identifier = nullptr;
+    TypeMeta meta{};
+};
+
+struct BytecodeContext {
+    std::vector <Bytecode> codes;
+    std::vector <std::vector <VariableObject>> localVariables = {};
+    std::vector <VariableObject> temporaries;
+    // if it's constant then
+    bool isConstExpr = false;
+    bool isMutable = false;
+
+    // ALWAYS update the current() method after adding variables
+
+    // makes a copy with empty vector
+    [[nodiscard]] BytecodeContext current() const;
+
+    // adds another context into this one
+    void merge(BytecodeContext& context);
+
+    // inserts a new local scope variable
+    BytecodeOperand insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    // inserts a new local scope temporary variable
+    BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta);
+    // returns requested variable and throws and exception if there is no match for name or type is wrong
+    BytecodeOperand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    // the same, not implemented
+    BytecodeOperand getVariable(BytecodeOperand operand);
+};
+
+inline std::vector <ParserFunctionMethod*> converterFunctions;
+inline std::vector <VariableObject> converterGlobals;
+
 // export functions
 
 std::vector<Bytecode> GenerateGlobalVariablesBytecode();
@@ -256,5 +306,6 @@ void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 
 std::ostream& operator<<(std::ostream& out, const Bytecode& code);
 std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op);
+std::ostream& operator<<(std::ostream& out, const VariableLocation& op);
 
 #endif //DODO_LANG_GENERAL_BYTECODE_HPP
