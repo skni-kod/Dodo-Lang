@@ -27,17 +27,34 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
             if (currentParameter.typeObject == nullptr) {
                 currentParameter.typeObject = &types[*currentParameter.definition[0].identifier];
             }
+            TypeMeta meta = currentParameter.typeMeta();
+            bool wasReference = meta.isReference;
+            meta.isReference = false;
+            bool skip = false;
+
             if (node.operation == ParserOperation::Argument or node.operation == ParserOperation::Call or node.operation == ParserOperation::Syscall)
-                operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), currentNode.value, isGlobal));
+                operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, meta, currentNode.value, isGlobal));
             else {
-                if (counter == 1) operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), node.value, isGlobal));
+                if (counter == 1) operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, meta, node.value, isGlobal));
                 else {
-                    operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), node.left, isGlobal));
+                    operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, meta, node.left, isGlobal));
                     counter++;
                     parameterCounter++;
-                    continue;
+                    skip = true;
                 }
             }
+
+            if (wasReference) {
+                // adding the address extraction
+                Bytecode code;
+                code.type = Bytecode::Address;
+                code.op1(operands.back());
+                code.result({Location::Temporary, {tempContext.tempCounter++}});
+                tempContext.codes.push_back(code);
+                operands.back() = code.result();
+            }
+
+            if (skip) continue;
 
         }
         catch (__CodeGeneratorException& e) {

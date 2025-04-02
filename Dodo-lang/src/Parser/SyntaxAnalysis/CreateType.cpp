@@ -109,7 +109,7 @@ std::pair<uint64_t, uint64_t> CalculateTypeSize(TypeObject& type) {
     uint64_t sum = 0, alignment = 0;
     for (auto& n : type.members) {
         uint64_t memberSize, memberAlignment;
-        if (n.typeMeta().pointerLevel > 0) {
+        if (n.typeMeta().pointerLevel > 0 or n.typeMeta().isReference) {
             memberSize = memberAlignment = Options::addressSize;
         }
         else {

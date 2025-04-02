@@ -509,14 +509,20 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         }
 
         uint8_t pointerLevel = 0;
+        bool isReference = false;
         uint32_t name = 0;
         for (uint32_t n = first + 1; n < tokens.size(); n++) {
             if (tokens[n]->MatchOperator(Operator::Multiply, Operator::Dereference)) {
+                if (isReference) ParserError("Cannot make a pointer to reference!");
                 pointerLevel++;
             }
             else if (tokens[n]->type == Token::Identifier) {
                 name = n;
                 break;
+            }
+            else if (tokens[n]->MatchOperator(Operator::Address)) {
+                if (isReference) ParserError("Cannot create a double reference!");
+                isReference = true;
             }
             else {
                 break;
@@ -534,6 +540,7 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         declaration.operation = ParserOperation::Definition;
         declaration.typeMeta.pointerLevel = pointerLevel;
         declaration.typeMeta.isMutable = first == 2;
+        declaration.typeMeta.isReference = isReference;
         declaration.identifier = tokens[first]->text;
         declaration.next = startIndex + 1;
         valueArray.emplace_back(declaration);

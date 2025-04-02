@@ -15,8 +15,8 @@ type test {
         return k + t + y;
     }*/
 
-    i32 operator = (let test* o, let i32 val) {
-        k = val;
+    i32 operator = (let mut test& o, let i32 val) {
+        o.k = val;
     }
 }
 

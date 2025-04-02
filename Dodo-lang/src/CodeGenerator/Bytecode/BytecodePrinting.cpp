@@ -254,7 +254,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
         case Location::Call:
             out << "call: ";
             if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
-            if (op.value.function->isOperator) return out << "operator::<something>";
+            if (op.value.function->isOperator) return PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
             return out << op.value.function->name;
         case Location::Temporary:
             return out << "temporary: " << op.value.ui;

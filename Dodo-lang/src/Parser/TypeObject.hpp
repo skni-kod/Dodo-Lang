@@ -45,8 +45,9 @@ namespace Primitive {
 }
 
 struct TypeMeta {
-    uint8_t pointerLevel : 7 = 0;
+    uint8_t pointerLevel : 6 = 0;
     uint8_t isMutable : 1 = false;
+    uint8_t isReference : 1 = false;
 
     bool operator==(const TypeMeta& type_meta) const = default;
     TypeMeta() = default;

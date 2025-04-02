@@ -1,3 +1,4 @@
+#include <GenerateCode.hpp>
 #include <iostream>
 #include <generator>
 
@@ -126,6 +127,103 @@ bool LexerToken::operator==(const LexerToken& other) const {
     }
 }
 
+std::ostream& PrintOperatorSymbol(const Operator::Type op, std::ostream& out) {
+    switch (op) {
+        case Operator::Assign:
+            return out << "=";
+        case Operator::Add:
+            return out << "+,";
+        case Operator::Subtract:
+            return out << "-";
+        case Operator::Multiply:
+            return out << "*";
+        case Operator::Divide:
+            return out << "/";
+        case Operator::Power:
+            return out << "^^";
+        case Operator::Modulo:
+            return out << "%";
+        case Operator::NOr:
+            return out << "!|";
+        case Operator::BinNOr:
+            return out << ".!|";
+        case Operator::NAnd:
+            return out << "!&";
+        case Operator::BinNAnd:
+            return out << ".!&";
+        case Operator::Macro:
+            return out << "#";
+        case Operator::Not:
+            return out << "!";
+        case Operator::BinNot:
+            return out << ".!";
+        case Operator::Or:
+            return out << "|";
+        case Operator::BinOr:
+            return out << ".|";
+        case Operator::And:
+            return out << "&";
+        case Operator::BinAnd:
+            return out << ".&";
+        case Operator::XOr:
+            return out << "^";
+        case Operator::BinXOr:
+            return out << ".^";
+        case Operator::Imply:
+            return out << "=>";
+        case Operator::NImply:
+            return out << "!=>";
+        case Operator::BinImply:
+            return out << ".=>";
+        case Operator::BinNImply:
+            return out << ".=>,";
+        case Operator::Lesser:
+            return out << "<";
+        case Operator::Greater:
+            return out << ">";
+        case Operator::Equals:
+            return out << "==";
+        case Operator::LesserEqual:
+            return out << "<=";
+        case Operator::GreaterEqual:
+            return out << ">=";
+        case Operator::NotEqual:
+            return out << "!=";
+        case Operator::BracketOpen:
+            return out << "(";
+        case Operator::BracketClose:
+            return out << ")";
+        case Operator::BraceOpen:
+            return out << "{";
+        case Operator::BraceClose:
+            return out << "}";
+        case Operator::IndexOpen:
+            return out << "[";
+        case Operator::IndexClose:
+            return out << "]";
+        case Operator::Index:
+            return out << "[]";
+        case Operator::Increment:
+            return out << "++";
+        case Operator::Decrement:
+            return out << "--";
+        case Operator::ShiftRight:
+            return out << ">>";
+        case Operator::ShiftLeft:
+            return out << "<<";
+        case Operator::Bracket:
+            return out << "()";
+        case Operator::Brace:
+            return out << "{}";
+        case Operator::Address:
+            return out << "address of";
+        case Operator::Dereference:
+            return out << "dereference";
+        default:
+            LexerError("Internal bug - invalid operator in printing!");
+        return out;
+    }
+   }
 std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
     switch (token.type) {
         case Token::Identifier:

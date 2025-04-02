@@ -19,7 +19,16 @@ std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToke
         while ((current = generator())->MatchOperator(Operator::Multiply, Operator::Dereference)) {
             output.type.pointerLevel++;
         }
+
+        if (current->MatchOperator(Operator::Address)) {
+            output.type.isReference = true;
+            current = generator();
+        }
     }
+    else current = generator();
+
+    if (current->type != Token::Identifier and not current->MatchKeyword(Keyword::Operator)) ParserError("Expected an identifier after function return type!");
+
     return {output, current};
 }
 

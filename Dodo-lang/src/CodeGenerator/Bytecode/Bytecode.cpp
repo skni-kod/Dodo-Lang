@@ -124,6 +124,12 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
     // first off let's do a switch to know what is going on
     auto& current = values[index];
 
+    if (typeMeta.isReference) {
+        // in that case if it's an argument the address needs to be extracted
+        // if it's used anywhere else it needs to be handled as a pointer without being seen as one
+        // it's going to be annoying
+    }
+
     Bytecode code;
     code.opType = type;
     code.opTypeMeta = typeMeta;

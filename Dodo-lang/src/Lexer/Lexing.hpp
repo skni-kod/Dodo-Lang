@@ -81,6 +81,8 @@ struct LexerToken {
     ~LexerToken();
 };
 
+std::ostream& PrintOperatorSymbol(Operator::Type op, std::ostream& out);
+
 std::ostream& operator<<(std::ostream& out, const LexerToken& token);
 
 struct LexerLine {
