@@ -6,13 +6,11 @@
 #include <queue>
 #include <filesystem>
 
-// DEVELOPMENT DEFINITIONS
-
-// due to the fact that enums use 4 bytes many of the structures will grow with this enabled
-// it's very useful for debugging things and checking for correct enums though
-#define ENUM_VARIABLES
-
-
+// packed enums and generally variables allow for lower memory use of supported systems and for compile time enum mismatch checks
+#if (defined(__x86_64__) or defined(i386) or defined(__i386__) or defined(__i386) or defined(_M_IX86)) and (defined(_MSC_VER) or defined(__GNUC__) or defined(__clang__))
+#define PACKED_ENUM_VARIABLES
+#pragma pack(1)
+#endif
 
 namespace fs = std::filesystem;
 
@@ -76,5 +74,6 @@ namespace Optimizations {
     // actually now it must be on for the compiler to work
     inline bool groupVariableInstances = true;
 }
+
 
 #endif //DODO_LANG_OPTIONS_HPP

@@ -819,6 +819,8 @@ void SetValueAtAddress(VariableInfo source, uint64_t addressRegister, uint64_t s
     X86_64PureMove(source.location, {Operand::reg, addressRegister, true}, size);
 }
 
+std::string shutupcompiler = "";
+
 const std::string& ContentAtLocation(DataLocation location) {
     switch (location.type) {
         case Operand::reg:
@@ -827,7 +829,7 @@ const std::string& ContentAtLocation(DataLocation location) {
             return FindStackVariableByOffset(location.offset)->content.value;
     }
     CodeGeneratorError("Unimplemented: Non stack/register content set!");
-    return "";
+    return shutupcompiler;
 }
 
 // new MoveValue implementation with much better functionality support

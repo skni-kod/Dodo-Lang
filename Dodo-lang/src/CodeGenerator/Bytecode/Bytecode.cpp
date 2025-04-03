@@ -150,10 +150,9 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             CheckLiteralMatch(current.literal, type, typeMeta);
             return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
         case ParserOperation::Variable:
-            // TODO: make this work correctly
             if (current.isBeingDefined) return context.getVariable(current.identifier, type, typeMeta);
             if (isGlobal) CodeGeneratorError("Cannot initialize global variables with other variables!");
-            CodeGeneratorError("Variables not implemented!");
+            return context.getVariable(current.identifier, type, typeMeta);
         case ParserOperation::String:
             // checking if the type is valid for a string
             if (not type->isPrimitive or type->typeSize != 1
@@ -165,13 +164,15 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             return {Location::String, {Strings.size() - 1}};
         case ParserOperation::Definition:
             code.type = Bytecode::Define;
+            if (not types.map.contains(*current.identifier)) CodeGeneratorError("Type " + *current.identifier + " does not exist!");
+            type = &types.map[*current.identifier];
             if (isGlobal) {
                 // if it's global give it a number and push back a pointer
                 code.op1({Location::Variable, {{VariableLocation::Global, 0, converterGlobals.size()}}});
                 converterGlobals.emplace_back(type, values[current.next].identifier, typeMeta);
             }
             else {
-                code.op1(context.insertVariable(current.identifier, type, typeMeta));
+                code.op1(context.insertVariable(values[current.next].identifier, type, typeMeta));
             }
             values[current.next].isBeingDefined = true;
 
@@ -193,7 +194,7 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
     return {};
 }
 
-std::vector<Bytecode> GenerateGlobalVariablesBytecode() {
+BytecodeContext GenerateGlobalVariablesBytecode() {
     // global variable bytecode is used for things before main is called
     // they cannot use any variables, though this might be changed in the future
 
@@ -208,12 +209,65 @@ std::vector<Bytecode> GenerateGlobalVariablesBytecode() {
         GenerateExpressionBytecode(context, n.second.definition, n.second.typeObject, n.second.definition[0].typeMeta, 0, true);
     }
 
-    return context.codes;
+    return std::move(context);
 }
 
-std::vector<Bytecode> GenerateFunctionBytecode(ParserFunction& function) {
+// used for methods
+std::string ThisDummy = "this";
 
-    return {};
+BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
+
+    BytecodeContext context;
+    context.codes.reserve(function.instructions.size() + function.parameters.size() + function.isMethod);
+
+    // adding the pointer to object in methods
+    if (function.isMethod) {
+        Bytecode code;
+        code.opType = function.parentType;
+        code.opTypeMeta = TypeMeta();
+        code.type = Bytecode::Define;
+        code.op1(context.insertVariable(&ThisDummy, function.parentType, {0, context.isMutable, true}));
+        code.op3({Location::Argument, {0}});
+        context.codes.push_back(code);
+    }
+
+    // adding parameters
+    for (uint64_t n = 0; n < function.parameters.size(); n++) {
+        Bytecode code;
+        code.opType = function.parameters[n].typeObject;
+        code.opTypeMeta = function.parameters[n].typeMeta();
+        code.type = Bytecode::Define;
+        code.op1(context.insertVariable(&function.parameters[n].name(), function.parameters[n].typeObject, function.parameters[n].typeMeta()));
+        code.op3({Location::Argument, {n + function.isMethod}});
+        context.codes.push_back(code);
+    }
+
+    for (auto& n : function.instructions) {
+        switch (n.type) {
+            case Instruction::Expression:
+                switch (n.valueArray[0].operation) {
+                    case ParserOperation::Definition:
+                        GenerateExpressionBytecode(context, n.valueArray, n.valueArray[0].definitionType, n.valueArray[0].typeMeta);
+                        break;
+                    case ParserOperation::Operator: {
+                        if (not n.valueArray[0].left or n.valueArray[n.valueArray[0].left].operation != ParserOperation::Variable) CodeGeneratorError("Invalid expression!");
+                        // now we need to find the type it seems
+                        auto variable = context.getVariableObject(n.valueArray[n.valueArray[0].left].identifier);
+                        GenerateExpressionBytecode(context, n.valueArray, variable.type, variable.meta);
+                        break;
+                    }
+                    default:
+                        CodeGeneratorError("Unhandled expression type!");
+                }
+                break;
+
+            default:
+                CodeGeneratorError("Unhandled instruction type!");
+                break;
+        }
+    }
+
+    return context;
 }
 
 // methods
@@ -286,12 +340,14 @@ BytecodeContext BytecodeContext::current() const {
     newContext.temporaries = temporaries;
     newContext.isConstExpr = isConstExpr;
     newContext.isMutable = isMutable;
+    newContext.activeLevels = activeLevels;
     return newContext;
 }
 
 void BytecodeContext::merge(BytecodeContext& context) {
     localVariables = std::move(context.localVariables);
-    temporaries = std::move(temporaries);
+    temporaries = std::move(context.temporaries);
+    // activeLevels = std::move(context.activeLevels)
     const auto start = codes.size();
     codes.resize(codes.size() + context.codes.size());
     for (size_t n = 0; n < context.codes.size(); n++) {
@@ -317,13 +373,13 @@ BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta
 
 }
 
-BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
+BytecodeOperand BytecodeContext::getVariable(const std::string* identifier, const TypeObject* type, const TypeMeta meta) {
     // first let's go through local variables from top and back
-    for (int64_t n = localVariables.size() - 1; n >= 0; n--) {
-        for (int64_t m = localVariables[n].size(); m >= 0; m--) {
-            auto& current = localVariables[n][m];
+    for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
+        for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[activeLevels[n]].size() != 0; m--) {
+            auto& current = localVariables[activeLevels[n]][m];
             if (current.identifier == identifier or *current.identifier == *identifier) {
-                if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in variable get!");
+                if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in last local variable match!");
                 return {Location::Variable, VariableLocation(VariableLocation::Local, n, m)};
             }
         }
@@ -333,13 +389,36 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
     for (uint64_t n = 0; n < converterGlobals.size(); n++) {
         auto& current = converterGlobals[n];
         if (current.identifier == identifier or *current.identifier == *identifier) {
-            if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in variable get!");
+            if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in global variable match!");
             return {Location::Variable, VariableLocation(VariableLocation::Global, 0, n)};
         }
     }
 
     CodeGeneratorError("Variable not found!");
     return {};
+}
+
+
+VariableObject& BytecodeContext::getVariableObject(const std::string* identifier) {
+    // first let's go through local variables from top and back
+    for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
+        for (int64_t m = localVariables[n].size() - 1; m >= 0 and localVariables[n].size() != 0; m--) {
+            auto& current = localVariables[activeLevels[n]][m];
+            if (current.identifier == identifier or *current.identifier == *identifier) {
+                return current;
+            }
+        }
+    }
+
+    // now global variables
+    for (auto& current : converterGlobals) {
+        if (current.identifier == identifier or *current.identifier == *identifier) {
+            return current;
+        }
+    }
+
+    CodeGeneratorError("Variable not found!");
+    return converterGlobals[0];
 }
 
 // old code

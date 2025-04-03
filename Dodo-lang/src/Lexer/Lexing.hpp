@@ -9,14 +9,13 @@
 
 #include "TypeObject.hpp"
 
-
 struct LexerToken {
-#ifdef ENUM_VARIABLES
-    Token::Type type = Token::Unknown;
-    Type::TypeEnum literalType = Type::unsignedInteger;
+#ifdef PACKED_ENUM_VARIABLES
+    Token::Type type : 4 = Token::Unknown;
+    Type::TypeEnum literalType : 4 = Type::unsignedInteger;
 #else
-    uint8_t type = Token::Unknown;
-    uint8_t literalType = Type::unsignedInteger;
+    uint8_t type : 4 = Token::Unknown;
+    uint8_t literalType : 4 = Type::unsignedInteger;
 #endif
     uint8_t isVerboseOperator = false;
     uint32_t characterNumber = 0;

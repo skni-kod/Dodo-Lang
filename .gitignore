@@ -29,7 +29,7 @@ cmake-build-debug-event-trace/
 cmake-build-release/
 cmake-build-release-event-trace/
 
-# Clion files
+# Clion / other Jetbrains IDE's files
 .idea/
 *.user
 *.filters

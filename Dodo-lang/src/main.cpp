@@ -14,9 +14,6 @@ int main(int argc, char* argv[]) {
     std::cout <<
             "𝐃𝐨𝐝𝐨𝐋𝐚𝐧𝐠 𝐜𝐨𝐦𝐩𝐢𝐥𝐞𝐫\n"
             "Version: " << INCREMENTED_VALUE << "\n"
-#ifdef ENUM_VARIABLES
-            "DEVELOPMENT VERSION - type sizes unoptimized\n"
-#endif
 #if defined(__linux__) or defined(__gnu_linux__)
             "Platform: Linux "
 #else

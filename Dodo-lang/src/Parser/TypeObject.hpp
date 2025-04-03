@@ -46,11 +46,17 @@ namespace Primitive {
 
 struct TypeMeta {
     uint8_t pointerLevel : 6 = 0;
+    #ifdef PACKED_ENUM_VARIABLES
+    bool isMutable : 1 = false;
+    bool isReference : 1 = false;
+    #else
     uint8_t isMutable : 1 = false;
     uint8_t isReference : 1 = false;
+    #endif
 
     bool operator==(const TypeMeta& type_meta) const = default;
     TypeMeta() = default;
+    TypeMeta(uint8_t pointerLevel, bool isMutable, bool isReference);
     TypeMeta(const TypeMeta& old, int8_t amountToChange);
 };
 
@@ -63,7 +69,7 @@ struct TypeObjectValue {
     enum DefaultValueType {
         defaultConstructor, numeric
     };
-#ifdef ENUM_VARIABLES
+#ifdef PACKED_ENUM_VARIABLES
     DefaultValueType type = defaultConstructor;
 #else
     uint8_t type = defaultConstructor;
@@ -86,8 +92,8 @@ namespace Instruction {
 struct ParserTreeValue;
 
 struct ParserInstructionObject {
-#ifdef ENUM_VARIABLES
-    Instruction::Type type = Instruction::None;
+#ifdef PACKED_ENUM_VARIABLES
+    Instruction::Type type : 8 = Instruction::None;
 #else
     uint8_t type = Instruction::None;
 #endif
@@ -105,8 +111,8 @@ struct ParserMemberVariableParameter {
     std::vector <ParserTreeValue> definition{};
 
     [[nodiscard]] const TypeMeta& typeMeta() const;
-    [[nodiscard]] const std::string& name() const;
-    [[nodiscard]] const std::string& typeName() const;
+    [[nodiscard]] std::string& name() const;
+    [[nodiscard]] std::string& typeName() const;
 };
 
 struct ParserTypeObjectMember {
@@ -173,8 +179,8 @@ namespace ParserOperation {
 }
 // defines a single operation in expression
 struct ParserTreeValue {
-#ifdef ENUM_VARIABLES
-    ParserOperation::Type operation = ParserOperation::Operator;
+#ifdef PACKED_ENUM_VARIABLES
+    ParserOperation::Type operation : 8 = ParserOperation::Operator;
 #else
     uint8_t operation = ParserOperation::Operator;
 #endif
@@ -209,7 +215,7 @@ struct ParserTreeValue {
 
 struct ParserFunctionMethod {
     std::vector <ParserInstructionObject> instructions;
-    std::string name;
+    std::string* name = nullptr;
     Operator::Type overloaded = Operator::None;
     bool isMethod = false;
     bool isOperator = false;
@@ -222,8 +228,8 @@ struct ParserFunctionMethod {
 struct TypeObject {
     std::string typeName;
     uint64_t isPrimitive   : 1 = false;
-#ifdef ENUM_VARIABLES
-    Type::TypeEnum primitiveType = Type::none;
+#ifdef PACKED_ENUM_VARIABLES
+    Type::TypeEnum primitiveType : 2 = Type::none;
 #else
     uint8_t primitiveType : 2 = Type::none;
 #endif

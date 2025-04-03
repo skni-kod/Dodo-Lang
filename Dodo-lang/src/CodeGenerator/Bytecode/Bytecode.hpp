@@ -91,12 +91,9 @@ inline std::vector<BytecodeOld> bytecodes;
 
 // new code
 
-#define LOCATION_SIZE 4
-// bytecode location size can be smaller, as it does not have the information in which type of memory something is
-#define BYTECODE_LOCATION_SIZE 4
 namespace Location {
     enum Type {
-        None, Variable, Literal, String, Label, Call, Register, Heap, Stack
+        None, Variable, Literal, String, Label, Call, Argument, Register, Heap, Stack
     };
 }
 
@@ -105,8 +102,8 @@ struct VariableLocation {
         None, Local, Global, Temporary
     };
 
-    #ifdef ENUM_VARIABLES
-    VariableLocation::Type type = VariableLocation::None;
+    #ifdef PACKED_ENUM_VARIABLES
+    VariableLocation::Type type : 2 = VariableLocation::None;
     #else
     uint64_t type : 2 = VariableLocation::None;
     #endif
@@ -139,12 +136,12 @@ union BytecodeValue {
 };
 
 struct BytecodeOperand {
-#ifdef ENUM_VARIABLES
-    Location::Type location = Location::None;
+#ifdef PACKED_ENUM_VARIABLES
+    Location::Type location : 4 = Location::None;
     uint8_t literalSize : 4 = 0;
-    Type::TypeEnum literalType = Type::none;
+    Type::TypeEnum literalType : 4 = Type::none;
 #else
-    uint8_t type : BYTECODE_LOCATION_SIZE = Location::None;
+    uint8_t type : 4 = Location::None;
     uint8_t literalSize : 4 = 0;
     uint8_t literalType = Type::none;
 #endif
@@ -214,12 +211,12 @@ struct Bytecode {
     };
 
     // type of bytecode instruction
-#ifdef ENUM_VARIABLES
+#ifdef PACKED_ENUM_VARIABLES
     BytecodeInstruction type : 7 = BytecodeInstruction::None;
     // types of locations of operands and result
-    Location::Type op1Location    : BYTECODE_LOCATION_SIZE = Location::None;
-    Location::Type op2Location    : BYTECODE_LOCATION_SIZE = Location::None;
-    Location::Type op3Location    : BYTECODE_LOCATION_SIZE = Location::None;
+    Location::Type op1Location    : 4 = Location::None;
+    Location::Type op2Location    : 4 = Location::None;
+    Location::Type op3Location    : 4 = Location::None;
     Type::TypeEnum op1LiteralType : 2 = Type::none;
     Type::TypeEnum op2LiteralType : 2 = Type::none;
     Type::TypeEnum op3LiteralType : 2 = Type::none;
@@ -229,9 +226,9 @@ struct Bytecode {
 #else
     uint8_t type : 7 = BytecodeInstruction::None;
     // types of locations of operands and result
-    uint8_t op1Location    : BYTECODE_LOCATION_SIZE = Location::None;
-    uint8_t op2Location    : BYTECODE_LOCATION_SIZE = Location::None;
-    uint8_t op3Location    : BYTECODE_LOCATION_SIZE = Location::None;
+    uint8_t op1Location    : 4 = Location::None;
+    uint8_t op2Location    : 4 = Location::None;
+    uint8_t op3Location    : 4 = Location::None;
     uint8_t op1LiteralType : 2 = Type::none;
     uint8_t op2LiteralType : 2 = Type::none;
     uint8_t op3LiteralType : 2 = Type::none;
@@ -269,8 +266,10 @@ struct VariableObject {
 
 struct BytecodeContext {
     std::vector <Bytecode> codes;
-    std::vector <std::vector <VariableObject>> localVariables = {};
+    std::vector <std::vector <VariableObject>> localVariables = { {} };
     std::vector <VariableObject> temporaries;
+    // after ending a scope a level is not deleted, instead it's marked as inactive
+    std::vector <uint16_t> activeLevels = { 0 };
     // if it's constant then
     bool isConstExpr = false;
     bool isMutable = false;
@@ -288,9 +287,11 @@ struct BytecodeContext {
     // inserts a new local scope temporary variable
     BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta);
     // returns requested variable and throws and exception if there is no match for name or type is wrong
-    BytecodeOperand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    BytecodeOperand getVariable(const std::string* identifier, const TypeObject* type, TypeMeta meta);
     // the same, not implemented
     BytecodeOperand getVariable(BytecodeOperand operand);
+
+    VariableObject& getVariableObject(const std::string* identifier);
 };
 
 inline std::vector <ParserFunctionMethod*> converterFunctions;
@@ -298,8 +299,8 @@ inline std::vector <VariableObject> converterGlobals;
 
 // export functions
 
-std::vector<Bytecode> GenerateGlobalVariablesBytecode();
-std::vector<Bytecode> GenerateFunctionBytecode(ParserFunction& function);
+BytecodeContext GenerateGlobalVariablesBytecode();
+BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function);
 void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 
 // printing functions

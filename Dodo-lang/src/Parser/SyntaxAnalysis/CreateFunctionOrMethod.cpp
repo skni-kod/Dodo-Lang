@@ -39,5 +39,7 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
         output.instructions.emplace_back(ParseInstruction(generator, current, &braceLevel));
     }
 
+    if (identifier != nullptr and identifier->type == Token::Identifier) output.name = identifier->string;
+
     return std::move(output);
 }

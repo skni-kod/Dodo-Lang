@@ -49,7 +49,7 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
                 Bytecode code;
                 code.type = Bytecode::Address;
                 code.op1(operands.back());
-                code.result(context.insertTemporary(currentParameter.typeObject, currentParameter.typeMeta()));
+                code.result(tempContext.insertTemporary(currentParameter.typeObject, currentParameter.typeMeta()));
                 tempContext.codes.push_back(code);
                 operands.back() = code.result();
             }

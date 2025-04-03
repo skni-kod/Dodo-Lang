@@ -11,7 +11,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             if (code.op3Location != Location::None) out << " using " << code.result();
             break;
         case Bytecode::Assign:
-            out << "assign " << code.result() << " to " << code.op1();
+            out << "assign " << code.op2() << " to " << code.op1() << " storing the result in " << code.result();
             break;
         case Bytecode::Address:
             out << "load address of " << code.op1() << " to " << code.result();
@@ -273,6 +273,8 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
             if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
             if (op.value.function->isOperator) return PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
             return out << op.value.function->name;
+        case Location::Argument:
+            return out << "argument number: " << op.value.ui;
         default:
             CodeGeneratorError("Invalid bytecode operand location in printing!");
             return out;

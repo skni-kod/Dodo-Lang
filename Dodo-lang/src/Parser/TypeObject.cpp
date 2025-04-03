@@ -40,13 +40,15 @@ const TypeMeta& ParserMemberVariableParameter::typeMeta() const {
 }
 
 
-const std::string& ParserMemberVariableParameter::name() const {
+std::string& ParserMemberVariableParameter::name() const {
     return *definition[1].identifier;
 }
 
-const std::string& ParserMemberVariableParameter::typeName() const {
+std::string& ParserMemberVariableParameter::typeName() const {
     return *definition[0].identifier;
 }
+
+TypeMeta::TypeMeta(const uint8_t pointerLevel, const bool isMutable, const bool isReference) : pointerLevel(pointerLevel), isMutable(isMutable), isReference(isReference) {}
 
 TypeMeta::TypeMeta(const TypeMeta& old, const int8_t amountToChange) {
     if (amountToChange < 0 and old.pointerLevel < -amountToChange) CodeGeneratorError("Cannot get put address into a non pointer!");

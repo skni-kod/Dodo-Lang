@@ -65,13 +65,13 @@ void GenerateCode() {
         out << ".section .data\n";
         // global variables
         //x86_64::AddGlobalVariables(out);
-        auto globalBytecode = GenerateGlobalVariablesBytecode();
+        auto globalContext = GenerateGlobalVariablesBytecode();
 
         if (Options::informationLevel >= Options::InformationLevel::general) {
-            std::cout << "INFO L2: Finished global variable bytecode generation with " << globalBytecode.size() << " instructions";
+            std::cout << "INFO L2: Finished global variable bytecode generation with " << globalContext.codes.size() << " instructions";
             if (Options::informationLevel >= Options::InformationLevel::full) {
                 std::cout << ":\n";
-                for (auto& n : globalBytecode) {
+                for (auto& n : globalContext.codes) {
                     std::cout << "INFO L3: " << n;
                 }
             }
@@ -96,7 +96,33 @@ void GenerateCode() {
     }
 
     // put beginning things here, like message declaration
-    
+
+
+    // methods
+    for (auto& n : types.map) {
+        for (auto& m : n.second.methods) {
+            auto context = GenerateFunctionBytecode(m);
+            if (Options::informationLevel >= 2) {
+                // TODO: add waaaay more printing functions
+                std::cout << "INFO L3: Bytecodes for method <something>(...):\n";
+                for (auto& k : context.codes) {
+                    std::cout << "INFO L3: " << k;
+                }
+            }
+        }
+    }
+
+    // functions
+    for (auto& n : functions) {
+        auto context = GenerateFunctionBytecode(n.second);
+        if (Options::informationLevel >= 2) {
+            // TODO: add waaaay more printing functions
+            std::cout << "INFO L3: Bytecodes for function " << *n.second.name << "(...):\n";
+            for (auto& k : context.codes) {
+                std::cout << "INFO L3: " << k;
+            }
+        }
+    }
     
     
     /*
