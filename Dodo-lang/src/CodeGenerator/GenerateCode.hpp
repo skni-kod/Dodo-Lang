@@ -26,6 +26,7 @@ void Warning(std::string message);
 struct StringData {
     std::string* ptr = nullptr;
     bool isMutable = false;
+    StringData(std::string* ptr, bool isMutable);
 };
 
 inline std::vector <StringData> Strings;

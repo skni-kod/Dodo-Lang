@@ -7,12 +7,15 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "";
             break;
       case Bytecode::Define:
-            out << "define " << code.op1() << " of type " << code.opType->typeName << std::string(code.opTypeMeta.pointerLevel, '*');
+            out << "define " << code.op1() << " of type " << code.opType->typeName << std::string(code.opTypeMeta.pointerLevel, '*') << std::string(code.opTypeMeta.isReference, '&');
             if (code.op3Location != Location::None) out << " using " << code.result();
             break;
-        case Bytecode::Assign:
+        case Bytecode::AssignTo:
             out << "assign " << code.op2() << " to " << code.op1() << " storing the result in " << code.result();
             break;
+        case Bytecode::AssignAt:
+            out << "move value from " << code.op2() << " to address in " << code.op1() << " storing the result in " << code.result();
+        break;
         case Bytecode::Address:
             out << "load address of " << code.op1() << " to " << code.result();
             break;
@@ -20,7 +23,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "load value at address in " << code.op1() << " to " << code.result();
             break;
         case Bytecode::Member:
-            out << "load " << code.op1() << "'s member number " << code.op2() << " address into " << code.result();
+            out << "take " << code.op1() << " and offset it by " << code.op2Value.offset << " for member access, storing result in " << code.result();
             break;
         case Bytecode::Save:
             out << "save the value in  " << code.op1() << " to " << code.result();

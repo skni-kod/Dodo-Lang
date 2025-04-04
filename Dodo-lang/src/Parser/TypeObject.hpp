@@ -54,10 +54,12 @@ struct TypeMeta {
     uint8_t isReference : 1 = false;
     #endif
 
-    bool operator==(const TypeMeta& type_meta) const = default;
+    bool operator==(const TypeMeta& other) const;
     TypeMeta() = default;
     TypeMeta(uint8_t pointerLevel, bool isMutable, bool isReference);
     TypeMeta(const TypeMeta& old, int8_t amountToChange);
+    TypeMeta noReference() const;
+    TypeMeta reference() const;
 };
 
 struct TypeObject;
@@ -237,6 +239,8 @@ struct TypeObject {
     uint64_t typeSize : 57 = 0;
     std::vector <ParserMemberVariableParameter> members;
     std::vector <ParserFunctionMethod> methods;
+
+    uint64_t getMemberOffsetAndType(std::string* identifier, TypeObject*& typeToSet, TypeMeta& typeMetaToSet);
 };
 
 inline std::unordered_map <std::string, ParserFunctionMethod> functions;

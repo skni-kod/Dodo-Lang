@@ -27,31 +27,18 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
             if (currentParameter.typeObject == nullptr) {
                 currentParameter.typeObject = &types[*currentParameter.definition[0].identifier];
             }
-            TypeMeta meta = currentParameter.typeMeta();
-            bool wasReference = meta.isReference;
-            meta.isReference = false;
             bool skip = false;
 
             if (node.operation == ParserOperation::Argument or node.operation == ParserOperation::Call or node.operation == ParserOperation::Syscall)
-                operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, meta, currentNode.value, isGlobal));
+                operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), currentNode.value, isGlobal));
             else {
-                if (counter == 1) operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, meta, node.value, isGlobal));
+                if (counter == 1) operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), node.value, isGlobal));
                 else {
-                    operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, meta, node.left, isGlobal));
+                    operands.emplace_back(GenerateExpressionBytecode(tempContext, values, currentParameter.typeObject, currentParameter.typeMeta(), node.left, isGlobal));
                     counter++;
                     parameterCounter++;
                     skip = true;
                 }
-            }
-
-            if (wasReference) {
-                // adding the address extraction
-                Bytecode code;
-                code.type = Bytecode::Address;
-                code.op1(operands.back());
-                code.result(tempContext.insertTemporary(currentParameter.typeObject, currentParameter.typeMeta()));
-                tempContext.codes.push_back(code);
-                operands.back() = code.result();
             }
 
             if (skip) continue;
@@ -140,24 +127,27 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
             switch (current.operatorType) {
                 case Operator::Address:
                     code.type = Bytecode::Address;
+                    if (typeMeta.pointerLevel) CodeGeneratorError("Cannot assign an address into a noo-pointer!");
                     code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, -1}, current.prefix, isGlobal));
                     code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Dereference:
                     code.type = Bytecode::Dereference;
                     code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, +1}, current.prefix, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Not:
                     code.type = Bytecode::Not;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.prefix, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinNot:
                     code.type = Bytecode::BinNot;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.prefix, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Increment:
+                    CodeGeneratorError("Unfinished: increment!");
                     if (current.prefix) {
                         // create instructions like: var + 1 => temp, var = temp and give back temp
 
@@ -169,7 +159,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         context.codes.push_back(code);
 
                         // assigning
-                        code.type = Bytecode::Assign;
+                        code.type = Bytecode::AssignTo;
                         code.op2({});
                         context.codes.push_back(code);
 
@@ -190,7 +180,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         context.codes.push_back(code);
 
                         // assigning
-                        code.type = Bytecode::Assign;
+                        code.type = Bytecode::AssignTo;
                         code.op2({});
                         context.codes.push_back(code);
 
@@ -198,6 +188,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     }
                     CodeGeneratorError("Invalid increment!");
                 case Operator::Decrement:
+                    CodeGeneratorError("Unfinished: decrement!");
                     if (current.prefix) {
                         // create instructions like: var + 1 => temp, var = temp and give back temp
 
@@ -209,7 +200,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         context.codes.push_back(code);
 
                         // assigning
-                        code.type = Bytecode::Assign;
+                        code.type = Bytecode::AssignTo;
                         code.op2({});
                         context.codes.push_back(code);
 
@@ -230,7 +221,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                         context.codes.push_back(code);
 
                         // assigning
-                        code.type = Bytecode::Assign;
+                        code.type = Bytecode::AssignTo;
                         code.op2({});
                         context.codes.push_back(code);
 
@@ -240,177 +231,185 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     break;
                 case Operator::Power:
                     code.type = Bytecode::Power;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Multiply:
                     code.type = Bytecode::Multiply;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Divide:
                     code.type = Bytecode::Divide;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Modulo:
                     code.type = Bytecode::Modulo;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Add:
                     code.type = Bytecode::Add;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Subtract:
                     code.type = Bytecode::Subtract;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::ShiftRight:
                     code.type = Bytecode::ShiftRight;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::ShiftLeft:
                     code.type = Bytecode::ShiftLeft;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::NAnd:
                     code.type = Bytecode::NAnd;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinNAnd:
                     code.type = Bytecode::BinNAnd;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::And:
                     code.type = Bytecode::And;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinAnd:
                     code.type = Bytecode::BinAnd;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::XOr:
                     code.type = Bytecode::XOr;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinXOr:
                     code.type = Bytecode::BinXOr;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::NOr:
                     code.type = Bytecode::NOr;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinNOr:
                     code.type = Bytecode::BinNOr;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Or:
                     code.type = Bytecode::Or;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinOr:
                     code.type = Bytecode::BinOr;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::NImply:
                     code.type = Bytecode::NImply;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Imply:
                     code.type = Bytecode::Imply;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinNImply:
                     code.type = Bytecode::BinNImply;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BinImply:
                     code.type = Bytecode::BinImply;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Assign:
-                    code.type = Bytecode::Assign;
+                    if (not values[current.left].isLValued) CodeGeneratorError("Cannot assign to non-lvalues!");
                     code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    if (typeMeta.isReference) {
+                        code.type = Bytecode::AssignAt;
+                        code.op3(code.op2());
+                    }
+                    else {
+                        code.type = Bytecode::AssignTo;
+                        code.op3(context.insertTemporary(type, typeMeta));
+                    }
+
                     break;
                 case Operator::Lesser:
                     code.type = Bytecode::Lesser;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Greater:
                     code.type = Bytecode::Greater;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::Equals:
                     code.type = Bytecode::Equals;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::LesserEqual:
                     code.type = Bytecode::LesserEqual;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::GreaterEqual:
                     code.type = Bytecode::GreaterEqual;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::NotEqual:
                     code.type = Bytecode::NotEqual;
-                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left,  isGlobal));
-                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.right, isGlobal));
-                    code.op3(context.insertTemporary(type, typeMeta));
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,  isGlobal));
+                    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
+                    code.op3(context.insertTemporary(type, typeMeta.noReference()));
                     break;
                 case Operator::BraceOpen:
                     code.type = Bytecode::BeginScope;

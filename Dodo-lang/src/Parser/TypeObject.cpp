@@ -55,3 +55,21 @@ TypeMeta::TypeMeta(const TypeMeta& old, const int8_t amountToChange) {
     pointerLevel = old.pointerLevel + amountToChange;
     isMutable = old.isMutable;
 }
+
+TypeMeta TypeMeta::noReference() const {
+    TypeMeta t = *this;
+    t.isReference = false;
+    return t;
+}
+TypeMeta TypeMeta::reference() const {
+    TypeMeta t = *this;
+    t.isReference = true;
+    return t;
+}
+
+bool TypeMeta::operator==(const TypeMeta& other) const {
+    if (other.isReference != isReference) return false;
+    if (other.pointerLevel != pointerLevel) return false;
+    // TODO: what about mutability
+    return true;
+}

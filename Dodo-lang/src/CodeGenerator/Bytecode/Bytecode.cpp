@@ -120,7 +120,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta)
 // it recursively creates bytecode instructions needed to make the expression work
 // it is the most important function of the entire bytecode generator, probably
 // TODO: make this return some type to assign an operand
-BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal) {
+BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, BytecodeOperand passedOperand) {
     // first off let's do a switch to know what is going on
     auto& current = values[index];
 
@@ -139,28 +139,58 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
         case ParserOperation::Group:
             return InsertOperatorExpression(context, values, type, typeMeta, index, isGlobal);
         case ParserOperation::Member:
-            CodeGeneratorError("Not implemented!");
+            // TODO: add method support here
+            if (typeMeta.pointerLevel or not typeMeta.isReference) CodeGeneratorError("Cannot use non-reference or pointer types for members!");
+            code.type = Bytecode::Member;
+            code.op1(passedOperand);
+            code.op2Value.offset = type->getMemberOffsetAndType(current.identifier, type, typeMeta);
+            code.opType = type;
+            code.opTypeMeta = typeMeta;
+            code.opTypeMeta.isReference = true;
+            code.result(context.insertTemporary(type, typeMeta));
+            context.codes.push_back(code);
+            return code.result();
         case ParserOperation::Call:
             CodeGeneratorError("Not implemented!");
         case ParserOperation::Syscall:
             CodeGeneratorError("Not implemented!");
-        case ParserOperation::Argument:
-            CodeGeneratorError("Not implemented!");
         case ParserOperation::Literal:
             CheckLiteralMatch(current.literal, type, typeMeta);
-            return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
-        case ParserOperation::Variable:
-            if (current.isBeingDefined) return context.getVariable(current.identifier, type, typeMeta);
-            if (isGlobal) CodeGeneratorError("Cannot initialize global variables with other variables!");
+        return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
+        case ParserOperation::Variable: {
+            if (isGlobal and not current.isBeingDefined) CodeGeneratorError("Cannot initialize global variables with other variables!");
+            auto var = context.getVariableObject(current.identifier);
+            if (not current.isBeingDefined and current.next == 0 and (type != var.type or typeMeta != var.meta)) CodeGeneratorError("Variable type mismatch!");
+            type = var.type;
+            if (typeMeta.isReference != var.meta.isReference) var.meta.isReference = typeMeta.isReference;
+            typeMeta = var.meta;
+            if (current.next) {
+                if (not typeMeta.isReference) {
+                    // getting the address of the structure for the member if it's not already a reference
+                    typeMeta.isReference = true;
+                    code.type = Bytecode::Address;
+                    code.op1(context.getVariable(current.identifier, type, typeMeta));
+                    code.result(context.insertTemporary(type, typeMeta));
+                    context.codes.push_back(code);
+
+                    auto val = GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, code.result());
+                    context.isGeneratingReference = false;
+
+                    return val;
+                }
+                auto val = GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, context.getVariable(current.identifier, type, typeMeta));
+                context.isGeneratingReference = false;
+                return val;
+            }
             return context.getVariable(current.identifier, type, typeMeta);
+        }
         case ParserOperation::String:
             // checking if the type is valid for a string
             if (not type->isPrimitive or type->typeSize != 1
                 or type->primitiveType != Type::unsignedInteger or typeMeta.pointerLevel != 1)
                     CodeGeneratorError("String literals can only be assigned to 1 byte unsigned integer pointers!");
 
-            // TODO: add support for string mutability
-            Strings.emplace_back(current.identifier, false);
+            Strings.emplace_back(current.identifier, static_cast <bool>(typeMeta.isMutable));
             return {Location::String, {Strings.size() - 1}};
         case ParserOperation::Definition:
             code.type = Bytecode::Define;
@@ -212,6 +242,24 @@ BytecodeContext GenerateGlobalVariablesBytecode() {
     return std::move(context);
 }
 
+void GetTypes(std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
+    auto& current = values[index];
+
+    if (current.operation == ParserOperation::Variable) {
+        if (current.next) GetTypes(values, type, typeMeta, current.next);
+        return;
+    }
+
+    if (current.operation == ParserOperation::Member) {
+        type->getMemberOffsetAndType(current.identifier, type, typeMeta);
+        typeMeta.isReference = true;
+        if (current.next) GetTypes(values, type, typeMeta, current.next);
+        return;
+    }
+
+    CodeGeneratorError("Invalid operation in type negotiation!");
+}
+
 // used for methods
 std::string ThisDummy = "this";
 
@@ -221,7 +269,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
     context.codes.reserve(function.instructions.size() + function.parameters.size() + function.isMethod);
 
     // adding the pointer to object in methods
-    if (function.isMethod) {
+    if (function.isMethod and function.overloaded == Operator::None) {
         Bytecode code;
         code.opType = function.parentType;
         code.opTypeMeta = TypeMeta();
@@ -234,11 +282,11 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
     // adding parameters
     for (uint64_t n = 0; n < function.parameters.size(); n++) {
         Bytecode code;
-        code.opType = function.parameters[n].typeObject;
+        code.opType = &types[*function.parameters[n].definition[0].identifier];
         code.opTypeMeta = function.parameters[n].typeMeta();
         code.type = Bytecode::Define;
-        code.op1(context.insertVariable(&function.parameters[n].name(), function.parameters[n].typeObject, function.parameters[n].typeMeta()));
-        code.op3({Location::Argument, {n + function.isMethod}});
+        code.op1(context.insertVariable(&function.parameters[n].name(), code.opType, function.parameters[n].typeMeta()));
+        code.op3({Location::Argument, {n + (function.isMethod and function.overloaded == Operator::None)}});
         context.codes.push_back(code);
     }
 
@@ -250,11 +298,21 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                         GenerateExpressionBytecode(context, n.valueArray, n.valueArray[0].definitionType, n.valueArray[0].typeMeta);
                         break;
                     case ParserOperation::Operator: {
-                        if (not n.valueArray[0].left or n.valueArray[n.valueArray[0].left].operation != ParserOperation::Variable) CodeGeneratorError("Invalid expression!");
-                        // now we need to find the type it seems
-                        auto variable = context.getVariableObject(n.valueArray[n.valueArray[0].left].identifier);
-                        GenerateExpressionBytecode(context, n.valueArray, variable.type, variable.meta);
-                        break;
+                        {
+                            if (not n.valueArray[0].left or n.valueArray[n.valueArray[0].left].operation != ParserOperation::Variable) CodeGeneratorError("Invalid expression!");
+                            // now we need to find the type it seems
+                            auto variable = context.getVariableObject(n.valueArray[n.valueArray[0].left].identifier);
+
+                            TypeObject* type = variable.type;
+                            TypeMeta typeMeta = variable.meta;
+
+                            // get the type of the last member of the lvalue used
+                            GetTypes(n.valueArray, type, typeMeta, n.valueArray[0].left);
+
+                            GenerateExpressionBytecode(context, n.valueArray, type, typeMeta);
+                            break;
+                        }
+
                     }
                     default:
                         CodeGeneratorError("Unhandled expression type!");
@@ -373,13 +431,36 @@ BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta
 
 }
 
-BytecodeOperand BytecodeContext::getVariable(const std::string* identifier, const TypeObject* type, const TypeMeta meta) {
+BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
     // first let's go through local variables from top and back
     for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
         for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[activeLevels[n]].size() != 0; m--) {
             auto& current = localVariables[activeLevels[n]][m];
             if (current.identifier == identifier or *current.identifier == *identifier) {
-                if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in last local variable match!");
+                if (current.type != type) CodeGeneratorError("Type mismatch in last local variable match!");
+                if (current.meta.pointerLevel != meta.pointerLevel) CodeGeneratorError("Pointer level mismatch in last local variable!");
+                if (current.meta.isMutable < meta.isMutable) CodeGeneratorError("Cannot use non-mutable variables in mutable context! (might need different contitions)");
+                if (not current.meta.isReference and meta.isReference) {
+                    Bytecode code;
+                    code.type = Bytecode::Address;
+                    code.op1({Location::Variable, VariableLocation(VariableLocation::Local, n, m)});
+                    code.result(insertTemporary(type, meta));
+                    code.opTypeMeta = meta;
+                    code.opType = type;
+                    codes.push_back(code);
+                    return code.result();
+                }
+                if (current.meta.isReference and not meta.isReference) {
+                    // in that case the value of the referred is needed
+                    Bytecode code;
+                    code.type = Bytecode::Dereference;
+                    code.op1({Location::Variable, VariableLocation(VariableLocation::Local, n, m)});
+                    code.result(insertTemporary(type, meta));
+                    code.opTypeMeta = meta;
+                    code.opType = type;
+                    codes.push_back(code);
+                    return code.result();
+                }
                 return {Location::Variable, VariableLocation(VariableLocation::Local, n, m)};
             }
         }
@@ -389,12 +470,35 @@ BytecodeOperand BytecodeContext::getVariable(const std::string* identifier, cons
     for (uint64_t n = 0; n < converterGlobals.size(); n++) {
         auto& current = converterGlobals[n];
         if (current.identifier == identifier or *current.identifier == *identifier) {
-            if (current.type != type or current.meta != meta) CodeGeneratorError("Type mismatch in global variable match!");
+            if (current.type != type) CodeGeneratorError("Type mismatch in last global variable match!");
+            if (current.meta.pointerLevel != meta.pointerLevel) CodeGeneratorError("Pointer level mismatch in last global variable!");
+            if (current.meta.isMutable < meta.isMutable) CodeGeneratorError("Cannot use non-mutable variables in mutable context! (might need different contitions)");
+            if (not current.meta.isReference and meta.isReference) {
+                Bytecode code;
+                code.type = Bytecode::Address;
+                code.op1({Location::Variable, VariableLocation(VariableLocation::Global, 0, n)});
+                code.result(insertTemporary(type, meta));
+                code.opTypeMeta = meta;
+                code.opType = type;
+                codes.push_back(code);
+                return code.result();
+            }
+            if (current.meta.isReference and not meta.isReference) {
+                // in that case the value of the referred is needed
+                Bytecode code;
+                code.type = Bytecode::Dereference;
+                code.op1({Location::Variable, VariableLocation(VariableLocation::Global, 0, n)});
+                code.result(insertTemporary(type, meta));
+                code.opTypeMeta = meta;
+                code.opType = type;
+                codes.push_back(code);
+                return code.result();
+            }
             return {Location::Variable, VariableLocation(VariableLocation::Global, 0, n)};
         }
     }
 
-    CodeGeneratorError("Variable not found!");
+    CodeGeneratorError("Variable\"" + *identifier + "\" not found!");
     return {};
 }
 
@@ -417,11 +521,23 @@ VariableObject& BytecodeContext::getVariableObject(const std::string* identifier
         }
     }
 
-    CodeGeneratorError("Variable not found!");
+    CodeGeneratorError("Variable\"" + *identifier + "\" not found!");
     return converterGlobals[0];
 }
 
-// old code
+uint64_t TypeObject::getMemberOffsetAndType(std::string* identifier, TypeObject*& typeToSet, TypeMeta& typeMetaToSet) {
+    for (auto& n : members) {
+        if (n.name() == *identifier) {
+            typeToSet = n.typeObject;
+            typeMetaToSet  = n.typeMeta();
+            return n.offset;
+        }
+    }
+    CodeGeneratorError("Member \"" + *identifier + "\" is not a member of type \"" + typeName + "\"!");
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// old code
 
 BytecodeOld::BytecodeOld(uint64_t code) : code(code) {}
 

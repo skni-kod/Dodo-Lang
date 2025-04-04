@@ -1,31 +1,23 @@
+
 i32 Main() {
-    //syscall(1, 0, "Hello world! The return value of this mess is: ", 47);
-    //return 123;
-    //*t = 10;
-    //return g.sum();
-    t = 7;
-    let mut i32 y = 0;
-    y = 7;
+    //t = 7;
+    //let mut i32 y = 0;
+    //y = 7;
+
+    let mut test g = 5;
+    g.h = 10;
 }
 
 type test {
     let i32 k = 10;
-    let i16 t = 5;
-    let i16 y = 5;
-    let test* rec = 0;
+    let mut i16 h = 5;
 
-    /*
-    i32 sum() {
-        return k + t + y;
+    i32 operator = (let mut test& o, let i16 val) {
+        o.h = val;
     }
-    */
 
-    i32 operator = (let mut test& o, let i32 val) {
-        t = 6 + 6;
+    i32 something(let mut i32& wow, let i32* g) {
+       wow = *g;
     }
+
 }
-
-let mut i32 t = 5;
-let mut test g = 5;
-//let mut f32 k = k++;
-//let char* str = "I'm a string!";

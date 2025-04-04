@@ -128,6 +128,7 @@ union BytecodeValue {
     float f32;
     uint64_t string;
     uint64_t label;
+    uint64_t offset;
     ParserFunctionMethod* function;
     VariableLocation variable;
     BytecodeValue() = default;
@@ -159,13 +160,16 @@ struct Bytecode {
         // variable manipulation
         //      syntax: op1 (variable) = op3 / result
         Define,
-        //      syntax: op1 (variable) = op3 / result
-        Assign,
+        //      syntax: op1 (variable) = op2 (any scalar), result in op3 / result
+        AssignTo,
+        //      syntax: value at op1 (address) = op2 (any scalar), result in op3 / result
+        AssignAt,
         //      syntax: address of op1 (variable) => op3 / result
         Address,
+        // gets value from address
         //      syntax: value at op1 => op3 / result
         Dereference,
-        //      syntax: op1 (member number) => op3 / result
+        //      syntax: op1 (source), op2 (offset) => op3 / result
         Member,
         //      syntax: op1 => op3 / result
         Save,
@@ -273,6 +277,8 @@ struct BytecodeContext {
     // if it's constant then
     bool isConstExpr = false;
     bool isMutable = false;
+    // this one is not passed as it's context specific
+    bool isGeneratingReference = false;
 
     // ALWAYS update the current() method after adding variables
 
@@ -287,11 +293,13 @@ struct BytecodeContext {
     // inserts a new local scope temporary variable
     BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta);
     // returns requested variable and throws and exception if there is no match for name or type is wrong
-    BytecodeOperand getVariable(const std::string* identifier, const TypeObject* type, TypeMeta meta);
+    BytecodeOperand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
     // the same, not implemented
     BytecodeOperand getVariable(BytecodeOperand operand);
 
     VariableObject& getVariableObject(const std::string* identifier);
+
+    BytecodeOperand dereference(BytecodeOperand op, TypeObject* type, TypeMeta meta);
 };
 
 inline std::vector <ParserFunctionMethod*> converterFunctions;

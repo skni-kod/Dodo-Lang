@@ -82,4 +82,11 @@ void RunParsing(std::vector<LexerFile>& lexed) {
             }
         }
     }
+
+    // Step 4: adding parent type pointers to methods
+    for (auto& n : types.map) {
+        for (auto& m : n.second.methods) {
+            m.parentType = &n.second;
+        }
+    }
 }

@@ -547,6 +547,7 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
 
         ParserTreeValue var;
         var.operation = ParserOperation::Variable;
+        var.isLValued = true;
         var.identifier = tokens[name]->text;
         valueArray.emplace_back(var);
 
