@@ -87,7 +87,7 @@ struct TypeObjectValue {
 
 namespace Instruction {
     enum Type {
-        None, Expression, Return, If, Else, ElseIf, Switch, While, For, Do, Break, Continue, BeginScope, EndScope
+        None, Expression, Return, If, Else, ElseIf, Switch, Case, While, For, Do, Break, Continue, BeginScope, EndScope
     };
 }
 

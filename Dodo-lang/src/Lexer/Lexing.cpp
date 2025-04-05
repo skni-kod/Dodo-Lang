@@ -115,6 +115,12 @@ LexerToken PushWrapper(const std::string& result, uint32_t characterNumber) {
     if (keywordsAndOperators.contains(result)) {
         return {keywordsAndOperators[result], characterNumber};
     }
+    if (result == "false") {
+        return {Token::Number, 0, characterNumber, true};
+    }
+    if (result == "true") {
+        return {Token::Number, 1, characterNumber, true};
+    }
     return {Token::Identifier, result, characterNumber};
 }
 

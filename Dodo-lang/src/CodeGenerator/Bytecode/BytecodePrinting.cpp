@@ -3,9 +3,9 @@
 std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
   out << "Instruction: ";
   switch (code.type) {
-        case Bytecode::None:
-            out << "";
-            break;
+      case Bytecode::None:
+          out << "";
+      break;
       case Bytecode::Define:
             out << "define " << code.op1() << " of type " << code.opType->typeName << std::string(code.opTypeMeta.pointerLevel, '*') << std::string(code.opTypeMeta.isReference, '&');
             if (code.op3Location != Location::None) out << " using " << code.result();
@@ -49,6 +49,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::Argument:
             out << "argument for call number: " << code.op2Value.ui << " using value from " << code.op3();
             break;
+        case Bytecode::Return:
+            out << "return value of " << code.op1();
+            break;
         case Bytecode::If:
             out << "if with condition " << code.op1();
             break;
@@ -58,14 +61,23 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::ElseIf:
             out << "else if with condition " << code.op1();
             break;
-        case Bytecode::For:
-            out << "for with begin statement " << code.op1() << ", loop statement " << code.op2() << ", after statement " << code.op3();
+        case Bytecode::ForInitial:
+            out << "for loop initial statement bytecode is utterly useless";
             break;
+        case Bytecode::ForStatement:
+            out << "for loop after statement: " << code.op1();
+            break;
+        case Bytecode::ForCondition:
+            out << "for loop condition statement: " << code.op1();
+            break;
+        case Bytecode::LoopLabel:
+            out << "loop statement label";
+        break;
         case Bytecode::While:
-            out << "while with condition " << code.op1();
+            out << "while loop with condition " << code.op1();
             break;
         case Bytecode::Do:
-            out << "do";
+            out << "do loop start ";
             break;
         case Bytecode::Switch:
             out << "switch with condition " << code.op1();
@@ -251,7 +263,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
                 case Type::unsignedInteger:
                     switch (op.literalSize) {
                         case 1:
-                            return out << "unsigned integer literal: " << op.value.u8;
+                            return out << "unsigned integer literal: " << static_cast <uint64_t>(op.value.u8);
                         case 2:
                             return out << "unsigned integer literal: " << op.value.u16;
                         case 4:

@@ -116,10 +116,21 @@ void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta)
     }
 }
 
+// pass reference type
+BytecodeOperand Dereference(BytecodeContext& context, BytecodeOperand op, TypeObject* type, TypeMeta meta) {
+    if (not meta.isReference) CodeGeneratorError("Cannot dereference a non-reference!");
+    Bytecode code;
+    code.type = Bytecode::Dereference;
+    code.op1(op);
+    code.op3(context.insertTemporary(type, meta));
+    context.codes.push_back(code);
+    return code.op3();
+}
+
 // this function takes a vector of existing bytecode, a tree value table, expression type and starting index
 // it recursively creates bytecode instructions needed to make the expression work
 // it is the most important function of the entire bytecode generator, probably
-// TODO: make this return some type to assign an operand
+// also references are a mess
 BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, BytecodeOperand passedOperand) {
     // first off let's do a switch to know what is going on
     auto& current = values[index];
@@ -159,27 +170,30 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
         return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
         case ParserOperation::Variable: {
             if (isGlobal and not current.isBeingDefined) CodeGeneratorError("Cannot initialize global variables with other variables!");
-            auto var = context.getVariableObject(current.identifier);
-            if (not current.isBeingDefined and current.next == 0 and (type != var.type or typeMeta != var.meta)) CodeGeneratorError("Variable type mismatch!");
+            bool dereferenceBack = false;
+            VariableObject var = context.getVariableObject(current.identifier);
+            if (not current.isBeingDefined and current.next == 0 and (type != var.type or typeMeta.pointerLevel != var.meta.pointerLevel)) CodeGeneratorError("Variable type mismatch!");
+            // if a value is needed but a reference is needed for access it needs to be dereferenced back
+            if (current.next and not typeMeta.isReference) dereferenceBack = true;
             type = var.type;
+            // TODO: this might be a source of invalid address operators and will need to addressed, maybe is can be deleted though
             if (typeMeta.isReference != var.meta.isReference) var.meta.isReference = typeMeta.isReference;
             typeMeta = var.meta;
             if (current.next) {
                 if (not typeMeta.isReference) {
-                    // getting the address of the structure for the member if it's not already a reference
+                    // getting the reference since it isn't one
                     typeMeta.isReference = true;
-                    code.type = Bytecode::Address;
                     code.op1(context.getVariable(current.identifier, type, typeMeta));
-                    code.result(context.insertTemporary(type, typeMeta));
-                    context.codes.push_back(code);
 
-                    auto val = GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, code.result());
+                    auto val = GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, code.op1());
                     context.isGeneratingReference = false;
 
+                    if (dereferenceBack) val = Dereference(context, val, type, typeMeta);
                     return val;
                 }
                 auto val = GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, context.getVariable(current.identifier, type, typeMeta));
                 context.isGeneratingReference = false;
+                if (dereferenceBack) val = Dereference(context, val, type, typeMeta);
                 return val;
             }
             return context.getVariable(current.identifier, type, typeMeta);
@@ -242,22 +256,55 @@ BytecodeContext GenerateGlobalVariablesBytecode() {
     return std::move(context);
 }
 
-void GetTypes(std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
+void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
     auto& current = values[index];
 
+    if (current.operation == ParserOperation::Operator or current.operation == ParserOperation::SingleOperator) {
+        GetTypes(context, values, type, typeMeta, current.left);
+        return;
+    }
+
+    if (current.operation == ParserOperation::Definition) {
+        type = &types[*current.identifier];
+        typeMeta = current.typeMeta;
+        return;
+    }
+
     if (current.operation == ParserOperation::Variable) {
-        if (current.next) GetTypes(values, type, typeMeta, current.next);
+        // getting variable type first
+        auto& var = context.getVariableObject(current.identifier);
+        type = var.type;
+        typeMeta = var.meta;
+
+        if (current.next) GetTypes(context, values, type, typeMeta, current.next);
         return;
     }
 
     if (current.operation == ParserOperation::Member) {
         type->getMemberOffsetAndType(current.identifier, type, typeMeta);
         typeMeta.isReference = true;
-        if (current.next) GetTypes(values, type, typeMeta, current.next);
+        if (current.next) GetTypes(context, values, type, typeMeta, current.next);
         return;
     }
 
+    // TODO: add literals and indexes
+
     CodeGeneratorError("Invalid operation in type negotiation!");
+}
+
+void PushScope(BytecodeContext& context) {
+    context.activeLevels.push_back(context.localVariables.size());
+    context.localVariables.emplace_back();
+    Bytecode code;
+    code.type = Bytecode::BeginScope;
+    context.codes.push_back(code);
+}
+
+void PopScope(BytecodeContext& context) {
+    context.activeLevels.pop_back();
+    Bytecode code;
+    code.type = Bytecode::EndScope;
+    context.codes.push_back(code);
 }
 
 // used for methods
@@ -290,40 +337,165 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
         context.codes.push_back(code);
     }
 
+    // TODO: add bracket-less condition support
+
+    bool wasLastConditional = false;
+    bool wasPushAdded = false;
+
     for (auto& n : function.instructions) {
+        if (wasLastConditional and n.type != Instruction::BeginScope) CodeGeneratorError("Conditional statement without scope begin right after!");
         switch (n.type) {
             case Instruction::Expression:
                 switch (n.valueArray[0].operation) {
                     case ParserOperation::Definition:
                         GenerateExpressionBytecode(context, n.valueArray, n.valueArray[0].definitionType, n.valueArray[0].typeMeta);
                         break;
-                    case ParserOperation::Operator: {
-                        {
-                            if (not n.valueArray[0].left or n.valueArray[n.valueArray[0].left].operation != ParserOperation::Variable) CodeGeneratorError("Invalid expression!");
-                            // now we need to find the type it seems
-                            auto variable = context.getVariableObject(n.valueArray[n.valueArray[0].left].identifier);
+                    case ParserOperation::Operator:
+                    {
+                        if (not n.valueArray[0].left or n.valueArray[n.valueArray[0].left].operation != ParserOperation::Variable) CodeGeneratorError("Invalid expression!");
 
-                            TypeObject* type = variable.type;
-                            TypeMeta typeMeta = variable.meta;
+                        TypeObject* type;
+                        TypeMeta typeMeta;
 
-                            // get the type of the last member of the lvalue used
-                            GetTypes(n.valueArray, type, typeMeta, n.valueArray[0].left);
+                        // get the type of the last member of the lvalue used
+                        GetTypes(context, n.valueArray, type, typeMeta, n.valueArray[0].left);
 
-                            GenerateExpressionBytecode(context, n.valueArray, type, typeMeta);
-                            break;
-                        }
-
+                        GenerateExpressionBytecode(context, n.valueArray, type, typeMeta);
+                        break;
                     }
+
                     default:
                         CodeGeneratorError("Unhandled expression type!");
                 }
                 break;
+            case Instruction::Return:
+            {
+                Bytecode code;
+                code.type = Bytecode::Return;
+                code.opType = &types[*function.returnType.typeName];
+                code.opTypeMeta = function.returnType.type;
+                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, code.opTypeMeta));
+                context.codes.push_back(code);
+                break;
+            }
+            case Instruction::BeginScope:
+                if (not wasPushAdded) PushScope(context);
+                wasPushAdded = false;
+                wasLastConditional = false;
+                break;
+            case Instruction::EndScope:
+                PopScope(context);
+                break;
+            case Instruction::If:
+            {
+                wasLastConditional = true;
+                Bytecode code;
+                code.type = Bytecode::If;
+                code.opType = &types["bool"];
+                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
+                context.codes.push_back(code);
+            }
+            break;
+            case Instruction::ElseIf:
+            {
+                wasLastConditional = true;
+                Bytecode code;
+                code.type = Bytecode::ElseIf;
+                code.opType = &types["bool"];
+                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
+                context.codes.push_back(code);
+            }
+            break;
+            case Instruction::Else:
+            {
+                wasLastConditional = true;
+                Bytecode code;
+                code.type = Bytecode::Else;
+                context.codes.push_back(code);
+            }
+            break;
+            case Instruction::While:
+            {
+                // TODO: what about do while loop?
+                wasLastConditional = true;
+                context.addLoopLabel();
+                Bytecode code;
+                code.type = Bytecode::While;
+                code.opType = &types["bool"];
+                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
+                context.codes.push_back(code);
+            }
+            break;
+            case Instruction::Do:
+            {
+                wasLastConditional = true;
+                context.addLoopLabel();
+                Bytecode code;
+                code.type = Bytecode::Do;
+                context.codes.push_back(code);
+            }
+            break;
+            case Instruction::Break:
+            {
+                // break jumps 2 scope ends away
+                // TODO: maybe a break with amount of scopes to break, could be useful
+                if (context.activeLevels.size() < 3) CodeGeneratorError("Cannot use break without a scope to break!");
+                Bytecode code;
+                code.type = Bytecode::Break;
+                context.codes.push_back(code);
+            }
+            break;
+            case Instruction::Continue:
+            {
+                // TODO: how to make this condition?
+                if (context.activeLevels.size() < 3) CodeGeneratorError("Cannot use continue without a scope to continue!");
+                Bytecode code;
+                code.type = Bytecode::Continue;
+                context.codes.push_back(code);
+            }
+            break;
+            case Instruction::Switch:
+                CodeGeneratorError("Switch not implemented!");
+            case Instruction::Case:
+                CodeGeneratorError("Case not implemented!");
+            case Instruction::For:
+            {
+                wasLastConditional = true;
+                wasPushAdded = true;
 
+                Bytecode code;
+
+                // for is split into 3 codes so that they can be easily identified
+                // initial statement after the scope was pushed
+                PushScope(context);
+                // this one does not need a bytecode
+                GetTypes(context, n.valueArray, code.opType, code.opTypeMeta, n.expression1Index);
+                GenerateExpressionBytecode(context, n.valueArray, code.opType, {}, n.expression1Index);
+
+                // now the after statement that needs a jump label, not sure if it will be before or after condition yet
+                context.addLoopLabel();
+                code.type = Bytecode::ForStatement;
+                GetTypes(context, n.valueArray, code.opType, code.opTypeMeta, n.expression2Index);
+                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}, n.expression3Index));
+                context.codes.push_back(code);
+
+                // conditional statement needs bool type and another jump label for returning here after the after statement
+                context.addLoopLabel();
+                code.type = Bytecode::ForCondition;
+                code.opType = &types["bool"];
+                code.opTypeMeta = {};
+                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}, n.expression2Index));
+                context.codes.push_back(code);
+            }
+            break;
             default:
                 CodeGeneratorError("Unhandled instruction type!");
                 break;
         }
     }
+
+    // checking if all added brackets were terminated correctly just to be sure
+    if (context.activeLevels.size() != 1) CodeGeneratorError("Function/method scope level invalid!");
 
     return context;
 }
@@ -498,7 +670,7 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
         }
     }
 
-    CodeGeneratorError("Variable\"" + *identifier + "\" not found!");
+    CodeGeneratorError("Variable \"" + *identifier + "\" not found!");
     return {};
 }
 
@@ -521,8 +693,14 @@ VariableObject& BytecodeContext::getVariableObject(const std::string* identifier
         }
     }
 
-    CodeGeneratorError("Variable\"" + *identifier + "\" not found!");
+    CodeGeneratorError("Variable \"" + *identifier + "\" not found!");
     return converterGlobals[0];
+}
+
+void BytecodeContext::addLoopLabel() {
+    Bytecode code;
+    code.type = Bytecode::LoopLabel;
+    codes.push_back(code);
 }
 
 uint64_t TypeObject::getMemberOffsetAndType(std::string* identifier, TypeObject*& typeToSet, TypeMeta& typeMetaToSet) {

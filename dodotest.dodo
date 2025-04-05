@@ -1,23 +1,24 @@
 
 i32 Main() {
-    //t = 7;
-    //let mut i32 y = 0;
-    //y = 7;
-
     let mut test g = 5;
     g.h = 10;
+    for (let mut i32 n = 0; n < 10; n += 1) {}
+    if (g.h > 7 and g.h < 10) {
+        return true;
+    }
+    return false;
 }
 
 type test {
     let i32 k = 10;
     let mut i16 h = 5;
 
-    i32 operator = (let mut test& o, let i16 val) {
-        o.h = val;
+    test& operator = (let mut test& o, let i16 val) {
+        //o.h = val;
+        //return o;
     }
-
     i32 something(let mut i32& wow, let i32* g) {
        wow = *g;
+       return wow;
     }
-
 }

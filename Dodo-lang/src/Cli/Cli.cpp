@@ -13,6 +13,7 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
 
     // TODO: add a awy not to include stdlib headers by default
 
+    fs::path firstPath = {};
     for (uint64_t n = 1; n < argc; n++) {
         std::string current = {argv[n]};
 
@@ -107,6 +108,9 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
                     Options::outputName = current;
                     continue;
                 }
+                if (Options::inputFiles.empty()) {
+                    firstPath = absolute(fs::path(current)).parent_path();
+                }
                 Options::inputFiles.emplace(fs::path(current).filename());
             }
         }
@@ -118,9 +122,9 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
     }
 
     if (Options::importDirectories.empty()) {
-        Options::importDirectories.push_back(absolute(Options::inputFiles.front()).parent_path());
-        std::cout << "Warning: As it was not defined, project directory was automatically set to: " << Options::importDirectories.back() << ". Remember to set it if using external imports!\n";
-
+        Options::importDirectories.push_back(firstPath);
+        std::cout << "Since no import directory was passed explicitly, project directory was automatically set to: " << Options::importDirectories.back() <<
+            ", which is the location of first passed input file. Remember to set them if using external imports!\n";
     }
 
     if (Options::stdlibDirectory == "") {

@@ -183,6 +183,8 @@ struct Bytecode {
         Syscall,
         //      syntax: nothing at op1, next argument at op2 (optional) => op3 / result as value to set
         Argument,
+        //      syntax: value to return at op1
+        Return,
         // conditional and control flow statements
         //      syntax: op1
         If,
@@ -190,8 +192,14 @@ struct Bytecode {
         Else,
         //      syntax: op1
         ElseIf,
-        //      syntax: op1, op2, op3
-        For,
+        //      syntax: (empty) - begins loop statement for jump label
+        LoopLabel,
+        //      syntax: op1 (initial statement)
+        ForInitial,
+        //      syntax: op1 (continue condition)
+        ForCondition,
+        //      syntax: op1 (continue statement)
+        ForStatement,
         //      syntax: op1
         While,
         //      syntax: (empty)
@@ -299,7 +307,7 @@ struct BytecodeContext {
 
     VariableObject& getVariableObject(const std::string* identifier);
 
-    BytecodeOperand dereference(BytecodeOperand op, TypeObject* type, TypeMeta meta);
+    void addLoopLabel();
 };
 
 inline std::vector <ParserFunctionMethod*> converterFunctions;

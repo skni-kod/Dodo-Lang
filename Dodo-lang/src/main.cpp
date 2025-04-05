@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Parsing has failed. Compilation aborted!\n";
         return 1;
     }
-    std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating assembly code:\n";
+    std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating code:\n";
 
 
     try {

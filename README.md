@@ -23,6 +23,5 @@ The project is being developed as a SKNI "KOD" project.
 ## Current progress of rewriting:
 - lexer - ✔
 - parser - ✔
-- bytecode generator - halfway done
-- register/stack analyser - ⛌
-- assembly generator - ⛌
+- bytecode generator - ✔
+- assembly generator - in progress...
