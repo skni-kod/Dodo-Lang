@@ -22,3 +22,6 @@ type test {
        return wow;
     }
 }
+
+
+let i32 r = 10;

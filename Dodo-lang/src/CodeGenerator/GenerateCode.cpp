@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <Increment.hpp>
+#include <Lifetime.hpp>
 
 #include "Options.hpp"
 
@@ -82,6 +83,8 @@ void GenerateCode() {
             }
         }
 
+        CalculateLifetimes(globalContext);
+
         out << "\n.section .text\n";
         // global text declaration
 
@@ -111,6 +114,7 @@ void GenerateCode() {
                     std::cout << "INFO L3: " << k;
                 }
             }
+            CalculateLifetimes(context);
         }
     }
 
@@ -124,6 +128,7 @@ void GenerateCode() {
                 std::cout << "INFO L3: " << k;
             }
         }
+        CalculateLifetimes(context);
     }
     
     

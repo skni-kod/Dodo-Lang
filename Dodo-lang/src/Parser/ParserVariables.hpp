@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "Options.hpp"
 #include "MapWrapper.tpp"
 #include "Parser.hpp"
 #include "Generator.tpp"

@@ -30,6 +30,11 @@ namespace Options {
     inline uint8_t informationLevel = InformationLevel::minimal;
     inline uint8_t addressSize = 8;
     inline uint8_t targetArchitecture = TargetArchitecture::x86_64;
+    enum ArchitectureVersion {
+        // for x86-64
+        None, SSE, SSE2, SSE3, SSE4, AVX, AVX2, AVX512, APX
+    };
+    inline ArchitectureVersion architectureVersion = ArchitectureVersion::None;
     inline std::queue <fs::path> inputFiles;
 #if defined(__linux__) or defined(__unix__)
     inline fs::path stdlibDirectory = "/usr/include/DodoLang/";

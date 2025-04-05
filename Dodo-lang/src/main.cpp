@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     if (Options::helpOption) {
 
             std::cout <<
-            "By Szymon Jabłoński, Michał Kosiorski for SKNI \"KOD\"\n"
+            "By Szymon Jabłoński, Michał Kosiorski for SKNI \"KOD\" at Rzeszów University of Technology\n"
             "\n"
             "Usage:\n"
             "dodoc {file names} {options}\n"
@@ -54,12 +54,15 @@ int main(int argc, char* argv[]) {
             "Options:\n"
             "-o                - sets executable name, pass name as next argument\n"
             "-h, -help         - displays this screen\n"
-            "-d                - disables generator optimizations\n"
+            "-O                - enables all optimizations\n"
+            "\n"
+            "Multi character flags can be written in lowercase or uppercase\n"
             "-l{1-3}           - sets information level, with 1 being the lowest and 3 being 𝐯𝐞𝐫𝐲 verbose\n"
             "-target=          - sets target system, default is \"LINUX\"\n"
             "-platform=        - sets target platform, default is \"x86_64\"\n"
-            "-stdlibDirectory= - sets standard library directory, default is \"/usr/include/DodoLang\" for linux and none for others\n"
-            "-import=          - adds a directory to file source search list\n";
+            "-stdlibdirectory= - sets standard library directory, default is \"/usr/include/DodoLang\" for linux and none for others\n"
+            "-import=          - adds a directory to file source search list\n"
+            "-extensions=      - sets extension level supported by target, for x86_64 default is AMD64 with SSE with possible values in order or advancement being: SSE (default), SSE2, SSE3, SSE4, AVX, AVX2, AVX512, APX\n";
         return 0;
     }
 

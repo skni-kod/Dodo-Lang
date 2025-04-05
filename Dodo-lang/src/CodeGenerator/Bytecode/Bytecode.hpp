@@ -274,6 +274,12 @@ struct VariableObject {
     TypeObject* type = nullptr;
     std::string* identifier = nullptr;
     TypeMeta meta{};
+    // lifetime statistics
+    uint32_t firstUse = 0;
+    uint32_t lastUse = 0;
+    uint32_t uses = 0;
+
+    void use(uint32_t index);
 };
 
 struct BytecodeContext {
@@ -306,12 +312,12 @@ struct BytecodeContext {
     BytecodeOperand getVariable(BytecodeOperand operand);
 
     VariableObject& getVariableObject(const std::string* identifier);
+    VariableObject& getVariableObject(BytecodeOperand operand);
 
     void addLoopLabel();
 };
 
-inline std::vector <ParserFunctionMethod*> converterFunctions;
-inline std::vector <VariableObject> converterGlobals;
+inline std::vector <VariableObject> globalVariableObjects;
 
 // export functions
 

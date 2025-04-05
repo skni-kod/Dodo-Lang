@@ -202,7 +202,7 @@ std::ostream& operator<<(std::ostream& out, const VariableLocation& op) {
             CodeGeneratorError("Invalid variable location type in printing!");
         break;
         case VariableLocation::Global:
-            return out <<  "global: " << *converterGlobals[op.number].identifier;
+            return out <<  "global: " << *globalVariableObjects[op.number].identifier;
         case VariableLocation::Local:
             return out << "local: " << op.level << ", " << op.number;
         case VariableLocation::Temporary:

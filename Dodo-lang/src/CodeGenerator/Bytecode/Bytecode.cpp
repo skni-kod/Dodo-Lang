@@ -212,8 +212,8 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             type = &types.map[*current.identifier];
             if (isGlobal) {
                 // if it's global give it a number and push back a pointer
-                code.op1({Location::Variable, {{VariableLocation::Global, 0, converterGlobals.size()}}});
-                converterGlobals.emplace_back(type, values[current.next].identifier, typeMeta);
+                code.op1({Location::Variable, {{VariableLocation::Global, 0, globalVariableObjects.size()}}});
+                globalVariableObjects.emplace_back(type, values[current.next].identifier, typeMeta);
             }
             else {
                 code.op1(context.insertVariable(values[current.next].identifier, type, typeMeta));
@@ -564,6 +564,18 @@ BytecodeOperand::BytecodeOperand(Location::Type location, BytecodeValue value, T
     this->literalSize = literalSize;
 }
 
+void VariableObject::use(uint32_t index) {
+    if (uses == 0) {
+        firstUse = index;
+        lastUse = index;
+        uses = 1;
+    }
+    else {
+        ++uses;
+        lastUse = index;
+    }
+}
+
 BytecodeContext BytecodeContext::current() const {
     BytecodeContext newContext;
     newContext.localVariables = localVariables;
@@ -639,8 +651,8 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
     }
 
     // now global variables
-    for (uint64_t n = 0; n < converterGlobals.size(); n++) {
-        auto& current = converterGlobals[n];
+    for (uint64_t n = 0; n < globalVariableObjects.size(); n++) {
+        auto& current = globalVariableObjects[n];
         if (current.identifier == identifier or *current.identifier == *identifier) {
             if (current.type != type) CodeGeneratorError("Type mismatch in last global variable match!");
             if (current.meta.pointerLevel != meta.pointerLevel) CodeGeneratorError("Pointer level mismatch in last global variable!");
@@ -687,14 +699,31 @@ VariableObject& BytecodeContext::getVariableObject(const std::string* identifier
     }
 
     // now global variables
-    for (auto& current : converterGlobals) {
+    for (auto& current : globalVariableObjects) {
         if (current.identifier == identifier or *current.identifier == *identifier) {
             return current;
         }
     }
 
     CodeGeneratorError("Variable \"" + *identifier + "\" not found!");
-    return converterGlobals[0];
+    return globalVariableObjects[0];
+}
+
+VariableObject& BytecodeContext::getVariableObject(BytecodeOperand operand) {
+    if (operand.location != Location::Variable) CodeGeneratorError("Cannot get a variable from non-variable location!");
+    switch (operand.value.variable.type) {
+        case VariableLocation::None:
+            CodeGeneratorError("Invalid variable type in get!");
+        case VariableLocation::Global:
+            return globalVariableObjects[operand.value.variable.number];
+        case VariableLocation::Local:
+            return localVariables[operand.value.variable.level][operand.value.variable.number];
+        case VariableLocation::Temporary:
+            return temporaries[operand.value.variable.number];
+        default:
+            CodeGeneratorError("Somehow could not find a variable object!");
+            return globalVariableObjects[0];
+    }
 }
 
 void BytecodeContext::addLoopLabel() {

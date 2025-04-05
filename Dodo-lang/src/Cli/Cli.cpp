@@ -1,17 +1,117 @@
-#include "Cli.hpp"
-
-#include <cstdint>
-#include <iostream>
 #include <string>
+#include <unordered_map>
+#include <iostream>
 #include <print>
 
 #include "Options.hpp"
+#include "Cli.hpp"
+
+
+
+bool isNextExecutableName = false;
+bool cliError = false;
+
+void CLIHandlero(std::string& arg) {
+    isNextExecutableName = true;
+}
+
+void CLIHandlerhH(std::string& arg) {
+    Options::helpOption = true;
+}
+
+void CLIHandlerO(std::string& arg) {
+    // TODO: add optimizations here
+}
+
+void CLIHandlerL1(std::string& arg) {
+    Options::informationLevel = Options::InformationLevel::minimal;
+}
+
+void CLIHandlerL2(std::string& arg) {
+    Options::informationLevel = Options::InformationLevel::general;
+}
+
+void CLIHandlerL3(std::string& arg) {
+    Options::informationLevel = Options::InformationLevel::full;
+}
+
+void CLIHandlerHelp(std::string& arg) {
+    Options::helpOption = true;
+}
+
+void CLIHandlerTarget(std::string& arg) {
+    if (arg.empty()) cliError = true;
+    // system will be handled via macros
+    else Options::targetSystem = arg;
+}
+
+void CLIHandlerPlatform(std::string& arg) {
+    if (arg.empty()) cliError = true;
+    else if (arg == "x86_64") {
+        Options::targetArchitecture = Options::TargetArchitecture::x86_64;
+        Options::addressSize = 8;
+    }
+    else {
+        std::print("Unsupported platform!\n");
+        cliError = true;
+    }
+}
+
+void CLIHandlerStdLibDirectory(std::string& arg) {
+    if (arg.empty()) cliError = true;
+    else Options::stdlibDirectory = arg;
+}
+
+void CLIHandlerImport(std::string& arg) {
+    if (arg.empty()) cliError = true;
+    else Options::importDirectories.emplace_back(arg);
+}
+
+void CLIHandlerExtensions(std::string& arg) {
+    if (arg.empty()) cliError = true;
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
+        if (arg == "SSE") Options::architectureVersion = Options::SSE;
+        else if (arg == "SSE2") Options::architectureVersion = Options::SSE2;
+        else if (arg == "SSE3") Options::architectureVersion = Options::SSE3;
+        else if (arg == "SSE3") Options::architectureVersion = Options::SSE4;
+        else if (arg == "AVX") Options::architectureVersion = Options::AVX;
+        else if (arg == "AVX2") Options::architectureVersion = Options::AVX2;
+        else if (arg == "AVX512") Options::architectureVersion = Options::AVX512;
+        else if (arg == "APX") Options::architectureVersion = Options::APX;
+        else cliError = true;
+    }
+    else {
+        std::print("Non x86-64 extensions not supported!");
+    }
+}
+
+std::unordered_map <std::string, void (*)(std::string&)> CLIHandlers = {
+    {"o", &CLIHandlero},
+    {"O", &CLIHandlerO},
+    {"h", &CLIHandlerhH},
+    {"H", &CLIHandlerhH},
+    {"l1", &CLIHandlerL1},
+    {"L1", &CLIHandlerL1},
+    {"l2", &CLIHandlerL2},
+    {"L2", &CLIHandlerL2},
+    {"l3", &CLIHandlerL3},
+    {"L3", &CLIHandlerL3},
+    {"help", &CLIHandlerHelp},
+    {"HELP", &CLIHandlerHelp},
+    {"import", &CLIHandlerImport},
+    {"IMPORT", &CLIHandlerImport},
+    {"target", &CLIHandlerTarget},
+    {"TARGET", &CLIHandlerTarget},
+    {"platform", &CLIHandlerPlatform},
+    {"PLATFORM", &CLIHandlerPlatform},
+    {"stdlibdirectory", &CLIHandlerStdLibDirectory},
+    {"STDLIBDIRECTORY", &CLIHandlerStdLibDirectory},
+    {"extensions", &CLIHandlerExtensions},
+    {"EXTENSIONS", &CLIHandlerExtensions}
+};
+
 
 bool ApplyCommandLineArguments(int argc, char** argv) {
-
-    bool isNextExecutableName = false;
-
-    // TODO: add a awy not to include stdlib headers by default
 
     fs::path firstPath = {};
     for (uint64_t n = 1; n < argc; n++) {
@@ -19,86 +119,23 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
 
         if (not current.empty()) {
             if (current.front() == '-') {
-                // it's an argument
-                switch (current.size()) {
-                    case 1:
-                        std::print("Invalid argument passed at position: {}!", n + 1);
-                        return false;
-                    case 2:
-                        switch (current[1]) {
-                            case 'o':
-                                isNextExecutableName = true;
-                                break;
-                            case 'h':
-                                Options::helpOption = true;
-                            return true;
-                            case 'd':
-                                Optimizations::skipUselessMoves = false;
-                                Optimizations::mergeThreeOperandInstruction = false;
-                                Optimizations::skipDoubleJumps = false;
-                                Optimizations::skipUnusedVariables = false;
-                                Optimizations::swapExpressionOperands = false;
-                                Optimizations::checkPotentialUselessStores = false;
-                                Optimizations::optimizeBytecode = false;
-                                Optimizations::replaceKnownValueVariables = false;
-                                // TODO: change this
-                                Optimizations::groupVariableInstances = true;
-                            break;
-                            default:
-                                std::print("Invalid argument passed at position: {}!", n + 1);
-                            return false;
-                        }
-                    break;
-                    case 3:
-                        if (current[1] == 'l') {
-                            switch (current[2]) {
-                                case '1':
-                                    Options::informationLevel = Options::InformationLevel::minimal;
-                                    break;
-                                case '2':
-                                    Options::informationLevel = Options::InformationLevel::general;
-                                break;
-                                case '3':
-                                    Options::informationLevel = Options::InformationLevel::full;
-                                break;
-                                default:
-                                    std::print("Invalid argument passed at position: {}!", n + 1);
-                                return false;
-                            }
-                        }
-                        else {
-                            std::print("Invalid argument passed at position: {}!", n + 1);
-                            return false;
-                        }
-                    break;
-                    default:
-                        if (current == "-help") {
-                            Options::helpOption = true;
-                            return true;
-                        }
-                        if (current.starts_with("-target=")) {
-                            Options::targetSystem = current.substr(8);
-                        }
-                        else if (current.starts_with("-platform=")) {
-                            if (current == "-platform=x86_64") {
-                                Options::targetArchitecture = Options::TargetArchitecture::x86_64;
-                                Options::addressSize = 8;
-                            }
-                            else {
-                                std::print("Unsupported platform at position: {}!", n + 1);
-                                return false;
-                            }
-                        }
-                        else if (current.starts_with("-stdlibDirectory=")) {
-                            Options::stdlibDirectory = current.substr(17);
-                        }
-                        else if (current.starts_with("-import=")) {
-                            Options::importDirectories.emplace_back(current.substr(8));
-                        }
-                        else {
-                            std::print("Invalid argument passed at position: {}!", n + 1);
-                            return false;
-                        }
+                std::string name = current.substr(1);;
+                std::string argument;
+
+                if (current.contains('=')) {
+                    argument = name.substr(name.find_first_of('=') + 1);
+                }
+
+                if (not CLIHandlers.contains(name)) {
+                    std::print("Invalid argument passed at position: {}!\n", n + 1);
+                    return false;
+                }
+
+                CLIHandlers[name](argument);
+
+                if (cliError) {
+                    std::print("Malformed argument passed at position: {}!\n", n + 1);
+                    return false;
                 }
             }
             else {
@@ -117,7 +154,7 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
     }
 
     if (Options::inputFiles.empty()) {
-        std::print("No input files were passed!");
+        std::cout << "No input files were passed!";
         return false;
     }
 
@@ -128,11 +165,14 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
     }
 
     if (Options::stdlibDirectory == "") {
-        std::print("Standard library directory is not set!\n");
+        std::cout << "Standard library directory is not set!\n";
         return false;
     }
     Options::importDirectories.push_back(Options::stdlibDirectory);
     Options::inputFiles.emplace("_BaseImports.dodo");
+
+    // it can realistically use quite a bit of memory
+    CLIHandlers.clear();
 
     return true;
 }
