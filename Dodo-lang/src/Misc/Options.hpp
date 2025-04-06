@@ -84,5 +84,11 @@ namespace Optimizations {
     inline bool groupVariableInstances = true;
 }
 
+// holds all optimisations that can be used
+namespace Optimise {
+    void DisableAll();
+    void EnableAll();
+}
+
 
 #endif //DODO_LANG_OPTIONS_HPP

@@ -41,7 +41,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             break;
         case Bytecode::Syscall:
             out << "syscall " << code.op1Value.ui;
-            if (code.op3Location != Location::None) out << " and store result to " << code.result() << " using type " << code.opType->typeName;
+            if (code.op3Location != Location::None) out << " and store result to " << code.result();
             break;
         case Bytecode::Argument:
             out << "argument for call number: " << code.op2Value.ui << " using value from " << code.op3();

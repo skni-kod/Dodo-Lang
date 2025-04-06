@@ -1,7 +1,7 @@
 
 i32 Main() {
     let mut test g = 5;
-    syscall(1, 2, 3);
+    let u64 k = syscall(1, 2, r, "test");
     return false;
 }
 

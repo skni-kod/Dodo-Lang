@@ -31,7 +31,7 @@ The project is being developed as a SKNI "KOD" project.
   - complex types don't have default operators
   - pointers might need some work done on dereferencing
   - global functions need support for overloading
-  - syscalls need support for return values
+  - global variables and not treated as pointers
 - assembly generator - early stages
-  - x86-64 registers have been listed
+  - processor model with registers and stack is ready for x86-64
   - lifetime of variables is calculated

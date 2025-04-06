@@ -15,7 +15,8 @@ list (REMOVE_DUPLICATES INCLUDE_DIRS)
 
 include_directories(${INCLUDE_DIRS})
 
-add_executable(Dodo_Lang ${SOURCES})
+add_executable(Dodo_Lang ${SOURCES}
+        Dodo-lang/src/CodeGenerator/Assembly/Assembly.cpp)
 
 add_custom_command(
         OUTPUT Dodo-lang/src/Misc/Increment.hpp

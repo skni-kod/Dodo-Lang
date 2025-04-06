@@ -269,6 +269,22 @@ struct Bytecode {
     BytecodeOperand result(BytecodeOperand op);
 };
 
+// represents a location in memory where a thing is or is to be stored
+// TODO: maybe this can be made smaller? Might not be possible though
+struct MemoryLocationBase {
+    Location::Type location : 7 = Location::None;
+    bool isMutable          : 1 = false;
+    union {
+        uint32_t number = 0;
+        uint32_t size;
+    };
+};
+
+// extends memory location base by offset for use with stack, not needed in initial allocation
+struct MemoryLocation : MemoryLocationBase {
+    int64_t offset = 0;
+};
+
 // represents a variable used in the context
 struct VariableObject {
     TypeObject* type = nullptr;
@@ -278,6 +294,7 @@ struct VariableObject {
     uint32_t firstUse = 0;
     uint32_t lastUse = 0;
     uint32_t uses = 0;
+    MemoryLocationBase location;
 
     void use(uint32_t index);
 };

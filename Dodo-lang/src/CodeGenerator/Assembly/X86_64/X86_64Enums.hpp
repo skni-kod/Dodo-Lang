@@ -13,23 +13,6 @@ namespace x86_64 {
     // I'm probably not going to entertain the idea of x87 FPU usage,
     // this compiler probably isn't going to target anything older than 64 bit with SSE
     enum Registers {
-        RAX = 0, EAX = 0, AX = 0, AL = 0,
-        RBX = 1, EBX = 1, BX = 1, BL = 1,
-        RCX = 2, ECX = 2, CX = 2, CL = 2,
-        RDX = 3, EDX = 3, DX = 3, DL = 3,
-        RSI = 4, ESI = 4, SI = 4, SIL = 4,
-        RDI = 5, EDi = 5, DI = 5, DIL = 5,
-        RSP = 6, ESP = 6, SP = 6, SPL = 6,
-        RBP = 7, EBP = 7, BP = 7, BPL = 7,
-        R8 = 8, R8D = 8, R8W = 8, R8B = 8,
-        R9 = 9, R9D = 9, R9W = 9, R9B = 9,
-        R10 = 10, R10D = 10, R10W = 10, R10B = 10,
-        R11 = 11, R11D = 11, R11W = 11, R11B = 11,
-        R12 = 12, R12D = 12, R12W = 12, R12B = 12,
-        R13 = 13, R13D = 13, R13W = 13, R13B = 13,
-        R14 = 14, R14D = 14, R14W = 14, R14B = 14,
-        R15 = 15, R15D = 15, R15W = 15, R15B = 15,
-        RIP = 16, EIP = 16, IP = 16,
         // versions note
         // versions are per https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
         // with x86_64_v1 we have SSE and SSE2 so 16 128 bit XMM SIMD registers from SSE with double precision float support from SSE2
@@ -37,54 +20,130 @@ namespace x86_64 {
         // with x86_64_v3 we have AVX and AVX2 so XMM0-15 are extended with 256 bit YMM0-15 SIMD registers
         // with x86_64_v4 we have AVX512 extending YMM0-15 with 512 bit ZMM0-15 SIMD registers, and we also get XMM/YMM/ZMM 16-31
         // when APX is actually introduced it might be added as x86_64_v5 with 64 bit r16-31 general purpose registers
-        ZMM0 = 17, YMM0 = 17, XMM0 = 17,
-        ZMM1 = 18, YMM1 = 18, XMM1 = 18,
-        ZMM2 = 19, YMM2 = 19, XMM2 = 19,
-        ZMM3 = 20, YMM3 = 20, XMM3 = 20,
-        ZMM4 = 21, YMM4 = 21, XMM4 = 21,
-        ZMM5 = 22, YMM5 = 22, XMM5 = 22,
-        ZMM6 = 23, YMM6 = 23, XMM6 = 23,
-        ZMM7 = 24, YMM7 = 24, XMM7 = 24,
-        ZMM8 = 25, YMM8 = 25, XMM8 = 25,
-        ZMM9 = 26, YMM9 = 26, XMM9 = 26,
-        ZMM10 = 27, YMM10 = 27, XMM10 = 27,
-        ZMM11 = 28, YMM11 = 28, XMM11 = 28,
-        ZMM12 = 29, YMM12 = 29, XMM12 = 29,
-        ZMM13 = 30, YMM13 = 30, XMM13 = 30,
-        ZMM14 = 31, YMM14 = 31, XMM14 = 31,
-        ZMM15 = 32, YMM15 = 32, XMM15 = 32,
-        ZMM16 = 33, YMM16 = 33, XMM16 = 33,
-        ZMM17 = 34, YMM17 = 34, XMM17 = 34,
-        ZMM18 = 35, YMM18 = 35, XMM18 = 35,
-        ZMM19 = 36, YMM19 = 36, XMM19 = 36,
-        ZMM20 = 37, YMM20 = 37, XMM20 = 37,
-        ZMM21 = 38, YMM21 = 38, XMM21 = 38,
-        ZMM22 = 39, YMM22 = 39, XMM22 = 39,
-        ZMM23 = 40, YMM23 = 40, XMM23 = 40,
-        ZMM24 = 41, YMM24 = 41, XMM24 = 41,
-        ZMM25 = 42, YMM25 = 42, XMM25 = 42,
-        ZMM26 = 43, YMM26 = 43, XMM26 = 43,
-        ZMM27 = 44, YMM27 = 44, XMM27 = 44,
-        ZMM28 = 45, YMM28 = 45, XMM28 = 45,
-        ZMM29 = 46, YMM29 = 46, XMM29 = 46,
-        ZMM30 = 47, YMM30 = 47, XMM30 = 47,
-        ZMM31 = 48, YMM31 = 48, XMM31 = 48,
-        R16 = 49, R16D = 49, R16W = 49, R16B = 49,
-        R17 = 50, R17D = 50, R17W = 50, R17B = 50,
-        R18 = 51, R18D = 51, R18W = 51, R18B = 51,
-        R19 = 52, R19D = 52, R19W = 52, R19B = 52,
-        R20 = 53, R20D = 53, R20W = 53, R20B = 53,
-        R21 = 54, R21D = 54, R21W = 54, R21B = 54,
-        R22 = 55, R22D = 55, R22W = 55, R22B = 55,
-        R23 = 56, R23D = 56, R23W = 56, R23B = 56,
-        R24 = 57, R24D = 57, R24W = 57, R24B = 57,
-        R25 = 58, R25D = 58, R25W = 58, R25B = 58,
-        R26 = 59, R26D = 59, R26W = 59, R26B = 59,
-        R27 = 60, R27D = 60, R27W = 60, R27B = 60,
-        R28 = 61, R28D = 61, R28W = 61, R28B = 61,
-        R29 = 62, R29D = 62, R29W = 62, R29B = 62,
-        R30 = 63, R30D = 63, R30W = 63, R30B = 63,
-        R31 = 64, R31D = 64, R31W = 64, R31B = 64,
+
+        // x86-64_v1 registers
+
+        RAX = 0, EAX = 0, AX = 0, AL = 0, // 8 - 64 bit - general purpose, Accumulator
+        RBX = 1, EBX = 1, BX = 1, BL = 1, // 8 - 64 bit - general purpose, Base
+        RCX = 2, ECX = 2, CX = 2, CL = 2, // 8 - 64 bit - general purpose, Counter
+        RDX = 3, EDX = 3, DX = 3, DL = 3, // 8 - 64 bit - general purpose, Data, RAX extension for double width operations
+        RSI = 4, ESI = 4, SI = 4, SIL = 4, // 8 - 64 bit - Source Index
+        RDI = 5, EDi = 5, DI = 5, DIL = 5, // 8 - 64 bit - Destination Index
+        RSP = 6, ESP = 6, SP = 6, SPL = 6, // 8 - 64 bit - Stack Pointer
+        RBP = 7, EBP = 7, BP = 7, BPL = 7, // 8 - 64 bit - Base Pointer
+        R8 = 8, R8D = 8, R8W = 8, R8B = 8, // 8 - 64 bit - general purpose
+        R9 = 9, R9D = 9, R9W = 9, R9B = 9, // 8 - 64 bit - general purpose
+        R10 = 10, R10D = 10, R10W = 10, R10B = 10, // 8 - 64 bit - general purpose
+        R11 = 11, R11D = 11, R11W = 11, R11B = 11, // 8 - 64 bit - general purpose
+        R12 = 12, R12D = 12, R12W = 12, R12B = 12, // 8 - 64 bit - general purpose
+        R13 = 13, R13D = 13, R13W = 13, R13B = 13, // 8 - 64 bit - general purpose
+        R14 = 14, R14D = 14, R14W = 14, R14B = 14, // 8 - 64 bit - general purpose
+        R15 = 15, R15D = 15, R15W = 15, R15B = 15, // 8 - 64 bit - general purpose
+        RIP = 16, EIP = 16, IP = 16, // 16 - 64 bit - Instruction Pointer
+        CS = 17, // 16 bit - Code Segment
+        DS = 18, // 16 bit - Data Segment
+        SS = 19, // 16 bit - Stack Segment
+        ES = 20, // 16 bit - Extra Segment, for string operations
+        FS = 21, // 16 bit - general purpose Segment
+        GS = 22, // 16 bit - general purpose Segment
+        RFLAGS = 23, // 64 bit - Register FLAGS
+
+        // registers like the control ones should not be needed, right?
+        // registers introduced later, mixed with each other due to extensions over time
+
+        ZMM0 = 24, YMM0 = 24, XMM0 = 24,
+        ZMM1 = 25, YMM1 = 25, XMM1 = 25,
+        ZMM2 = 26, YMM2 = 26, XMM2 = 26,
+        ZMM3 = 27, YMM3 = 27, XMM3 = 27,
+        ZMM4 = 28, YMM4 = 28, XMM4 = 28,
+        ZMM5 = 29, YMM5 = 29, XMM5 = 29,
+        ZMM6 = 30, YMM6 = 30, XMM6 = 30,
+        ZMM7 = 31, YMM7 = 31, XMM7 = 31,
+        ZMM8 = 32, YMM8 = 32, XMM8 = 32,
+        ZMM9 = 33, YMM9 = 33, XMM9 = 33,
+        ZMM10 = 34, YMM10 = 34, XMM10 = 34,
+        ZMM11 = 35, YMM11 = 35, XMM11 = 35,
+        ZMM12 = 36, YMM12 = 36, XMM12 = 36,
+        ZMM13 = 37, YMM13 = 37, XMM13 = 37,
+        ZMM14 = 38, YMM14 = 38, XMM14 = 38,
+        ZMM15 = 39, YMM15 = 39, XMM15 = 39,
+        ZMM16 = 40, YMM16 = 40, XMM16 = 40,
+        ZMM17 = 41, YMM17 = 41, XMM17 = 41,
+        ZMM18 = 42, YMM18 = 42, XMM18 = 42,
+        ZMM19 = 43, YMM19 = 43, XMM19 = 43,
+        ZMM20 = 44, YMM20 = 44, XMM20 = 44,
+        ZMM21 = 45, YMM21 = 45, XMM21 = 45,
+        ZMM22 = 46, YMM22 = 46, XMM22 = 46,
+        ZMM23 = 47, YMM23 = 47, XMM23 = 47,
+        ZMM24 = 48, YMM24 = 48, XMM24 = 48,
+        ZMM25 = 49, YMM25 = 49, XMM25 = 49,
+        ZMM26 = 50, YMM26 = 50, XMM26 = 50,
+        ZMM27 = 51, YMM27 = 51, XMM27 = 51,
+        ZMM28 = 52, YMM28 = 52, XMM28 = 52,
+        ZMM29 = 53, YMM29 = 53, XMM29 = 53,
+        ZMM30 = 54, YMM30 = 54, XMM30 = 54,
+        ZMM31 = 55, YMM31 = 55, XMM31 = 55,
+
+        // APX additions, probably won't be added before this project dies of old age
+
+        R16 = 56, R16D = 56, R16W = 56, R16B = 56,
+        R17 = 57, R17D = 57, R17W = 57, R17B = 57,
+        R18 = 58, R18D = 58, R18W = 58, R18B = 58,
+        R19 = 59, R19D = 59, R19W = 59, R19B = 59,
+        R20 = 60, R20D = 60, R20W = 60, R20B = 60,
+        R21 = 61, R21D = 61, R21W = 61, R21B = 61,
+        R22 = 62, R22D = 62, R22W = 62, R22B = 62,
+        R23 = 63, R23D = 63, R23W = 63, R23B = 63,
+        R24 = 64, R24D = 64, R24W = 64, R24B = 64,
+        R25 = 65, R25D = 65, R25W = 65, R25B = 65,
+        R26 = 66, R26D = 66, R26W = 66, R26B = 66,
+        R27 = 67, R27D = 67, R27W = 67, R27B = 67,
+        R28 = 68, R28D = 68, R28W = 68, R28B = 68,
+        R29 = 69, R29D = 69, R29W = 69, R29B = 69,
+        R30 = 70, R30D = 70, R30W = 70, R30B = 70,
+        R31 = 71, R31D = 71, R31W = 71, R31B = 71,
+    };
+
+    // numbers of bits at which RFLAGS flags start (IOPL has 2 bits!)
+    enum RFLAGSBits {
+        BitCF   = 0,  // Carry Flag
+        BitPF   = 2,  // Parity Flag
+        BitAF   = 4,  // Auxiliary carry Flag
+        BitZF   = 6,  // Zero Flag
+        BitSF   = 7,  // Sign Flag
+        BitTF   = 8,  // Trap Flag
+        BitIF   = 9,  // Interrupt enable Flag
+        BitDF   = 10, // Direction Flag
+        BitOF   = 11, // Overflow Flag
+        BitIOPL = 12, // I/O Privilege Level flag
+        BitNT   = 14, // Nested Task flag
+        BitRF   = 16, // Resume Flag
+        BitVM   = 17, // Virtual-8086 Mode flag
+        BitAC   = 18, // Alignment Check / Access Control flag
+        BitVIF  = 19, // Virtual Interrupt Flag
+        BitVIP  = 20, // Virtual Interrupt Pending flag
+        BitID   = 21  // ID flag
+    };
+
+    // Masks that can be used to get flags in RFLAGS
+    enum RFLAGSMasks {
+        MaskCF   = 0x0000000000000001, // Carry Flag
+        MaskPF   = 0x0000000000000004, // Parity Flag
+        MaskAF   = 0x0000000000000010, // Auxiliary carry Flag
+        MaskZF   = 0x0000000000000040, // Zero Flag
+        MaskSF   = 0x0000000000000080, // Sign Flag
+        MaskTF   = 0x0000000000000100, // Trap Flag
+        MaskIF   = 0x0000000000000200, // Interrupt enable Flag
+        MaskDF   = 0x0000000000000400, // Direction Flag
+        MaskOF   = 0x0000000000000800, // Overflow Flag
+        MaskIOPL = 0x0000000000003000, // I/O Privilege Level flag
+        MaskNT   = 0x0000000000004000, // Nested Task flag
+        MaskRF   = 0x0000000000010000, // Resume Flag
+        MaskVM   = 0x0000000000020000, // Virtual-8086 Mode flag
+        MaskAC   = 0x0000000000040000, // Alignment Check / Access Control flag
+        MaskVIF  = 0x0000000000080000, // Virtual Interrupt Flag
+        MaskVIP  = 0x0000000000100000, // Virtual Interrupt Pending flag
+        MaskID   = 0x0000000000200000  // ID flag
     };
 }
 

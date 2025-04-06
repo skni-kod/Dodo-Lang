@@ -11,7 +11,7 @@
 bool isNextExecutableName = false;
 bool cliError = false;
 
-void CLIHandlero(std::string& arg) {
+void CLIHandlerO(std::string& arg) {
     isNextExecutableName = true;
 }
 
@@ -19,8 +19,12 @@ void CLIHandlerhH(std::string& arg) {
     Options::helpOption = true;
 }
 
-void CLIHandlerO(std::string& arg) {
-    // TODO: add optimizations here
+void CLIHandlerR(std::string& arg) {
+    // TODO: add optimization enabling here
+}
+
+void CLIHandlerD(std::string& arg) {
+    // TODO: add optimization disabling here
 }
 
 void CLIHandlerL1(std::string& arg) {
@@ -82,8 +86,12 @@ void CLIHandlerExtensions(std::string& arg) {
 }
 
 std::unordered_map <std::string, void (*)(std::string&)> CLIHandlers = {
-    {"o", &CLIHandlero},
+    {"o", &CLIHandlerO},
     {"O", &CLIHandlerO},
+    {"r", &CLIHandlerR},
+    {"R", &CLIHandlerR},
+    {"d", &CLIHandlerD},
+    {"D", &CLIHandlerD},
     {"h", &CLIHandlerhH},
     {"H", &CLIHandlerhH},
     {"l1", &CLIHandlerL1},

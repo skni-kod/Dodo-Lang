@@ -186,6 +186,9 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
         case ParserOperation::Syscall:
             code.type = Bytecode::Syscall;
             BytecodeCall(context, values, type, typeMeta, code, current, isGlobal);
+            if (Options::addressSize == 8) code.op3(context.insertTemporary(&types["u64"], {}));
+            else if (Options::addressSize == 4) code.op3(context.insertTemporary(&types["u32"], {}));
+            else CodeGeneratorError("Unsupported address size for syscall return!");
             context.codes.push_back(code);
             return code.result();
         case ParserOperation::Literal:
@@ -283,43 +286,39 @@ BytecodeContext GenerateGlobalVariablesBytecode() {
 
 void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
     auto& current = values[index];
+    switch (current.operation) {
+        case ParserOperation::Operator:
+        case ParserOperation::SingleOperator:
+            GetTypes(context, values, type, typeMeta, current.left);
+            return;
+        case ParserOperation::Definition: {
+            type = &types[*current.identifier];
+            typeMeta = current.typeMeta;
+            return;
+        }
+        case ParserOperation::Variable: {
+            auto& var = context.getVariableObject(current.identifier);
+            type = var.type;
+            typeMeta = var.meta;
 
-    if (current.operation == ParserOperation::Operator or current.operation == ParserOperation::SingleOperator) {
-        GetTypes(context, values, type, typeMeta, current.left);
-        return;
+            if (current.next) GetTypes(context, values, type, typeMeta, current.next);
+            return;
+        }
+        case ParserOperation::Member:
+            type->getMemberOffsetAndType(current.identifier, type, typeMeta);
+            typeMeta.isReference = true;
+            if (current.next) GetTypes(context, values, type, typeMeta, current.next);
+            return;
+        case ParserOperation::Literal:
+            return;
+        case ParserOperation::String:
+            type = &types["char"];
+            typeMeta = {1, true, false};
+            return;
+        default:
+            CodeGeneratorError("Invalid operation in type negotiation!");
     }
-
-    if (current.operation == ParserOperation::Definition) {
-        type = &types[*current.identifier];
-        typeMeta = current.typeMeta;
-        return;
-    }
-
-    if (current.operation == ParserOperation::Variable) {
-        // getting variable type first
-        auto& var = context.getVariableObject(current.identifier);
-        type = var.type;
-        typeMeta = var.meta;
-
-        if (current.next) GetTypes(context, values, type, typeMeta, current.next);
-        return;
-    }
-
-    if (current.operation == ParserOperation::Member) {
-        type->getMemberOffsetAndType(current.identifier, type, typeMeta);
-        typeMeta.isReference = true;
-        if (current.next) GetTypes(context, values, type, typeMeta, current.next);
-        return;
-    }
-
-    if (current.operation == ParserOperation::Literal) {
-        // will this blow up? probably yes
-        return;
-    }
-
-    // TODO: add literals and indexes
-
-    CodeGeneratorError("Invalid operation in type negotiation!");
+    // TODO: add indexes
 }
 
 void PushScope(BytecodeContext& context) {
