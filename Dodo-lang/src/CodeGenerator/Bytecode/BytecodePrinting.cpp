@@ -33,17 +33,14 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             break;
         case Bytecode::Function:
             out << "function " << code.op1();
-            if (code.op2Location != Location::None) out << " using first argument from " << code.op2();
             if (code.op3Location != Location::None) out << " and store result to " << code.result();
             break;
         case Bytecode::Method:
             out << "method " << code.op1() << " for type " << code.opType->typeName;
-            if (code.op2Location != Location::None) out << " using first argument from " << code.op2();
             if (code.op3Location != Location::None) out << " and store result to " << code.result();
             break;
         case Bytecode::Syscall:
-            out << "syscall " << code.op1();
-            if (code.op2Location != Location::None) out << " using first argument from " << code.op2();
+            out << "syscall " << code.op1Value.ui;
             if (code.op3Location != Location::None) out << " and store result to " << code.result() << " using type " << code.opType->typeName;
             break;
         case Bytecode::Argument:
@@ -287,7 +284,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
             out << "call: ";
             if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
             if (op.value.function->isOperator) return PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
-            return out << op.value.function->name;
+            return out << *op.value.function->name;
         case Location::Argument:
             return out << "argument number: " << op.value.ui;
         default:

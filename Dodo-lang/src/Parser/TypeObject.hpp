@@ -87,7 +87,7 @@ struct TypeObjectValue {
 
 namespace Instruction {
     enum Type {
-        None, Expression, Return, If, Else, ElseIf, Switch, Case, While, For, Do, Break, Continue, BeginScope, EndScope
+        None, Expression, Return, If, Else, ElseIf, Switch, Case, While, For, Do, Break, Continue, BeginScope, EndScope, Syscall
     };
 }
 
@@ -241,6 +241,7 @@ struct TypeObject {
     std::vector <ParserFunctionMethod> methods;
 
     uint64_t getMemberOffsetAndType(std::string* identifier, TypeObject*& typeToSet, TypeMeta& typeMetaToSet);
+    ParserFunctionMethod& findMethod(std::string* identifier);
 };
 
 inline std::unordered_map <std::string, ParserFunctionMethod> functions;

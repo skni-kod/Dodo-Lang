@@ -3,6 +3,8 @@
 
 // checks literal types, matches then with sizes and issues errors and warnings
 void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta) {
+    if (type == nullptr) return;
+
     if (typeMeta.pointerLevel > 0) {
         // pointers are always n bit unsigned integers
         if (literal->literalType != Type::unsignedInteger) CodeGeneratorError("Cannot set pointer with a non unsigned integer value!");
@@ -119,6 +121,11 @@ void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta)
 // pass reference type
 BytecodeOperand Dereference(BytecodeContext& context, BytecodeOperand op, TypeObject* type, TypeMeta meta) {
     if (not meta.isReference) CodeGeneratorError("Cannot dereference a non-reference!");
+    if (op.location == Location::Variable) {
+        auto& var = context.getVariableObject(op);
+        if (var.meta == meta.noReference()) return op;
+
+    }
     Bytecode code;
     code.type = Bytecode::Dereference;
     code.op1(op);
@@ -162,13 +169,32 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             context.codes.push_back(code);
             return code.result();
         case ParserOperation::Call:
-            CodeGeneratorError("Not implemented!");
+            if (passedOperand.location == Location::Variable) {
+                // it's a method
+                code.type = Bytecode::Method;
+                BytecodeCall(context, values, type, typeMeta, code, current, isGlobal, true, passedOperand);
+            }
+            else {
+                // a normal function
+                code.type = Bytecode::Function;
+                BytecodeCall(context, values, type, typeMeta, code, current, isGlobal);
+
+            }
+            context.codes.push_back(code);
+            return code.result();
+        break;
         case ParserOperation::Syscall:
-            CodeGeneratorError("Not implemented!");
+            code.type = Bytecode::Syscall;
+            BytecodeCall(context, values, type, typeMeta, code, current, isGlobal);
+            context.codes.push_back(code);
+            return code.result();
         case ParserOperation::Literal:
             CheckLiteralMatch(current.literal, type, typeMeta);
-        return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
+            if (type != nullptr) return {Location::Literal, {current.literal->_unsigned}, type->primitiveType, static_cast<uint8_t>(type->typeSize)};
+            else return {Location::Literal, {current.literal->_unsigned}, current.literal->literalType, Options::addressSize};
+
         case ParserOperation::Variable: {
+            // TODO: rewrite this mess if it acts up so that it accepts only the type that is needed
             if (isGlobal and not current.isBeingDefined) CodeGeneratorError("Cannot initialize global variables with other variables!");
             bool dereferenceBack = false;
             VariableObject var = context.getVariableObject(current.identifier);
@@ -176,7 +202,6 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             // if a value is needed but a reference is needed for access it needs to be dereferenced back
             if (current.next and not typeMeta.isReference) dereferenceBack = true;
             type = var.type;
-            // TODO: this might be a source of invalid address operators and will need to addressed, maybe is can be deleted though
             if (typeMeta.isReference != var.meta.isReference) var.meta.isReference = typeMeta.isReference;
             typeMeta = var.meta;
             if (current.next) {
@@ -287,6 +312,11 @@ void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, Ty
         return;
     }
 
+    if (current.operation == ParserOperation::Literal) {
+        // will this blow up? probably yes
+        return;
+    }
+
     // TODO: add literals and indexes
 
     CodeGeneratorError("Invalid operation in type negotiation!");
@@ -363,7 +393,10 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                         GenerateExpressionBytecode(context, n.valueArray, type, typeMeta);
                         break;
                     }
-
+                    case ParserOperation::Call:
+                    case ParserOperation::Syscall:
+                        GenerateExpressionBytecode(context, n.valueArray, nullptr, {});
+                    break;
                     default:
                         CodeGeneratorError("Unhandled expression type!");
                 }
@@ -742,6 +775,15 @@ uint64_t TypeObject::getMemberOffsetAndType(std::string* identifier, TypeObject*
     }
     CodeGeneratorError("Member \"" + *identifier + "\" is not a member of type \"" + typeName + "\"!");
     return 0;
+}
+
+ParserFunctionMethod& TypeObject::findMethod(std::string* identifier) {
+    for (auto& n : methods) {
+        if (*n.name == *identifier) return n;
+    }
+
+    CodeGeneratorError("Could not find a method with identifier: " + *identifier + " in type: " + typeName + "!");
+    return methods.front();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// old code

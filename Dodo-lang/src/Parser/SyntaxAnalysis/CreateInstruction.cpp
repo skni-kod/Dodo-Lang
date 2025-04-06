@@ -27,7 +27,7 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
     uint8_t keyword2 = Keyword::None;
 
     auto* current = first;
-
+    LexerToken* aux = current;
     if (current->type == Token::Keyword) {
         keyword1 = current->kw;
         if (keyword1 != Keyword::Do and keyword1 != Keyword::Let and keyword1 != Keyword::Mut) {
@@ -145,14 +145,15 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
             output.type = Instruction::Continue;
             return std::move(output);
 
+        case Keyword::Syscall:
         case Keyword::None:
         case Keyword::Let:
         case Keyword::Mut:
-            if (current->MatchOperator(Operator::BraceClose)) {
-                output.type = Instruction::EndScope;
-                (*braceCounter)--;
-                return std::move(output);
-            }
+        if (current->MatchOperator(Operator::BraceClose)) {
+            output.type = Instruction::EndScope;
+            (*braceCounter)--;
+            return std::move(output);
+        }
         if (current->MatchOperator(Operator::BraceOpen)) {
             output.type = Instruction::BeginScope;
             (*braceCounter)++;
@@ -160,9 +161,17 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
         }
         // expression
         output.type = Instruction::Expression;
-        if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->MatchKeyword(Keyword::End)) {
-            ParserError("Expected a ';' after expression!");
+        if (keyword1 == Keyword::Syscall) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {aux, current}); not result->MatchKeyword(Keyword::End)) {
+                ParserError("Expected a ';' after expression!");
+            }
         }
+        else {
+            if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->MatchKeyword(Keyword::End)) {
+                ParserError("Expected a ';' after expression!");
+            }
+        }
+
         return std::move(output);
         default:
             ParserError("Malformed instruction!");

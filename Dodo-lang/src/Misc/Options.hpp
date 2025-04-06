@@ -31,8 +31,12 @@ namespace Options {
     inline uint8_t addressSize = 8;
     inline uint8_t targetArchitecture = TargetArchitecture::x86_64;
     enum ArchitectureVersion {
-        // for x86-64
-        None, SSE, SSE2, SSE3, SSE4, AVX, AVX2, AVX512, APX
+        // for x86-64 per https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
+        None,
+        AMD64_v1,
+        AMD64_v2,
+        AMD64_v3,
+        AMD64_v4
     };
     inline ArchitectureVersion architectureVersion = ArchitectureVersion::None;
     inline std::queue <fs::path> inputFiles;

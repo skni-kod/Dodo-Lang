@@ -70,14 +70,10 @@ void CLIHandlerImport(std::string& arg) {
 void CLIHandlerExtensions(std::string& arg) {
     if (arg.empty()) cliError = true;
     if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
-        if (arg == "SSE") Options::architectureVersion = Options::SSE;
-        else if (arg == "SSE2") Options::architectureVersion = Options::SSE2;
-        else if (arg == "SSE3") Options::architectureVersion = Options::SSE3;
-        else if (arg == "SSE3") Options::architectureVersion = Options::SSE4;
-        else if (arg == "AVX") Options::architectureVersion = Options::AVX;
-        else if (arg == "AVX2") Options::architectureVersion = Options::AVX2;
-        else if (arg == "AVX512") Options::architectureVersion = Options::AVX512;
-        else if (arg == "APX") Options::architectureVersion = Options::APX;
+             if (arg == "x86_64_v1" or arg == "AMD64_v1") Options::architectureVersion = Options::AMD64_v1;
+        else if (arg == "x86_64_v2" or arg == "AMD64_v2") Options::architectureVersion = Options::AMD64_v2;
+        else if (arg == "x86_64_v3" or arg == "AMD64_v3") Options::architectureVersion = Options::AMD64_v3;
+        else if (arg == "x86_64_v4" or arg == "AMD64_v4") Options::architectureVersion = Options::AMD64_v4;
         else cliError = true;
     }
     else {
@@ -173,6 +169,7 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
 
     // it can realistically use quite a bit of memory
     CLIHandlers.clear();
+    if (Options::architectureVersion == Options::ArchitectureVersion::None) Options::architectureVersion = Options::ArchitectureVersion::AMD64_v1;
 
     return true;
 }

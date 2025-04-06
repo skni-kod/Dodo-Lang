@@ -26,11 +26,12 @@ The project is being developed as a SKNI "KOD" project.
 - parser - virtually done
     - methods might need some work
 - bytecode generator - mostly done:
-  - support for calling functions and methods explicitly needs to be added
   - increment/decrement don't work
   - default values for types don't work
   - complex types don't have default operators
   - pointers might need some work done on dereferencing
+  - global functions need support for overloading
+  - syscalls need support for return values
 - assembly generator - early stages
   - x86-64 registers have been listed
   - lifetime of variables is calculated

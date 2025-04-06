@@ -214,10 +214,10 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 }
                 out.operation = ParserOperation::Syscall;
                 out.argument = ParserArgumentsStep(valueArray, {start + 1, closing}, tokens);
-                if (valueArray[valueArray[out.argument].value].operation != ParserOperation::Literal or not valueArray[valueArray[out.argument].value].literal->MatchNumber(Type::unsignedInteger)) {
+                if (valueArray[valueArray[out.argument].left].operation != ParserOperation::Literal or not valueArray[valueArray[out.argument].left].literal->MatchNumber(Type::unsignedInteger)) {
                     ParserError("First argument of syscall needs to be an unsigned constant!");
                 }
-                out.code = valueArray[valueArray[out.argument].value].literal->_unsigned;
+                out.code = valueArray[valueArray[out.argument].left].literal->_unsigned;
             }
             else {
                 // just a normal bracket operation
@@ -263,8 +263,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             // a variable with members or call
             out.operation = ParserOperation::Variable;
             out.identifier = tokens[start]->text;
-            auto result = ParseExpressionStep(valueArray, {start + 1, end}, tokens, ParserOperation::Variable, tokens[start]);
-            if (result.operation == ParserOperation::Call) {
+            if (auto result = ParseExpressionStep(valueArray, {start + 1, end}, tokens, ParserOperation::Variable, tokens[start]); result.operation == ParserOperation::Call) {
                 out = result;
             }
             else {
@@ -272,14 +271,15 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 out.next = valueArray.size() - 1;
                 out.isLValued = true;
             }
+            out.next = valueArray.size() - 1;
+            out.isLValued = true;
 
         }
         else if (tokens[start]->MatchKeyword(Keyword::Dot) and tokens[start + 1]->type == Token::Identifier) {
             out.operation = ParserOperation::Member;
             out.identifier = tokens[start + 1]->text;
             if (length > 2) {
-                auto result = ParseExpressionStep(valueArray, {start + 2, end}, tokens, ParserOperation::Member, tokens[start + 1]);
-                if (result.operation == ParserOperation::Call) {
+                if (auto result = ParseExpressionStep(valueArray, {start + 2, end}, tokens, ParserOperation::Member, tokens[start + 1]); result.operation == ParserOperation::Call) {
                     out = result;
                 }
                 else {
@@ -370,20 +370,19 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
                     break;
             }
         }
-        if (braceLevel == 0 and bracketLevel == 0 and indexLevel == 0 and tokens[n]->MatchKeyword(Keyword::Comma)) {
+        if (braceLevel == 0 and bracketLevel == 0 and indexLevel == 0 and (tokens[n]->MatchKeyword(Keyword::Comma) or (n == end - 1 and n++))) {
             ParserTreeValue out;
 
             out.operation = ParserOperation::Argument;
             out.identifier = tokens[start]->text;
             valueArray.push_back(ParseExpressionStep(valueArray, {startIndex, n}, tokens));
             startIndex = n + 1;
-            out.value = valueArray.size() - 1;
-            out.isLValued = true;
+            out.left = valueArray.size() - 1;
             if (firstIndex == 0) {
                 lastIndex = firstIndex = valueArray.size();
             }
             else {
-                valueArray[lastIndex].next = valueArray.size();
+                valueArray[lastIndex].argument = valueArray.size();
                 lastIndex = valueArray.size();
             }
             valueArray.push_back(out);
@@ -391,17 +390,17 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
     }
 
     // now the argument that does not have a comma
-    ParserTreeValue out;
+    //ParserTreeValue out;
 
-    out.operation = ParserOperation::Argument;
-    out.identifier = tokens[start]->text;
-    valueArray.push_back(ParseExpressionStep(valueArray, {startIndex, end}, tokens));
-    out.value = valueArray.size() - 1;
-    out.isLValued = true;
-    if (firstIndex != 0) {
-        valueArray[lastIndex].next = valueArray.size();
-    }
-    valueArray.push_back(out);
+    //out.operation = ParserOperation::Argument;
+    //out.identifier = tokens[start]->text;
+    //valueArray.push_back(ParseExpressionStep(valueArray, {startIndex, end}, tokens));
+    //out.value = valueArray.size() - 1;
+    //out.isLValued = true;
+    //if (firstIndex != 0) {
+    //    valueArray[lastIndex].next = valueArray.size();
+    //}
+    //valueArray.push_back(out);
 
 
     return firstIndex;

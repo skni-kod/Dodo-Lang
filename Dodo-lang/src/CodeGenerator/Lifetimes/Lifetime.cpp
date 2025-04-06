@@ -18,6 +18,7 @@ void CalculateLifetimes(BytecodeContext& context) {
 
         if (current.op1Location == Location::Variable) context.getVariableObject(current.op1()).use(n);
         if (current.op2Location == Location::Variable) context.getVariableObject(current.op2()).use(n);
-        // operand 3 is never in actual use I think
+        if (current.type == Bytecode::Argument and
+            current.op3Location == Location::Variable) context.getVariableObject(current.op3()).use(n);
     }
 }

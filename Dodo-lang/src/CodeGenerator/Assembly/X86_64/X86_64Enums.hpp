@@ -30,14 +30,13 @@ namespace x86_64 {
         R14 = 14, R14D = 14, R14W = 14, R14B = 14,
         R15 = 15, R15D = 15, R15W = 15, R15B = 15,
         RIP = 16, EIP = 16, IP = 16,
-        // SSE/AVX note:
-        // with SSE we get 128 bit XMM0 - XMM15 registers (8 registers in 32 bit mode though) and instructions
-        // with AVX we get 256 bit YMM0 - YMM15 registers as extension of XMM0 - XMM15 and instructions
-        // with AVX2 we get more instructions for those
-        // with AVX3 we get 512 bit ZMM0 - ZMM31 registers as extension of XMM0 - XMM15 and YMM0 - YMM15 as well as XMM16 - XMM31 and YMM16 - YMM31
-        // with APX we get additional 64 bit R16 - R31 registers and many useful instructions
-        // there are also some additional registers added that will or will not be used
-        // at least that's how I understand it as of the moment of writing, this compiler most likely won't see things that could use all this potential though
+        // versions note
+        // versions are per https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
+        // with x86_64_v1 we have SSE and SSE2 so 16 128 bit XMM SIMD registers from SSE with double precision float support from SSE2
+        // with x86_64_v2 we gave SSE3 and SSE4 which certainly add something, just have to check what, probably instructions
+        // with x86_64_v3 we have AVX and AVX2 so XMM0-15 are extended with 256 bit YMM0-15 SIMD registers
+        // with x86_64_v4 we have AVX512 extending YMM0-15 with 512 bit ZMM0-15 SIMD registers, and we also get XMM/YMM/ZMM 16-31
+        // when APX is actually introduced it might be added as x86_64_v5 with 64 bit r16-31 general purpose registers
         ZMM0 = 17, YMM0 = 17, XMM0 = 17,
         ZMM1 = 18, YMM1 = 18, XMM1 = 18,
         ZMM2 = 19, YMM2 = 19, XMM2 = 19,

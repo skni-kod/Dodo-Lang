@@ -1,12 +1,12 @@
 
 i32 Main() {
     let mut test g = 5;
-    g.h = 10;
-    for (let mut i32 n = 0; n < 10; n += 1) {}
-    if (g.h > 7 and g.h < 10) {
-        return true;
-    }
+    syscall(1, 2, 3);
     return false;
+}
+
+i32 global(let i32 wow, let i32 other) {
+       return wow;
 }
 
 type test {
@@ -17,8 +17,7 @@ type test {
         //o.h = val;
         //return o;
     }
-    i32 something(let mut i32& wow, let i32* g) {
-       wow = *g;
+    i32 something(let i32 wow) {
        return wow;
     }
 }
