@@ -612,14 +612,14 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
         // determine the instruction type
         if (source.value.size < target.value.size) {
             if (source.value.type == Value::unsignedInteger) {
-                ins.type = x86_64::movzx;
+                ins.type = x86_64::OLD_movzx;
             }
             else {
-                ins.type = x86_64::movsx;
+                ins.type = x86_64::OLD_movsx;
             }
         }
         else {
-            ins.type = x86_64::mov;
+            ins.type = x86_64::OLD_mov;
         }
         
         // now assign sizes
@@ -672,7 +672,7 @@ void X86_64PureMove(DataLocation source, DataLocation target, uint64_t size, boo
         CodeGeneratorError("Unimplemented: Multimoves!");
     }
     DEPRECATEDInstruction ins;
-    ins.type = x86_64::mov;
+    ins.type = x86_64::OLD_mov;
     ins.sizeAfter = ins.sizeBefore = size;
     ins.op2 = source;
     if (source.type == Operand::sta) {
@@ -767,7 +767,7 @@ void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::str
 
     // now we are sure the value is in stack, we can finally get the address
     DEPRECATEDInstruction ins;
-    ins.type = x86_64::lea;
+    ins.type = x86_64::OLD_lea;
     ins.op1 = target.location;
     ins.op2 = source.location;
     ins.sizeAfter = ins.sizeBefore = Options::addressSize;
@@ -791,7 +791,7 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
 
     // put the pointer into a register
     DEPRECATEDInstruction ins;
-    ins.type = x86_64::mov;
+    ins.type = x86_64::OLD_mov;
     ins.sizeAfter = ins.sizeBefore = Options::addressSize;
     ins.op1 = FindViableRegister();
     ins.op2 = {Operand::aadr, &base};
@@ -873,7 +873,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
         // Even more hooray! This variable exists so it just needs to be moved into place and that's it!
         if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
             DEPRECATEDInstruction ins;
-            ins.type = x86_64::mov;
+            ins.type = x86_64::OLD_mov;
             if (source.value.isAddress) {
                 // in that case we're moving a pointer
                 ins.sizeBefore = ins.sizeAfter = Options::addressSize;
@@ -1369,7 +1369,7 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var) 
         }
         VariableInfo source(var);
         ins.sizeAfter = ins.sizeBefore = source.value.size;
-        ins.type = x86_64::mov;
+        ins.type = x86_64::OLD_mov;
         where.type = Operand::reg;
         where.extractAddress = true;
         ins.op1 = where;

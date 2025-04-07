@@ -12,57 +12,57 @@ namespace x86_64 {
 
     enum {
         // (mov+p1) move : op1 = op2, reg/mem + reg, reg + reg/mem, reg/mem + imm
-        mov,
+        OLD_mov,
         // (movz+p1+p2) move with sign extension: op1 = op2, reg + reg/mem
-        movsx,
+        OLD_movsx,
         // (movz+p1+p2) move with zero extension: op1 = op2, reg + reg/mem
-        movzx,
+        OLD_movzx,
         // (mul + p1) unsigned multiply content of register a by op2: reg0 = reg0 * reg/mem
-        mul,
+        OLD_mul,
         //
-        imul,
+        OLD_imul,
         // (mul + p1) unsigned divide content of register a by op2: reg0 = reg0 * reg/mem, set 0 to reg3
-        div,
+        OLD_div,
         //
-        idiv,
+        OLD_idiv,
         //
-        cxtx,
+        OLD_cxtx,
         //
-        call,
+        OLD_call,
         //
-        ret,
+        OLD_ret,
         //
-        push,
+        OLD_push,
         //
-        pop,
+        OLD_pop,
         // (add + p1) add signed/unsigned integer op1 = op1 + op2 reg + reg/mem, reg/mem + reg, reg/mem + imm
-        add,
+        OLD_add,
         // (sub + p1) subtract signed/unsigned integer op1 = op1 + op2 reg + reg/mem, reg/mem + reg, reg/mem + imm
-        sub,
+        OLD_sub,
         //
-        syscall,
+        OLD_syscall,
         // jmp, label in op1
-        jmp,
+        OLD_jmp,
         // label in op1
-        jb,
+        OLD_jb,
         // label in op1
-        jbe,
+        OLD_jbe,
         // label in op1
-        jg,
+        OLD_jg,
         // label in op1
-        jge,
+        OLD_jge,
         // label in op1
-        je,
+        OLD_je,
         // label in op1
-        jne,
+        OLD_jne,
         //
-        cmp,
+        OLD_cmp,
         // (lea + p1) load effective address of variable in memory op1 = &op2: reg + mem
-        lea,
+        OLD_lea,
         // (.LC + op1.number + ':')
-        jumpLabel,
-        returnPoint,
-        leave
+        OLD_jumpLabel,
+        OLD_returnPoint,
+        OLD_leave
     };
 }
 

@@ -58,17 +58,17 @@ namespace x86_64 {
         if (code == BytecodeOld::jumpConditionalTrue) {
             switch (comparison) {
                 case ParserCondition::greater:
-                    return x86_64::jg;
+                    return x86_64::OLD_jg;
                 case ParserCondition::greaterEqual:
-                    return x86_64::jge;
+                    return x86_64::OLD_jge;
                 case ParserCondition::lesser:
-                    return x86_64::jb;
+                    return x86_64::OLD_jb;
                 case ParserCondition::lesserEqual:
-                    return x86_64::jbe;
+                    return x86_64::OLD_jbe;
                 case ParserCondition::equals:
-                    return x86_64::je;
+                    return x86_64::OLD_je;
                 case ParserCondition::notEquals:
-                    return x86_64::jne;
+                    return x86_64::OLD_jne;
                 default:
                     CodeGeneratorError("Bug: Invalid jump label request!");
             }
@@ -76,17 +76,17 @@ namespace x86_64 {
         else {
             switch (comparison) {
                 case ParserCondition::greater:
-                    return x86_64::jbe;
+                    return x86_64::OLD_jbe;
                 case ParserCondition::greaterEqual:
-                    return x86_64::jb;
+                    return x86_64::OLD_jb;
                 case ParserCondition::lesser:
-                    return x86_64::jge;
+                    return x86_64::OLD_jge;
                 case ParserCondition::lesserEqual:
-                    return x86_64::jb;
+                    return x86_64::OLD_jb;
                 case ParserCondition::equals:
-                    return x86_64::jne;
+                    return x86_64::OLD_jne;
                 case ParserCondition::notEquals:
-                    return x86_64::je;
+                    return x86_64::OLD_je;
                 default:
                     CodeGeneratorError("Bug: Invalid jump label request!");
             }
@@ -162,7 +162,7 @@ namespace x86_64 {
             generatorMemory.registers.front().content.value = "!";
         }
         DEPRECATEDInstruction ins;
-        ins.type = x86_64::syscall;
+        ins.type = x86_64::OLD_syscall;
         finalInstructions.push_back(ins);
     }
 
@@ -199,7 +199,7 @@ namespace x86_64 {
             }
         }
         DEPRECATEDInstruction ins;
-        ins.type = x86_64::call;
+        ins.type = x86_64::OLD_call;
         ins.op1 = DataLocation(Operand::fun, function);
         finalInstructions.push_back(ins);
         if (not function->returnType.empty()) {
@@ -216,7 +216,7 @@ namespace x86_64 {
                     }
                 }
                 GenerateInstruction({
-                    x86_64::add, bytecode.type.size, bytecode.target, bytecode.source,
+                    x86_64::OLD_add, bytecode.type.size, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
@@ -237,7 +237,7 @@ namespace x86_64 {
                 break;
             case BytecodeOld::subtract:
                 GenerateInstruction({
-                    x86_64::sub, bytecode.type.size, bytecode.target, bytecode.source,
+                    x86_64::OLD_sub, bytecode.type.size, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
@@ -264,7 +264,7 @@ namespace x86_64 {
                 }
                 if (bytecode.type.type == ParserType::unsignedInteger) {
                     GenerateInstruction({
-                    x86_64::mul, bytecode.type.size, bytecode.target, bytecode.source,
+                    x86_64::OLD_mul, bytecode.type.size, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {0},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
@@ -281,7 +281,7 @@ namespace x86_64 {
                     if (bytecode.type.size <= 4 and bytecode.source.starts_with("$")) {
                         // three operand form
                         GenerateInstruction({
-                    x86_64::imul, bytecode.type.size, bytecode.target, bytecode.target, bytecode.source,
+                    x86_64::OLD_imul, bytecode.type.size, bytecode.target, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
@@ -296,7 +296,7 @@ namespace x86_64 {
                     else {
                         // 2 operand form
                         GenerateInstruction({
-                    x86_64::imul, bytecode.type.size, bytecode.target, bytecode.source,
+                    x86_64::OLD_imul, bytecode.type.size, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
@@ -318,7 +318,7 @@ namespace x86_64 {
                 }
                 if (bytecode.type.type == ParserType::unsignedInteger) {
                     GenerateInstruction({
-                    x86_64::div, bytecode.type.size, bytecode.target, bytecode.source,
+                    x86_64::OLD_div, bytecode.type.size, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {0},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
@@ -334,7 +334,7 @@ namespace x86_64 {
                 }
                 else if (bytecode.type.type == ParserType::signedInteger) {
                     GenerateInstruction({
-                    x86_64::idiv, bytecode.type.size, bytecode.target, bytecode.source,
+                    x86_64::OLD_idiv, bytecode.type.size, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {0},
                                    Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
@@ -392,7 +392,7 @@ namespace x86_64 {
                 // MoveValue(bytecode.source, "%0", bytecode.source, bytecode.type.size, index);
                 MoveValue(VariableInfo(bytecode.source), VariableInfo("%0"), bytecode.source, bytecode.type.size);
                 // insert a return statement
-                GenerateInstruction({x86_64::ret}, index);
+                GenerateInstruction({x86_64::OLD_ret}, index);
                 break;
             case BytecodeOld::pushLevel:
                 FillDesignatedPlaces(index);
@@ -418,7 +418,7 @@ namespace x86_64 {
                 FillDesignatedPlaces(index);
                 {
                     DEPRECATEDInstruction ins;
-                    ins.type = x86_64::jmp;
+                    ins.type = x86_64::OLD_jmp;
                     ins.op1.type = Operand::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
                     finalInstructions.push_back(ins);
@@ -448,7 +448,7 @@ namespace x86_64 {
                 // compare here
                 FillDesignatedPlaces(index);
                 GenerateInstruction({
-                    x86_64::cmp, bytecode.type.size, bytecode.target, bytecode.source,
+                    x86_64::OLD_cmp, bytecode.type.size, bytecode.target, bytecode.source,
                     {
                      OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
                                    Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15}),
@@ -502,7 +502,7 @@ namespace x86_64 {
                 FillDesignatedPlaces(index);
                 if (bytecode.source.starts_with(Options::jumpLabelPrefix)) {
                     DEPRECATEDInstruction ins;
-                    ins.type = x86_64::jumpLabel;
+                    ins.type = x86_64::OLD_jumpLabel;
                     ins.op1.type = Operand::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
                     finalInstructions.push_back(ins);

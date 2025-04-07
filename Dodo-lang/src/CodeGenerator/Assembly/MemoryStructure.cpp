@@ -314,11 +314,11 @@ void PrintWithSpaces(const std::string& input, std::ofstream& out) {
 void DEPRECATEDInstruction::outputX86_64(std::ofstream& out) const {
     if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
         switch (this->type) {
-            case x86_64::ret:
+            case x86_64::OLD_ret:
                 PrintWithSpaces("jmp", out);
                 out << "." << *lastFunctionName << ".return\n";
                 break;
-            case x86_64::mov:
+            case x86_64::OLD_mov:
                 if (Optimizations::skipUselessMoves and op1 == op2) {
                     return;
                 }
@@ -328,40 +328,40 @@ void DEPRECATEDInstruction::outputX86_64(std::ofstream& out) const {
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::movzx:
+            case x86_64::OLD_movzx:
                 PrintWithSpaces("movz" + X86_64GNU_ASPrefix(sizeBefore) + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeBefore);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::movsx:
+            case x86_64::OLD_movsx:
                 PrintWithSpaces("movs" + X86_64GNU_ASPrefix(sizeBefore) + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeBefore);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::add:
+            case x86_64::OLD_add:
                 PrintWithSpaces("add" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::sub:
+            case x86_64::OLD_sub:
                 PrintWithSpaces("sub" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::mul:
+            case x86_64::OLD_mul:
                 PrintWithSpaces("mul" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::imul:
+            case x86_64::OLD_imul:
                 // TODO: repeat the meltdown and understand why intel reference is lying about 2 operand with imm
                 PrintWithSpaces("imul" + X86_64GNU_ASPrefix(sizeAfter), out);
                 if (op3.type != Operand::none) {
@@ -388,71 +388,71 @@ void DEPRECATEDInstruction::outputX86_64(std::ofstream& out) const {
                 }
                 out << "\n";
                 break;
-            case x86_64::div:
+            case x86_64::OLD_div:
                 PrintWithSpaces("div" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::idiv:
+            case x86_64::OLD_idiv:
                 PrintWithSpaces("idiv" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::cmp:
+            case x86_64::OLD_cmp:
                 PrintWithSpaces("cmp", out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::jumpLabel:
+            case x86_64::OLD_jumpLabel:
                 PrintWithSpaces(".L" + std::to_string(op1.number) + ":\n", out);
                 out << "\n";
                 break;
-            case x86_64::jmp:
+            case x86_64::OLD_jmp:
                 PrintWithSpaces("jmp", out);
                 out << ".L" << op1.number << "\n";
                 break;
-            case x86_64::jg:
+            case x86_64::OLD_jg:
                 PrintWithSpaces("jg", out);
                 out << ".L" << op1.number << "\n";
                 break;
-            case x86_64::jge:
+            case x86_64::OLD_jge:
                 PrintWithSpaces("jge", out);
                 out << ".L" << op1.number << "\n";
                 break;
-            case x86_64::jb:
+            case x86_64::OLD_jb:
                 PrintWithSpaces("jb", out);
                 out << ".L" << op1.number << "\n";
                 break;
-            case x86_64::jbe:
+            case x86_64::OLD_jbe:
                 PrintWithSpaces("jbe", out);
                 out << ".L" << op1.number << "\n";
                 break;
-            case x86_64::je:
+            case x86_64::OLD_je:
                 PrintWithSpaces("je", out);
                 out << ".L" << op1.number << "\n";
                 break;
-            case x86_64::jne:
+            case x86_64::OLD_jne:
                 PrintWithSpaces("jne", out);
                 out << ".L" << op1.number << "\n";
                 break;
-            case x86_64::returnPoint:
+            case x86_64::OLD_returnPoint:
                 PrintWithSpaces("." + *lastFunctionName + ".return:", out);
             out << "\n";
                 break;
-            case x86_64::call:
+            case x86_64::OLD_call:
                 PrintWithSpaces("call", out);
                 out << op1.functionPtr->name << "\n";
                 break;
-            case x86_64::lea:
+            case x86_64::OLD_lea:
                 PrintWithSpaces("lea" + X86_64GNU_ASPrefix(sizeAfter), out);
                 op2.print(out, sizeAfter);
                 out << ", ";
                 op1.print(out, sizeAfter);
                 out << "\n";
                 break;
-            case x86_64::syscall:
+            case x86_64::OLD_syscall:
                 PrintWithSpaces("syscall", out);
                 out << "\n";
             break;

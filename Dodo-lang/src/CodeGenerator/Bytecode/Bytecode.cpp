@@ -534,10 +534,10 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
 
 // methods
 
-BytecodeValue::BytecodeValue(uint64_t val) {
+OperandValue::OperandValue(uint64_t val) {
     ui = val;
 }
-BytecodeValue::BytecodeValue(VariableLocation val) {
+OperandValue::OperandValue(VariableLocation val) {
     variable = val;
 }
 
@@ -589,7 +589,7 @@ BytecodeOperand Bytecode::result(BytecodeOperand op) {
     return op;
 }
 
-BytecodeOperand::BytecodeOperand(Location::Type location, BytecodeValue value, Type::TypeEnum literalType, uint8_t literalSize) {
+BytecodeOperand::BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType, uint8_t literalSize) {
     this->location = location;
     this->value = value;
     this->literalType = literalType;

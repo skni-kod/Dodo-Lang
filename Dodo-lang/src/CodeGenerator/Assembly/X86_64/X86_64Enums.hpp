@@ -145,6 +145,79 @@ namespace x86_64 {
         MaskVIP  = 0x0000000000100000, // Virtual Interrupt Pending flag
         MaskID   = 0x0000000000200000  // ID flag
     };
+
+    // contains ALL used instructions codes, will be long
+    // _op are added to names that are keywords in C++
+    enum InstructionCode {
+        // none / invalid
+        none,
+        // Move
+        // no special things happening there
+        // reg/mem <- reg
+        // reg <- reg/mem
+        // regA <- moffs
+        // moffs <- regA
+        // reg/mem <- imm
+        // control and debug register moves are skipped
+        mov,
+        // Move or Merge Scalar Single Precision (32 bit) Floating-Point Value:
+        // I'll assume it only moves it for my sanity
+        // xmm <- xmm, no changes other than first 32 bits
+        // xmm <- mem32, zeroes the upper 96 bits of xmm and leaves the rest
+        // mem32 <- xmm, just move
+        movss,
+        // Move or Merge Scalar Single Precision (32 bit) Floating-Point Value:
+        // movss for v2 extension
+        // for xmm to xmm move use movss, even though it's marked as legacy there is no other way
+        // xmm <- xmm, xmm, op3 to first 32 bits and 96 bits from op2 into older bits of op1
+        // mem32 <- xmm, just move
+        // xmm <- mem32, zeroes everything after 32 bits
+        // with v4 there are also masks involved, not supported for now
+        vmovss,
+        // Move or Merge Scalar Double Precision (64 bit) Floating-Point Value
+        // xmm <- xmm, copy 64 bits, leave the rest
+        // xmm <- m64, copy 64 bits, zero next 64, leave the rest
+        // m64 <- xmm, copy 64 bits
+        movsd,
+        // Move or Merge Scalar Double Precision (64 bit) Floating-Point Value
+        // movsd for v2 extension
+        // xmm <- xmm, xmm, first 64 bits from op3, then next 64 from op2, the rest is zeroes
+        // xmm <- m64, copy 64 bits, zero the rest
+        // m64 <- xmm, copy 64 bits
+        // with v4 there are also masks involved, not supported for now
+        vmovsd,
+        // Add
+        // reg += reg/mem
+        // reg/mem += reg
+        // reg/mem += imm
+        add,
+        // Logical AND
+        // reg &= reg/mem
+        // reg/mem &= reg
+        // reg/mem &= imm
+        and_op,
+        // Call procedure
+        // offset
+        // reg/mem
+        call,
+        // Compare two operands
+        // reg, reg/mem
+        // reg/mem, reg
+        // reg/mem, imm
+        cmp,
+        // Convert Scalar Double Precision Floating-Point Value to Doubleword Integer
+        // reg32/reg64 <- xmm / mem64
+        cvtsd2si,
+        // Convert Scalar Double Precision Floating-Point Value to Scalar Single Precision Floating-Point Value
+        // xmm <- xmm/m64, only first 32 bits modified
+        cvtsd2ss,
+        // Convert Scalar Double Precision Floating-Point Value to Scalar Single Precision Floating-Point Value
+        // cvtsd2ss with v3
+        // xmm <- xmm, xmm/m64, 32 bits converted from op3, next 96 from op2 into op1, zero everything later
+        // with v4 something with flags idk
+        vcvtsd2ss,
+        // TODO: add the rest of essential instructions, reading through them should provide more insight into the inner workings of x86
+    };
 }
 
 #endif //X86_64ENUMS_HPP

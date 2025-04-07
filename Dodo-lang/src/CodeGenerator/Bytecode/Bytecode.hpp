@@ -112,7 +112,7 @@ struct VariableLocation {
     uint64_t number : 48 = 0;
 };
 
-union BytecodeValue {
+union OperandValue {
     uint64_t ui = 0;
     uint64_t u64;
     uint32_t u32;
@@ -131,9 +131,9 @@ union BytecodeValue {
     uint64_t offset;
     ParserFunctionMethod* function;
     VariableLocation variable;
-    BytecodeValue() = default;
-    BytecodeValue(uint64_t val);
-    BytecodeValue(VariableLocation val);
+    OperandValue() = default;
+    OperandValue(uint64_t val);
+    OperandValue(VariableLocation val);
 };
 
 struct BytecodeOperand {
@@ -146,9 +146,10 @@ struct BytecodeOperand {
     uint8_t literalSize : 4 = 0;
     uint8_t literalType = Type::none;
 #endif
-    BytecodeValue value;
+    bool isTheRestZeroes : 1 = false;
+    OperandValue value;
     BytecodeOperand() = default;
-    BytecodeOperand(Location::Type location, BytecodeValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
+    BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
 };
 
 // represents a single bytecode instruction
@@ -254,7 +255,7 @@ struct Bytecode {
     // 4 bytes used at this point
     // 4 are free for some kind of metadata
     // variable unions
-    BytecodeValue op1Value, op2Value, op3Value;
+    OperandValue op1Value, op2Value, op3Value;
     TypeObject* opType = nullptr;
 
     // methods

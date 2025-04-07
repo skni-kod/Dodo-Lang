@@ -1,7 +1,10 @@
 #ifndef ASSEMBLY_HPP
 #define ASSEMBLY_HPP
 
+#include <X86_64Enums.hpp>
+
 #include "Bytecode.hpp"
+#include "X86_64Enums.hpp"
 
 // This is the scary file when all the terrifying assembly stuff roots from
 
@@ -80,7 +83,27 @@ struct Processor {
     void clear();
 };
 
+
 struct AsmInstruction {
+    // TODO: move to union when other targets are added
+    x86_64::InstructionCode code = x86_64::none;
+
+    #ifdef PACKED_ENUM_VARIABLES
+    Location::Type op1Location : 4 = Location::None;
+    Location::Type op2Location : 4 = Location::None;
+    Location::Type op3Location : 4 = Location::None;
+    Location::Type op4Location : 4 = Location::None;
+    #else
+    uint8_t op1Location : 4 = Location::None;
+    uint8_t op2Location : 4 = Location::None;
+    uint8_t op3Location : 4 = Location::None;
+    uint8_t op4Location : 4 = Location::None;
+    #endif
+    uint8_t op1Size : 4 = 0;
+    uint8_t op2Size : 4 = 0;
+    uint8_t op3Size : 4 = 0;
+    uint8_t op4Size : 4 = 0;
+    OperandValue op1Value = {}, op2Value = {}, op3Value = {}, op4Value = {};
 
 };
 
