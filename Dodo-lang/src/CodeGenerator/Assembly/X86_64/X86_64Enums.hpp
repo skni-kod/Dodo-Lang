@@ -485,7 +485,10 @@ namespace x86_64 {
         // Logical Exclusive Or
         // reg/mem ^= imm
         // reg ^= reg/mem
-        op_xor
+        op_xor,
+
+        // non-codes which will be used for other stuff
+        label
 };
 }
 

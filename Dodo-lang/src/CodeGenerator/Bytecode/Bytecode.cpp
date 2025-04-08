@@ -119,7 +119,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta)
 }
 
 // pass reference type
-Operand Dereference(BytecodeContext& context, Operand op, TypeObject* type, TypeMeta meta) {
+BytecodeOperand Dereference(BytecodeContext& context, BytecodeOperand op, TypeObject* type, TypeMeta meta) {
     if (not meta.isReference) CodeGeneratorError("Cannot dereference a non-reference!");
     if (op.location == Location::Variable) {
         auto& var = context.getVariableObject(op);
@@ -138,7 +138,7 @@ Operand Dereference(BytecodeContext& context, Operand op, TypeObject* type, Type
 // it recursively creates bytecode instructions needed to make the expression work
 // it is the most important function of the entire bytecode generator, probably
 // also references are a mess
-Operand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, Operand passedOperand) {
+BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, BytecodeOperand passedOperand) {
     // first off let's do a switch to know what is going on
     auto& current = values[index];
 
@@ -241,7 +241,7 @@ Operand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserT
             if (isGlobal) {
                 // if it's global give it a number and push back a pointer
                 code.op1({Location::Variable, {{VariableLocation::Global, 0, globalVariableObjects.size()}}});
-                globalVariableObjects.emplace_back(type, values[current.next].identifier, typeMeta);
+                globalVariableObjects.emplace_back(type, values[current.next].identifier, typeMeta.reference());
             }
             else {
                 code.op1(context.insertVariable(values[current.next].identifier, type, typeMeta));
@@ -541,11 +541,11 @@ OperandValue::OperandValue(VariableLocation val) {
     variable = val;
 }
 
-Operand Bytecode::op1() const {
+BytecodeOperand Bytecode::op1() const {
     return {op1Location, op1Value, op1LiteralType, op1LiteralSize};
 }
 
-Operand Bytecode::op1(Operand op) {
+BytecodeOperand Bytecode::op1(BytecodeOperand op) {
     op1Value       = op.value;
     op1Location    = op.location;
     op1LiteralType = op.literalType;
@@ -553,11 +553,11 @@ Operand Bytecode::op1(Operand op) {
     return op;
 }
 
-Operand Bytecode::op2() const {
+BytecodeOperand Bytecode::op2() const {
     return {op2Location, op2Value, op2LiteralType, op2LiteralSize};
 }
 
-Operand Bytecode::op2(Operand op) {
+BytecodeOperand Bytecode::op2(BytecodeOperand op) {
     op2Value       = op.value;
     op2Location    = op.location;
     op2LiteralType = op.literalType;
@@ -565,11 +565,11 @@ Operand Bytecode::op2(Operand op) {
     return op;
 }
 
-Operand Bytecode::op3() const {
+BytecodeOperand Bytecode::op3() const {
     return {op3Location, op3Value, op3LiteralType, op3LiteralSize};
 }
 
-Operand Bytecode::op3(Operand op) {
+BytecodeOperand Bytecode::op3(BytecodeOperand op) {
     op3Value       = op.value;
     op3Location    = op.location;
     op3LiteralType = op.literalType;
@@ -577,11 +577,11 @@ Operand Bytecode::op3(Operand op) {
     return op;
 }
 
-Operand Bytecode::result() const {
+BytecodeOperand Bytecode::result() const {
     return {op3Location, op3Value, op3LiteralType, op3LiteralSize};
 }
 
-Operand Bytecode::result(Operand op) {
+BytecodeOperand Bytecode::result(BytecodeOperand op) {
     op3Value       = op.value;
     op3Location    = op.location;
     op3LiteralType = op.literalType;
@@ -589,7 +589,7 @@ Operand Bytecode::result(Operand op) {
     return op;
 }
 
-Operand::Operand(Location::Type location, OperandValue value, Type::TypeEnum literalType, uint8_t literalSize) {
+BytecodeOperand::BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType, uint8_t literalSize) {
     this->location = location;
     this->value = value;
     this->literalType = literalType;
@@ -629,7 +629,7 @@ void BytecodeContext::merge(BytecodeContext& context) {
     }
 }
 
-Operand BytecodeContext::insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
+BytecodeOperand BytecodeContext::insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
     VariableLocation location;
     location.type = VariableLocation::Local;
     location.level = localVariables.size() - 1;
@@ -638,7 +638,7 @@ Operand BytecodeContext::insertVariable(std::string* identifier, TypeObject* typ
     return {Location::Variable, {location}};
 }
 
-Operand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta) {
+BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta) {
     VariableLocation location;
     location.type = VariableLocation::Temporary;
     location.number = temporaries.size();
@@ -647,7 +647,7 @@ Operand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta) {
 
 }
 
-Operand BytecodeContext::getVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
+BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
     // first let's go through local variables from top and back
     for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
         for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[activeLevels[n]].size() != 0; m--) {
@@ -741,7 +741,7 @@ VariableObject& BytecodeContext::getVariableObject(const std::string* identifier
     return globalVariableObjects[0];
 }
 
-VariableObject& BytecodeContext::getVariableObject(Operand operand) {
+VariableObject& BytecodeContext::getVariableObject(BytecodeOperand operand) {
     if (operand.location != Location::Variable) CodeGeneratorError("Cannot get a variable from non-variable location!");
     switch (operand.value.variable.type) {
         case VariableLocation::None:

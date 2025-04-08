@@ -210,7 +210,7 @@ std::ostream& operator<<(std::ostream& out, const VariableLocation& op) {
     return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const Operand& op) {
+std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
     switch (op.location) {
         case Location::None:
             return out << "none";

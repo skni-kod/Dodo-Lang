@@ -1,4 +1,4 @@
-
+/*
 i32 Main() {
     let mut test g = 5;
     let u64 k = syscall(1, 2, r, "test");
@@ -24,3 +24,7 @@ type test {
 
 
 let i32 r = 10;
+*/
+i32 Main() {
+    return 0;
+}

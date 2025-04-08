@@ -59,7 +59,7 @@ struct Register {
     bool canUseSinglePrecisionFloats       : 1 = false; // can the register perform operations on single precision floats?
     bool canUseDoublePrecisionFloats       : 1 = false; // can the register perform operations on double precision floats?
 
-    Operand content = {}; // the content that is assumed to be present in the register
+    BytecodeOperand content = {}; // the content that is assumed to be present in the register
 
     bool canBeLongStored(const VariableObject& variable) const;
     bool canBeStored(const VariableObject& variable) const;
@@ -67,7 +67,7 @@ struct Register {
 
 // represents a single entry on the stack
 struct StackEntry {
-    Operand content;
+    BytecodeOperand content;
     // offset from base pointer, beware that value must be AT least equal in negative to size since it's negative indexing,
     // alternatively it can be positive value if it's an argument for a function call
     int32_t offset = 0;
@@ -83,30 +83,121 @@ struct Processor {
     void clear();
 };
 
+struct AsmOperand {
+    #ifdef PACKED_ENUM_VARIABLES
+    Location::Type op : 4 = Location::None;
+    // type of value
+    Type::TypeEnum type : 2 = Type::none;
+    #else
+    uint8_t op : 3 = Operand::None;
+    // type of value
+    uint8_t type : 2 = Type::none;
+    #endif
+    // size for operation in bytes
+    uint8_t size = 0;
+    // value to set in the operand
+    OperandValue value;
+
+};
 
 struct AsmInstruction {
     // TODO: move to union when other targets are added
-    x86_64::InstructionCode code = x86_64::none;
-
-    #ifdef PACKED_ENUM_VARIABLES
-    Location::Type op1Location : 4 = Location::None;
-    Location::Type op2Location : 4 = Location::None;
-    Location::Type op3Location : 4 = Location::None;
-    Location::Type op4Location : 4 = Location::None;
-    #else
-    uint8_t op1Location : 4 = Location::None;
-    uint8_t op2Location : 4 = Location::None;
-    uint8_t op3Location : 4 = Location::None;
-    uint8_t op4Location : 4 = Location::None;
-    #endif
-    uint8_t op1Size : 4 = 0;
-    uint8_t op2Size : 4 = 0;
-    uint8_t op3Size : 4 = 0;
-    uint8_t op4Size : 4 = 0;
-    OperandValue op1Value = {}, op2Value = {}, op3Value = {}, op4Value = {};
-
-    AsmInstruction(x86_64::InstructionCode code, Operand op1, Operand op2, Operand op3, Operand op4);
+    x86_64::InstructionCode code : 8 = x86_64::none;
+    AsmOperand op1, op2, op3, op4;
 };
 
+
+// structure responsible for defining everything an instruction needs and results in
+// TODO: change to a faster and smaller array size, maybe stack allocation?
+struct RegisterRange {
+    uint16_t first = 0;
+    uint16_t last = 0;
+    bool canBeOp1 = false;
+    bool canBeOp2 = false;
+    bool canBeOp3 = false;
+    bool canBeOp4 = false;
+};
+
+struct AsmInstructionResultInput {
+    // if it's a fixed location modify it with result
+    // however if it's not modify the specified operand location in range 1-4
+    bool isFixedLocation : 1 = false;
+    bool isInput : 1 = false;
+    union {
+        // if size is 0 it will be the same as in operation
+        AsmOperand fixedLocation = {};
+        struct {
+            uint8_t operandNumber;
+        };
+    };
+    OperandValue result = {};
+
+    AsmInstructionResultInput() = default;
+    AsmInstructionResultInput(bool isInput, AsmOperand operand, OperandValue value);
+    AsmInstructionResultInput(bool isInput, uint8_t operandNumber, OperandValue value);
+};
+
+struct AsmOpDefinition {
+    Location::Type opType : 8 = Location::None;
+    uint8_t sizeMin = 0;
+    uint8_t sizeMax = 0;
+};
+
+struct AsmInstructionVariant {
+
+    // instruction code of the given variant
+    // some instructions have
+    uint16_t code = 0;
+
+    // minimum version of the architecture for this variant
+    Options::ArchitectureVersion minimumVersion : 8 = Options::None;
+
+    AsmOpDefinition op1 = {};
+    AsmOpDefinition op2 = {};
+    AsmOpDefinition op3 = {};
+    AsmOpDefinition op4 = {};
+
+    // ranges of registers allowed for the operation
+    std::vector <RegisterRange> allowedRegisters = {};
+    // results and inputs of the given variant, inputs will be checked to see if it's possible to use it from them
+    std::vector <AsmInstructionResultInput> resultsAndInputs = {};
+
+    AsmInstructionVariant() = default;
+    AsmInstructionVariant(uint16_t code, Options::ArchitectureVersion minimumVersion,
+        std::vector <AsmInstructionResultInput> resultsAndInputs);
+    AsmInstructionVariant(uint16_t code, Options::ArchitectureVersion minimumVersion,
+        AsmOpDefinition op1,
+        std::vector <RegisterRange> allowedRegisters, std::vector <AsmInstructionResultInput> resultsAndInputs);
+    AsmInstructionVariant(uint16_t code, Options::ArchitectureVersion minimumVersion,
+        AsmOpDefinition op1, AsmOpDefinition op2,
+        std::vector <RegisterRange> allowedRegisters, std::vector <AsmInstructionResultInput> resultsAndInputs);
+    AsmInstructionVariant(uint16_t code, Options::ArchitectureVersion minimumVersion,
+        AsmOpDefinition op1, AsmOpDefinition op2, AsmOpDefinition op3,
+        std::vector <RegisterRange> allowedRegisters, std::vector <AsmInstructionResultInput> resultsAndInputs);
+    AsmInstructionVariant(uint16_t code, Options::ArchitectureVersion minimumVersion,
+        AsmOpDefinition op1, AsmOpDefinition op2, AsmOpDefinition op3, AsmOpDefinition op4,
+        std::vector <RegisterRange> allowedRegisters, std::vector <AsmInstructionResultInput> resultsAndInputs);
+};
+
+struct AsmInstructionInfo {
+    std::vector <AsmInstructionVariant> variants;
+    AsmInstructionVariant* selected = nullptr;
+};
+
+// only to test the syntax
+inline AsmInstructionInfo test = {
+    {
+        AsmInstructionVariant(x86_64::div, Options::None, {Location::Register, 8, 64},
+            {
+                RegisterRange(x86_64::RAX, x86_64::RDX, true, false, false, false),
+                RegisterRange(x86_64::R8, x86_64::R15, true, false, false, false)
+            },
+            {
+                AsmInstructionResultInput(false, AsmOperand(Location::Register, Type::unsignedInteger, 64, OperandValue()), OperandValue())
+            })
+    }};
+
+// functions
+void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstructionInfo& instruction, std::vector<AsmInstruction>& instructions, uint32_t index);
 
 #endif //ASSEMBLY_HPP

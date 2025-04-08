@@ -93,7 +93,18 @@ inline std::vector<BytecodeOld> bytecodes;
 
 namespace Location {
     enum Type {
-        None, Variable, Literal, String, Label, Call, Argument, Register, Heap, Stack, Offset, Unknown
+        None = 0, Unknown = 0,
+        Variable = 1,
+        Literal = 2, Immediate = 2, Imm = 2, imm = 2,
+        String = 3,
+        Label = 4,
+        Call = 5,
+        Argument = 6,
+        Register = 7, Reg = 7, reg = 7,
+        Heap = 8, Hea = 8, hea = 8,
+        Stack, Sta = 9, sta = 9,
+        Offset = 10, Off = 10, off = 10,
+        Zeroed = 11, Zer = 11, zer = 11, Zero = 11, zero = 11
     };
 }
 
@@ -136,21 +147,21 @@ union OperandValue {
     OperandValue(VariableLocation val);
 };
 
-struct Operand {
+struct BytecodeOperand {
 #ifdef PACKED_ENUM_VARIABLES
     Location::Type location : 4 = Location::None;
-    uint8_t size : 4 = 0;
+    uint8_t size = 0;
     Type::TypeEnum literalType : 4 = Type::none;
 #else
     uint8_t type : 4 = Location::None;
-    uint8_t literalSize : 4 = 0;
+    uint8_t size = 0;
     uint8_t literalType = Type::none;
 #endif
     bool isTheRestZeroes : 1 = false;
     OperandValue value;
-    Operand() = default;
-    Operand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
-    Operand(Location::Type type, uint8_t operandSize, OperandValue value);
+    BytecodeOperand() = default;
+    BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
+    BytecodeOperand(Location::Type type, uint8_t operandSize, OperandValue value);
 };
 
 // represents a single bytecode instruction
@@ -261,14 +272,14 @@ struct Bytecode {
 
     // methods
     // these return a reconstructed operand struct for easier use
-    [[nodiscard]] Operand op1() const;
-    Operand op1(Operand op);
-    [[nodiscard]] Operand op2() const;
-    Operand op2(Operand op);
-    [[nodiscard]] Operand op3() const;
-    Operand op3(Operand op);
-    [[nodiscard]] Operand result() const;
-    Operand result(Operand op);
+    [[nodiscard]] BytecodeOperand op1() const;
+    BytecodeOperand op1(BytecodeOperand op);
+    [[nodiscard]] BytecodeOperand op2() const;
+    BytecodeOperand op2(BytecodeOperand op);
+    [[nodiscard]] BytecodeOperand op3() const;
+    BytecodeOperand op3(BytecodeOperand op);
+    [[nodiscard]] BytecodeOperand result() const;
+    BytecodeOperand result(BytecodeOperand op);
 };
 
 // represents a location in memory where a thing is or is to be stored
@@ -322,16 +333,16 @@ struct BytecodeContext {
     void merge(BytecodeContext& context);
 
     // inserts a new local scope variable
-    Operand insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    BytecodeOperand insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
     // inserts a new local scope temporary variable
-    Operand insertTemporary(TypeObject* type, TypeMeta meta);
+    BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta);
     // returns requested variable and throws and exception if there is no match for name or type is wrong
-    Operand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    BytecodeOperand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
     // the same, not implemented
-    Operand getVariable(Operand operand);
+    BytecodeOperand getVariable(BytecodeOperand operand);
 
     VariableObject& getVariableObject(const std::string* identifier);
-    VariableObject& getVariableObject(Operand operand);
+    VariableObject& getVariableObject(BytecodeOperand operand);
 
     void addLoopLabel();
 };
@@ -347,7 +358,7 @@ void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 // printing functions
 
 std::ostream& operator<<(std::ostream& out, const Bytecode& code);
-std::ostream& operator<<(std::ostream& out, const Operand& op);
+std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op);
 std::ostream& operator<<(std::ostream& out, const VariableLocation& op);
 
 #endif //DODO_LANG_GENERAL_BYTECODE_HPP
