@@ -210,7 +210,7 @@ std::ostream& operator<<(std::ostream& out, const VariableLocation& op) {
     return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
+std::ostream& operator<<(std::ostream& out, const Operand& op) {
     switch (op.location) {
         case Location::None:
             return out << "none";
@@ -232,7 +232,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
                             break;
                     }
                 case Type::floatingPoint:
-                    switch (op.literalSize) {
+                    switch (op.size) {
                         case 2:
                             CodeGeneratorError("16 bit floats not supported in printing!");
                         case 4:
@@ -244,7 +244,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
                     }
                     break;
                 case Type::signedInteger:
-                    switch (op.literalSize) {
+                    switch (op.size) {
                         case 1:
                             return out << "signed integer literal: " << op.value.i8;
                         case 2:
@@ -258,7 +258,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
                     }
                 break;
                 case Type::unsignedInteger:
-                    switch (op.literalSize) {
+                    switch (op.size) {
                         case 1:
                             return out << "unsigned integer literal: " << static_cast <uint64_t>(op.value.u8);
                         case 2:

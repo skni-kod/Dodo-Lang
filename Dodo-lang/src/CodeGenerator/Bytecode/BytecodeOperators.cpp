@@ -14,7 +14,7 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
     uint32_t parameterCounter = 0;
 
     BytecodeContext tempContext = context.current();
-    std::vector <BytecodeOperand> operands;
+    std::vector <Operand> operands;
     // going through both at the same time and checking if they match
     uint32_t counter = 0;
     do {
@@ -77,7 +77,7 @@ bool DoArgumentTypesMatch(BytecodeContext& context, std::vector<ParserTreeValue>
 }
 
 // TODO: split into 2 functions?
-void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod, BytecodeOperand caller) {
+void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod, Operand caller) {
     if (code.type == Bytecode::Syscall) {
         code.op1Location = Location::Literal;
         code.op1Value = values[values[node.argument].left].literal->unsigned64;
@@ -186,7 +186,7 @@ bool AssignOverloadedOperatorIfPossible(BytecodeContext& context, std::vector<Pa
     return false;
 }
 
-BytecodeOperand HandleCondition(BytecodeContext& context, std::vector<ParserTreeValue>& values, uint16_t index, bool isGlobal, Bytecode::BytecodeInstruction condition) {
+Operand HandleCondition(BytecodeContext& context, std::vector<ParserTreeValue>& values, uint16_t index, bool isGlobal, Bytecode::BytecodeInstruction condition) {
     Bytecode code;
     code.type = condition;
     // we need to get the left side type first to know how to even compare this
@@ -200,7 +200,7 @@ BytecodeOperand HandleCondition(BytecodeContext& context, std::vector<ParserTree
     return code.op3();
 }
 
-BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal) {
+Operand InsertOperatorExpression(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal) {
     // first of all let's see if the type has the operator redefined
     Bytecode code;
     code.opType = type;

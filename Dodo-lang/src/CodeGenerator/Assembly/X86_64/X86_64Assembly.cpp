@@ -109,7 +109,7 @@ namespace x86_64 {
                 else {
                     size = GetVariableType(argumentNames[n]).size;
                 }
-                MoveValue(VariableInfo(argumentNames[n]), VariableInfo::FromLocation({Operand::reg, uint64_t(registersToUse[n])}), argumentNames[n], size);
+                MoveValue(VariableInfo(argumentNames[n]), VariableInfo::FromLocation({Operand_Old::reg, uint64_t(registersToUse[n])}), argumentNames[n], size);
             }
             else {
                 CodeGeneratorError("Unimplemented: passing of arguments in stack!");
@@ -146,12 +146,12 @@ namespace x86_64 {
                     }
                 }
                 if (not safe) {
-                    MoveValue(VariableInfo::FromLocation({Operand::reg, n}), VariableInfo::FromLocation({Operand::sta, AddStackVariable(reg.content.value)->offset}), "!", GetVariableType(reg.content.value).size);
+                    MoveValue(VariableInfo::FromLocation({Operand_Old::reg, n}), VariableInfo::FromLocation({Operand_Old::sta, AddStackVariable(reg.content.value)->offset}), "!", GetVariableType(reg.content.value).size);
                 }
             }
         }
         if (generatorMemory.registers.front().content.value != "!" and not generatorMemory.registers.front().content.value.starts_with("$")) {
-            MoveValue(VariableInfo::FromLocation({Operand::reg, uint64_t(0)}), VariableInfo::FromLocation({Operand::sta, AddStackVariable(generatorMemory.registers.front().content.value)->offset}), "!", GetVariableType(generatorMemory.registers.front().content.value).size);
+            MoveValue(VariableInfo::FromLocation({Operand_Old::reg, uint64_t(0)}), VariableInfo::FromLocation({Operand_Old::sta, AddStackVariable(generatorMemory.registers.front().content.value)->offset}), "!", GetVariableType(generatorMemory.registers.front().content.value).size);
             generatorMemory.registers.front().content.value = "!";
         }
         MoveValue(VariableInfo("$" + std::to_string(callNumber)), VariableInfo("%0"), "$0", Options::addressSize);
@@ -192,7 +192,7 @@ namespace x86_64 {
                 bool found = false;
                 std::string content = reg.content.value;
                 reg.content.value = "!";
-                if (generatorMemory.findThing(content).type == Operand::none) {
+                if (generatorMemory.findThing(content).type == Operand_Old::none) {
                     MoveVariableElsewhereNoReference(VariableInfo("%0"));
                 }
                 reg.content.value = result;
@@ -200,10 +200,10 @@ namespace x86_64 {
         }
         DEPRECATEDInstruction ins;
         ins.type = x86_64::OLD_call;
-        ins.op1 = DataLocation(Operand::fun, function);
+        ins.op1 = DataLocation(Operand_Old::fun, function);
         finalInstructions.push_back(ins);
         if (not function->returnType.empty()) {
-            SetContent({Operand::reg, uint64_t(0)}, result);
+            SetContent({Operand_Old::reg, uint64_t(0)}, result);
         }
     }
 
@@ -218,42 +218,42 @@ namespace x86_64 {
                 GenerateInstruction({
                     x86_64::OLD_add, bytecode.type.size, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::sta, {},
-                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::sta, {},
-                                   Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::sta, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::sta, {},
+                                   Operand_Old::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::imm, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::sta, {},
+                                   Operand_Old::imm, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                 }, index);
                 break;
             case BytecodeOld::subtract:
                 GenerateInstruction({
                     x86_64::OLD_sub, bytecode.type.size, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::sta, {},
-                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::sta, {},
-                                   Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::sta, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::sta, {},
+                                   Operand_Old::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::imm, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::sta, {},
+                                   Operand_Old::imm, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                 }, index);
                 break;
             case BytecodeOld::multiply:
@@ -266,14 +266,14 @@ namespace x86_64 {
                     GenerateInstruction({
                     x86_64::OLD_mul, bytecode.type.size, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {0},
-                                   Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
-                     OpCombination(Operand::reg, {0},
-                                   Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
+                     OpCombination(Operand_Old::reg, {0},
+                                   Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                           {DataLocation(Operand_Old::reg, uint64_t(x86_64::rdx)), "!" }}),
+                     OpCombination(Operand_Old::reg, {0},
+                                   Operand_Old::sta, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                           {DataLocation(Operand_Old::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
                 else if (bytecode.type.type == ParserType::signedInteger) {
@@ -283,14 +283,14 @@ namespace x86_64 {
                         GenerateInstruction({
                     x86_64::OLD_imul, bytecode.type.size, bytecode.target, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::sta, {},
-                                   Operand::imm, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                     OpCombination(Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::imm, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::sta, {},
+                                   Operand_Old::imm, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                     }, index);
                     }
                     else {
@@ -298,12 +298,12 @@ namespace x86_64 {
                         GenerateInstruction({
                     x86_64::OLD_imul, bytecode.type.size, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
-                     OpCombination(Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::sta, {},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
+                     OpCombination(Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}}),
+                     OpCombination(Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::sta, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"}})}
                     }, index);
                     }
                 }
@@ -320,32 +320,32 @@ namespace x86_64 {
                     GenerateInstruction({
                     x86_64::OLD_div, bytecode.type.size, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {0},
-                                   Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                     OpCombination(Operand_Old::reg, {0},
+                                   Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
-                     OpCombination(Operand::reg, {0},
-                                   Operand::sta, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                           {DataLocation(Operand_Old::reg, uint64_t(x86_64::rdx)), "!" }}),
+                     OpCombination(Operand_Old::reg, {0},
+                                   Operand_Old::sta, {},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                           {DataLocation(Operand_Old::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
                 else if (bytecode.type.type == ParserType::signedInteger) {
                     GenerateInstruction({
                     x86_64::OLD_idiv, bytecode.type.size, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {0},
-                                   Operand::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
+                     OpCombination(Operand_Old::reg, {0},
+                                   Operand_Old::reg, {1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }}),
-                     OpCombination(Operand::reg, {0},
-                                   Operand::sta, {},
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                           {DataLocation(Operand_Old::reg, uint64_t(x86_64::rdx)), "!" }}),
+                     OpCombination(Operand_Old::reg, {0},
+                                   Operand_Old::sta, {},
                                    {{x86_64::rdx, 0}},
-                                   {{DataLocation(Operand::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
-                                           {DataLocation(Operand::reg, uint64_t(x86_64::rdx)), "!" }})}
+                                   {{DataLocation(Operand_Old::replace, uint64_t(0)), bytecode.type.getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"},
+                                           {DataLocation(Operand_Old::reg, uint64_t(x86_64::rdx)), "!" }})}
                     }, index);
                 }
                 else {
@@ -355,8 +355,8 @@ namespace x86_64 {
             case BytecodeOld::getAddress:
                 {
                     auto& life = variableLifetimes[VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"];
-                    if (life.assignStatus == Operand::reg) {
-                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(DataLocation(Operand::reg, life.regNumber)), VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
+                    if (life.assignStatus == Operand_Old::reg) {
+                        X86_64GetVariableAddress(VariableInfo(bytecode.source), VariableInfo::FromLocation(DataLocation(Operand_Old::reg, life.regNumber)), VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype + 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
                     }
                     else {
                         auto where = FindViableRegister();
@@ -367,9 +367,9 @@ namespace x86_64 {
             case BytecodeOld::getValue:
             {
                 auto& life = variableLifetimes[VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype - 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0"];
-                if (life.assignStatus == Operand::reg) {
-                    X86_64DereferencePointer(VariableInfo(bytecode.source), VariableInfo::FromLocation(DataLocation(Operand::reg, life.regNumber)));
-                    SetContent(DataLocation(Operand::reg, life.regNumber),
+                if (life.assignStatus == Operand_Old::reg) {
+                    X86_64DereferencePointer(VariableInfo(bytecode.source), VariableInfo::FromLocation(DataLocation(Operand_Old::reg, life.regNumber)));
+                    SetContent(DataLocation(Operand_Old::reg, life.regNumber),
                                VariableType(bytecode.type.size, bytecode.type.type, bytecode.type.subtype - 1).getPrefix() + "=#" + std::to_string(bytecode.number) + "-0");
                 }
                 else {
@@ -408,7 +408,7 @@ namespace x86_64 {
                 {
                     DEPRECATEDInstruction ins;
                     ins.type = GetJumpType(bytecode.code, bytecode.number);
-                    ins.op1.type = Operand::jla;
+                    ins.op1.type = Operand_Old::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
                     finalInstructions.push_back(ins);
                 }
@@ -419,7 +419,7 @@ namespace x86_64 {
                 {
                     DEPRECATEDInstruction ins;
                     ins.type = x86_64::OLD_jmp;
-                    ins.op1.type = Operand::jla;
+                    ins.op1.type = Operand_Old::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
                     finalInstructions.push_back(ins);
                 }
@@ -450,16 +450,16 @@ namespace x86_64 {
                 GenerateInstruction({
                     x86_64::OLD_cmp, bytecode.type.size, bytecode.target, bytecode.source,
                     {
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15}),
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::sta, {}),
-                     OpCombination(Operand::sta, {},
-                                   Operand::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15}),
-                     OpCombination(Operand::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-                                   Operand::imm, {}),
-                     OpCombination(Operand::sta, {},
-                                   Operand::imm, {})}
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15}),
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::sta, {}),
+                     OpCombination(Operand_Old::sta, {},
+                                   Operand_Old::reg, {0, 1, 2, 3, 7 ,8, 9, 10, 11, 12, 13, 14, 15}),
+                     OpCombination(Operand_Old::reg, {0, 1, 2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+                                   Operand_Old::imm, {}),
+                     OpCombination(Operand_Old::sta, {},
+                                   Operand_Old::imm, {})}
                 }, index);
                 break;
             case BytecodeOld::declare:
@@ -469,7 +469,7 @@ namespace x86_64 {
                         return;
                 }
 
-                MoveValue(VariableInfo(bytecode.source), VariableInfo((var.assignStatus == Operand::reg ?
+                MoveValue(VariableInfo(bytecode.source), VariableInfo((var.assignStatus == Operand_Old::reg ?
                                             "%" + std::to_string(var.regNumber) :
                                             "@" + std::to_string(AddStackVariable(bytecode.target)->offset))), bytecode.target, bytecode.type.size);
                 break;
@@ -478,7 +478,7 @@ namespace x86_64 {
                 if (bytecode.number == 1) {
                     // in that case we need to set the variable at it's address
                     DataLocation where;
-                    if (generatorMemory.findThing(GetPreviousVariableAssignment(bytecode.target)).type != Operand::reg) {
+                    if (generatorMemory.findThing(GetPreviousVariableAssignment(bytecode.target)).type != Operand_Old::reg) {
                         where = FindViableRegister();
                         MoveValue(VariableInfo(GetPreviousVariableAssignment(bytecode.target)), VariableInfo::FromLocation(where), bytecode.target, Options::addressSize);
                     }
@@ -503,7 +503,7 @@ namespace x86_64 {
                 if (bytecode.source.starts_with(Options::jumpLabelPrefix)) {
                     DEPRECATEDInstruction ins;
                     ins.type = x86_64::OLD_jumpLabel;
-                    ins.op1.type = Operand::jla;
+                    ins.op1.type = Operand_Old::jla;
                     ins.op1.number = std::stoull(bytecode.source.substr(Options::jumpLabelPrefix.length()));
                     finalInstructions.push_back(ins);
                 }
@@ -514,20 +514,20 @@ namespace x86_64 {
             case BytecodeOld::moveValue:
             {
                 auto target = generatorMemory.findThing(bytecode.target);
-                if (target.type == Operand::reg) {
+                if (target.type == Operand_Old::reg) {
                     std::string temp = generatorMemory.registers[target.number].content.value;
                     SetContent(target, "!");
                     MoveValue(VariableInfo(bytecode.source), VariableInfo("%" + std::to_string(target.number)),
                               temp, bytecode.type.size);
                 }
-                else if (target.type == Operand::sta) {
+                else if (target.type == Operand_Old::sta) {
                     auto* sta = FindStackVariableByOffset(target.offset);
                     std::string temp = sta->content.value;
                     SetContent(target, "!");
                     MoveValue(VariableInfo(bytecode.source), VariableInfo("@" + std::to_string(target.offset)),
                               temp, bytecode.type.size);
                 }
-                else if (target.type == Operand::none) {
+                else if (target.type == Operand_Old::none) {
                     SetContent(generatorMemory.findThing(bytecode.source), bytecode.target);
                 }
                 else {

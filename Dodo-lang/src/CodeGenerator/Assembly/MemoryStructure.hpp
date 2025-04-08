@@ -7,7 +7,7 @@
 #include <stack>
 #include "ParserVariables.hpp"
 
-namespace Operand {
+namespace Operand_Old {
     enum {
         none = 0, convert = 0, reg, sta, imm,
         // assember address
@@ -109,7 +109,7 @@ struct LabelContainer {
 };
 
 struct DataLocation {
-    uint8_t type = Operand::none;
+    uint8_t type = Operand_Old::none;
     uint8_t extractAddress = false;
     union {
         int64_t offset = 0;

@@ -14,34 +14,34 @@ void AddFunctionHeaders() {
 
     // now let's go through every instruction and see what's up
     for (auto& n : finalInstructions) {
-        if (n.op1.type == Operand::reg) {
+        if (n.op1.type == Operand_Old::reg) {
             occupied[n.op1.number] = true;
         }
-        else if (n.op1.type == Operand::sta) {
+        else if (n.op1.type == Operand_Old::sta) {
             if (n.op1.offset < maxOffset) {
                 maxOffset = n.op1.offset;
             }
         }
-        if (n.op2.type == Operand::reg) {
+        if (n.op2.type == Operand_Old::reg) {
             occupied[n.op2.number] = true;
         }
-        else if (n.op2.type == Operand::sta) {
+        else if (n.op2.type == Operand_Old::sta) {
             if (n.op2.offset < maxOffset) {
                 maxOffset = n.op2.offset;
             }
         }
-        if (n.op3.type == Operand::reg) {
+        if (n.op3.type == Operand_Old::reg) {
             occupied[n.op3.number] = true;
         }
-        else if (n.op3.type == Operand::sta) {
+        else if (n.op3.type == Operand_Old::sta) {
             if (n.op3.offset < maxOffset) {
                 maxOffset = n.op3.offset;
             }
         }
-        if (n.op4.type == Operand::reg) {
+        if (n.op4.type == Operand_Old::reg) {
             occupied[n.op4.number] = true;
         }
-        else if (n.op4.type == Operand::sta) {
+        else if (n.op4.type == Operand_Old::sta) {
             if (n.op4.offset < maxOffset) {
                 maxOffset = n.op4.offset;
             }
@@ -50,7 +50,7 @@ void AddFunctionHeaders() {
 
     // go through arguments to make sure that arguments are not moved
     for (auto& n : parserFunctions[*lastFunctionName].arguments) {
-        if (n.locationType == Operand::reg) {
+        if (n.locationType == Operand_Old::reg) {
             occupied[n.locationValue] = false;
         }
     }
@@ -84,8 +84,8 @@ void AddFunctionHeaders() {
                 DEPRECATEDInstruction ins;
                 ins.type = x86_64::OLD_mov;
                 ins.sizeAfter = ins.sizeBefore = 8;
-                ins.op1 = {Operand::sta, maxOffset};
-                ins.op2 = {Operand::reg, n};
+                ins.op1 = {Operand_Old::sta, maxOffset};
+                ins.op2 = {Operand_Old::reg, n};
                 finalInstructions.insert(finalInstructions.begin(), ins);
                 std::swap(ins.op1, ins.op2);
                 finalInstructions.push_back(ins);
@@ -101,8 +101,8 @@ void AddFunctionHeaders() {
             DEPRECATEDInstruction ins;
             ins.type = x86_64::OLD_sub;
             ins.sizeBefore = ins.sizeAfter = 8;
-            ins.op1 = {Operand::reg, uint64_t(x86_64::rsp)};
-            ins.op2 = {Operand::imm, uint64_t(-maxOffset)};
+            ins.op1 = {Operand_Old::reg, uint64_t(x86_64::rsp)};
+            ins.op2 = {Operand_Old::imm, uint64_t(-maxOffset)};
             finalInstructions.insert(finalInstructions.begin(), ins);
             doAddLeave = true;
         }

@@ -22,7 +22,7 @@ inline void AddX86_64ArgumentPlaces(std::vector <FunctionArgument>& args) {
         }
 
         // just add the register
-        args[n].locationType = Operand::reg;
+        args[n].locationType = Operand_Old::reg;
         args[n].locationValue = integerRegisters[n];
     }
 }

@@ -13,7 +13,7 @@ struct VariableStatistics {
     uint64_t usageAmount: 54 = 0;
     uint64_t isMainValue: 1 = false;
     uint64_t isPointedTo: 1 = false;
-    uint64_t assignStatus:8 = Operand::none;
+    uint64_t assignStatus:8 = Operand_Old::none;
     // assigned register if there is one
     union {
         uint64_t regNumber = 0;

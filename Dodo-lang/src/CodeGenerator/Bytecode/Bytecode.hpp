@@ -93,7 +93,7 @@ inline std::vector<BytecodeOld> bytecodes;
 
 namespace Location {
     enum Type {
-        None, Variable, Literal, String, Label, Call, Argument, Register, Heap, Stack
+        None, Variable, Literal, String, Label, Call, Argument, Register, Heap, Stack, Offset, Unknown
     };
 }
 
@@ -136,10 +136,10 @@ union OperandValue {
     OperandValue(VariableLocation val);
 };
 
-struct BytecodeOperand {
+struct Operand {
 #ifdef PACKED_ENUM_VARIABLES
     Location::Type location : 4 = Location::None;
-    uint8_t literalSize : 4 = 0;
+    uint8_t size : 4 = 0;
     Type::TypeEnum literalType : 4 = Type::none;
 #else
     uint8_t type : 4 = Location::None;
@@ -148,8 +148,9 @@ struct BytecodeOperand {
 #endif
     bool isTheRestZeroes : 1 = false;
     OperandValue value;
-    BytecodeOperand() = default;
-    BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
+    Operand() = default;
+    Operand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
+    Operand(Location::Type type, uint8_t operandSize, OperandValue value);
 };
 
 // represents a single bytecode instruction
@@ -260,14 +261,14 @@ struct Bytecode {
 
     // methods
     // these return a reconstructed operand struct for easier use
-    [[nodiscard]] BytecodeOperand op1() const;
-    BytecodeOperand op1(BytecodeOperand op);
-    [[nodiscard]] BytecodeOperand op2() const;
-    BytecodeOperand op2(BytecodeOperand op);
-    [[nodiscard]] BytecodeOperand op3() const;
-    BytecodeOperand op3(BytecodeOperand op);
-    [[nodiscard]] BytecodeOperand result() const;
-    BytecodeOperand result(BytecodeOperand op);
+    [[nodiscard]] Operand op1() const;
+    Operand op1(Operand op);
+    [[nodiscard]] Operand op2() const;
+    Operand op2(Operand op);
+    [[nodiscard]] Operand op3() const;
+    Operand op3(Operand op);
+    [[nodiscard]] Operand result() const;
+    Operand result(Operand op);
 };
 
 // represents a location in memory where a thing is or is to be stored
@@ -321,16 +322,16 @@ struct BytecodeContext {
     void merge(BytecodeContext& context);
 
     // inserts a new local scope variable
-    BytecodeOperand insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    Operand insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
     // inserts a new local scope temporary variable
-    BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta);
+    Operand insertTemporary(TypeObject* type, TypeMeta meta);
     // returns requested variable and throws and exception if there is no match for name or type is wrong
-    BytecodeOperand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    Operand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
     // the same, not implemented
-    BytecodeOperand getVariable(BytecodeOperand operand);
+    Operand getVariable(Operand operand);
 
     VariableObject& getVariableObject(const std::string* identifier);
-    VariableObject& getVariableObject(BytecodeOperand operand);
+    VariableObject& getVariableObject(Operand operand);
 
     void addLoopLabel();
 };
@@ -346,7 +347,7 @@ void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 // printing functions
 
 std::ostream& operator<<(std::ostream& out, const Bytecode& code);
-std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op);
+std::ostream& operator<<(std::ostream& out, const Operand& op);
 std::ostream& operator<<(std::ostream& out, const VariableLocation& op);
 
 #endif //DODO_LANG_GENERAL_BYTECODE_HPP

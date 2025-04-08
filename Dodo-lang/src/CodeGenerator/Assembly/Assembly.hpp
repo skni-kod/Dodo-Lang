@@ -59,7 +59,7 @@ struct Register {
     bool canUseSinglePrecisionFloats       : 1 = false; // can the register perform operations on single precision floats?
     bool canUseDoublePrecisionFloats       : 1 = false; // can the register perform operations on double precision floats?
 
-    BytecodeOperand content = {}; // the content that is assumed to be present in the register
+    Operand content = {}; // the content that is assumed to be present in the register
 
     bool canBeLongStored(const VariableObject& variable) const;
     bool canBeStored(const VariableObject& variable) const;
@@ -67,7 +67,7 @@ struct Register {
 
 // represents a single entry on the stack
 struct StackEntry {
-    BytecodeOperand content;
+    Operand content;
     // offset from base pointer, beware that value must be AT least equal in negative to size since it's negative indexing,
     // alternatively it can be positive value if it's an argument for a function call
     int32_t offset = 0;
@@ -105,6 +105,7 @@ struct AsmInstruction {
     uint8_t op4Size : 4 = 0;
     OperandValue op1Value = {}, op2Value = {}, op3Value = {}, op4Value = {};
 
+    AsmInstruction(x86_64::InstructionCode code, Operand op1, Operand op2, Operand op3, Operand op4);
 };
 
 

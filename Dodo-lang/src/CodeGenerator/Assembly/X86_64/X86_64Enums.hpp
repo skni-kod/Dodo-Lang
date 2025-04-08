@@ -191,6 +191,22 @@ namespace x86_64 {
         // reg/mem += reg
         // reg/mem += imm
         add,
+        // Add Scalar Double Precision Floating-Point Values
+        // xmm += xmm/mem64, modify the first 64 bits, leave the rest
+        addsd,
+        // Add Scalar Double Precision Floating-Point Values
+        // with v3
+        // xmm = xmm + xmm/mem64, also bits 65-128 from op2, the rest is 0
+        // with v4 something with mask
+        vaddsd,
+        // Add Scalar Single Precision Floating-Point Values
+        // xmm += xmm/mem32, modify the first 32 bits, leave the rest
+        addss,
+        // Add Scalar Single Precision Floating-Point Values
+        // with v3
+        // xmm = xmm + xmm/mem32, also bits 33-128 from op2, the rest is 0
+        // with v4 something with mask
+        vaddss,
         // Logical AND
         // reg &= reg/mem
         // reg/mem &= reg
@@ -201,10 +217,28 @@ namespace x86_64 {
         // reg/mem
         call,
         // Compare two operands
-        // reg, reg/mem
-        // reg/mem, reg
-        // reg/mem, imm
+        // reg <comp> reg/mem
+        // reg/mem <comp> reg
+        // reg/mem <comp> imm
         cmp,
+        // Compare Scalar Ordered Single Precision Floating-Point Values and Set EFLAGS
+        // xmm <comp> xmm/mem32
+        comiss,
+        // Compare Scalar Ordered Single Precision Floating-Point Values and Set EFLAGS
+        // with v3
+        // xmm <comp> xmm/mem32, the same as comiss it seems
+        // with v4
+        // xmm <comp> xmm/mem32, differs by something with exceptions
+        vcomiss,
+        // Compare Scalar Ordered Double Precision Floating-Point Values and Set EFLAGS
+        // xmm <comp> xmm/mem64
+        comisd,
+        // Compare Scalar Ordered Double Precision Floating-Point Values and Set EFLAGS
+        // with v3
+        // xmm <comp> xmm/mem64
+        // with v4
+        // xmm <comp> xmm/mem64, differs by something with exceptions
+        vcomisd,
         // Convert Scalar Double Precision Floating-Point Value to Doubleword Integer
         // reg32/reg64 <- xmm / mem64
         cvtsd2si,
@@ -216,8 +250,243 @@ namespace x86_64 {
         // xmm <- xmm, xmm/m64, 32 bits converted from op3, next 96 from op2 into op1, zero everything later
         // with v4 something with flags idk
         vcvtsd2ss,
-        // TODO: add the rest of essential instructions, reading through them should provide more insight into the inner workings of x86
-    };
+        // Convert Signed Integer to Scalar Double Precision Floating-Point Value
+        // xmm <- (reg/mem)(32/64)
+        cvtsi2sd,
+        // Convert Signed Integer to Scalar Double Precision Floating-Point Value
+        // with v3
+        // xmm <- xmm, (reg/mem)(32/64), 64 bits converted from op3 and later 64 bits from same bits of op2 (xmm)
+        // with v4 something with tuples
+        vcvtsi2sd,
+        // Convert Signed Integer to Scalar Single Precision Floating-Point Value
+        // xmm <- (reg/mem)(32/64)
+        cvtsi2ss,
+        // Convert Signed Integer to Scalar Single Precision Floating-Point Value
+        // with v3
+        // xmm <- xmm, (reg/mem)(32/64), 32 bits converted from op3 and later 96 bits from same bits of op2 (xmm)
+        // with v4 something with tuples
+        vcvtsi2ss,
+        // Convert Scalar Single Precision Floating-Point Value to Scalar Double Precision Floating-Point Value
+        // xmm <- xmm/mem32, leave the rest after 64 bits
+        cvtss2sd,
+        // Convert Scalar Single Precision Floating-Point Value to Scalar Double Precision Floating-Point Value
+        // xmm <- xmm, xmm/mem32, first 64 bits converted from op3, later 64 from op2 at the same positions, zero the rest
+        vcvtss2sd,
+        // Convert Scalar Single Precision Floating-Point Value to Signed Integer
+        // reg32/reg64 <- xmm/mem32
+        cvtss2si,
+        // Convert Scalar Single Precision Floating-Point Value to Signed Integer
+        // with v3
+        // reg32/reg64 <- xmm/mem32, the same as SSE version
+        // with v4 something with tuples
+        vcvtss2si,
+        // Convert With Truncation Scalar Double Precision Floating-Point Value to Signed Integer
+        // reg32/reg64 <- xmm/mem64
+        cvttsd2si,
+        // Convert With Truncation Scalar Double Precision Floating-Point Value to Signed Integer
+        // with v3
+        // reg32/reg64 <- xmm/mem64, the same as SSE version
+        // with v4 something with tuples
+        vcvttsd2si,
+        // Convert With Truncation Scalar Single Precision Floating-Point Value to Signed Integer
+        // reg32/reg64 <- xmm/mem32
+        cvttss2si,
+        // Convert With Truncation Scalar Single Precision Floating-Point Value to Signed Integer
+        // with v3
+        // reg32/reg64 <- xmm/mem32, the same as SSE version
+        // with v4 something with tuples
+        vcvttss2si,
+        // Unsigned Divide
+        // regD <extend> regA unsigned /= reg/mem, result in regA, remainder to regD
+        div,
+        // Divide Scalar Double Precision Floating-Point Value
+        // xmm float /= xmm/m64, only modifies the first 64 bits
+        divsd,
+        // Divide Scalar Double Precision Floating-Point Value
+        // with v3
+        // xmm <- xmm, xmm/mem64, divide first 64 of op2 / op3 into op1, next 64 bits of op2 into op1, zero the rest of op1
+        // with v4 something with tuples
+        vdivsd,
+        // Divide Scalar Single Precision Floating-Point Value
+        // xmm float /= xmm/m32, only modifies the first 32 bits
+        divss,
+        // Divide Scalar Single Precision Floating-Point Value
+        // with v3
+        // xmm <- xmm, xmm/mem32, divide first 32 of op2 / op3 into op1, next 96 bits of op2 into op1, zero the rest of op1
+        // with v4 something with tuples
+        vdivss,
+        // Signed divide
+        // regD <extend> regA signed /= reg/mem, result in regA, remainder in regD
+        idiv,
+        // TODO: what about double register results?
+        // Signed Multiply
+        // reg *= reg/mem
+        // reg *= reg/mem * imm
+        imul,
+        // Call to Interrupt Procedure
+        // imm
+        op_int,
+        // Call to Interrupt Procedure 0
+        int0,
+        // Call to Interrupt Procedure 1
+        int1,
+        // Call to Interrupt Procedure 3
+        int3,
+        // Jump if condition is met
+        // offset
+        ja, // jump if above unsigned
+        jae, // jump if above or equal unsigned
+        jb, // jump if below unsigned
+        jbe, // jump if below or equal unsigned
+        jc, // jump if carry
+        je, // jump if equal
+        jz, // jump if zero flag
+        jg, // jump if greater signed
+        jge, // jump if greater or equal signed
+        jl, // jump if lesser signed
+        jle, // jump if lesser or equal signed
+        jna, // jump if not above unsigned
+        jnae, // jump if not above or equal unsigned
+        jnb, // jump if not below unsigned
+        jnbe, // jump if not below or equal unsigned
+        jnc, // jump if not carry
+        jne, // jump if not equal
+        jng, // jump if not greater signed
+        jnge, // jump if not greater or equal singed
+        jnl, // jump if not lesser singed
+        jnle, // jump if not lesser or equal singed
+        jno, // jump if not overflow
+        jnp, // jump if not parity
+        jns, // jump if not sign
+        jnz, // jump if not zero
+        jo, // jump if overflow
+        jp, // jump if parity
+        jpe, // jump if parity even
+        jpo, // jump if parity odd
+        js, // jump if sign
+        // Jump
+        // offset
+        jmp,
+        // Load Effective Address
+        // reg <- &mem
+        lea,
+        // Return Maximum Scalar Double Precision Floating-Point Value
+        // xmm <- xmm/m64
+        maxsd,
+        // Return Maximum Scalar Double Precision Floating-Point Value
+        // with v3
+        // xmm < xmm, xmm/mem64, first 64 bits ar max of op2 and op3, next 64 are the same bits of op2, zero the rest
+        // with v4 something with masks
+        vmaxsd,
+        // Return Maximum Scalar Single Precision Floating-Point Value
+        // xmm <- xmm/m32
+        maxss,
+        // Return Maximum Scalar Single Precision Floating-Point Value
+        // with v3
+        // xmm < xmm, xmm/mem32, first 32 bits ar max of op2 and op3, next 96 are the same bits of op2, zero the rest
+        // with v4 something with masks
+        vmaxss,
+        // Return Minimum Scalar Double Precision Floating-Point Value
+        // xmm <- xmm/m64
+        minsd,
+        // Return Minimum Scalar Double Precision Floating-Point Value
+        // with v3
+        // xmm < xmm, xmm/mem64, first 64 bits ar min of op2 and op3, next 64 are the same bits of op2, zero the rest
+        // with v4 something with masks
+        vminsd,
+        // Return Minimum Scalar Single Precision Floating-Point Value
+        // xmm <- xmm/m32
+        minss,
+        // Return Minimum Scalar Single Precision Floating-Point Value
+        // with v3
+        // xmm < xmm, xmm/mem32, first 32 bits ar min of op2 and op3, next 96 are the same bits of op2, zero the rest
+        // with v4 something with masks
+        vminss,
+        // Move With Sign-Extension
+        // reg(64/32/16) <- (reg/mem)(8/16)
+        movsx,
+        // Move With Sign-Extension
+        // reg32 <- reg64/mem64
+        movsxd,
+        // TODO: what about 32 bit to 64 bit? Probably 2 commands
+        // Move With Zero-Extend
+        // reg(16/32/64) <- (reg/mem)(8/16)
+        movzx,
+        // Unsigned Multiply
+        // regD <extends> regA *= reg/mem
+        mul,
+        // Multiply Scalar Double Precision Floating-Point Value
+        // xmm *= xmm/mem64
+        mulsd,
+        // Multiply Scalar Double Precision Floating-Point Value
+        // mulsd with v3
+        // xmm <- xmm * xmm/mem64, op1 = xp2 * op3, bits 65 - 128 set to the same from op2, zero the rest
+        // with v4 tuples
+        vmulsd,
+        // Multiply Scalar Single Precision Floating-Point Value
+        // xmm *= xmm/mem32
+        mulss,
+        // Multiply Scalar Single Precision Floating-Point Value
+        // mulsd with v3
+        // xmm <- xmm * xmm/mem32, op1 = xp2 * op3, bits 33 - 128 set to the same from op2, zero the rest
+        // with v4 tuples
+        vmulss,
+        // Two's Complement Negation
+        // -reg/mem
+        neg,
+        // No operation
+        nop,
+        // One's complement negation
+        // !reg/mem
+        op_not,
+        // Logical Inclusive OR
+        // reg/mem |= imm
+        // reg/mem |= reg
+        // reg |= reg/mem
+        op_or,
+        // Pop a Value from the stack
+        // reg/mem
+        // DS/ES/FS/SS/GS
+        pop,
+        // Shift left
+        // reg/mem << imm
+        sal,
+        // Shift right
+        // reg/mem >> imm
+        sar,
+        // Subtract
+        // reg/mem -= imm
+        // reg -= reg/mem
+        sub,
+        // Subtract Scalar Double Precision Floating-Point Value
+        // xmm -= xmm/mem64
+        subsd,
+        // Subtract Scalar Double Precision Floating-Point Value
+        // subsd with v3
+        // xmm <- xmm * xmm/mem64, op1 = xp2 - op3, bits 65 - 128 set to the same from op2, zero the rest
+        // with v4 tuples
+        vsubsd,
+        // Subtract Scalar Single Precision Floating-Point Value
+        // xmm -= xmm/mem32
+        subss,
+        // Subtract Scalar Single Precision Floating-Point Value
+        // subsd with v3
+        // xmm <- xmm * xmm/mem32, op1 = xp2 - op3, bits 33 - 128 set to the same from op2, zero the rest
+        // with v4 tuples
+        vsubss,
+        // Fast System Call
+        syscall,
+        // Return
+        ret,
+        // Push Word, Doubleword, or Quadword Onto the Stack
+        // reg/mem
+        // imm
+        push,
+        // Logical Exclusive Or
+        // reg/mem ^= imm
+        // reg ^= reg/mem
+        op_xor
+};
 }
 
 #endif //X86_64ENUMS_HPP

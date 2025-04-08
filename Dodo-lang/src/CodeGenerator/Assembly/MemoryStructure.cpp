@@ -170,31 +170,31 @@ std::string GetSizedRegister(uint32_t number ,uint32_t size) {
 
 DataLocation MemoryStructure::findThing(const std::string& name) {
     if (name.front() == '$') {
-        return {Operand::imm, static_cast <uint64_t>(std::stoull(name.substr(1, name.size() - 1)))};
+        return {Operand_Old::imm, static_cast <uint64_t>(std::stoull(name.substr(1, name.size() - 1)))};
     }
     else if (name.front() == '@') {
         int64_t offset = std::stoll(name.substr(1, name.size() - 1));
         for (auto& n : stack) {
             if (n.offset == offset) {
-                return {Operand::sta, n.offset};
+                return {Operand_Old::sta, n.offset};
             }
         }
         CodeGeneratorError("No such value in stack!");
     }
     else if (name.front() == '%') {
-        return {Operand::reg, static_cast <uint64_t>(std::stoull(name.substr(1, name.size() - 1)))};
+        return {Operand_Old::reg, static_cast <uint64_t>(std::stoull(name.substr(1, name.size() - 1)))};
     }
     for (uint64_t n = 0; n < registers.size(); n++) {
         if (registers[n].content.value == name) {
-            return {Operand::reg, n};
+            return {Operand_Old::reg, n};
         }
     }
     for (auto& n : stack) {
         if (n.content.value == name) {
-            return {Operand::sta, n.offset};
+            return {Operand_Old::sta, n.offset};
         }
     }
-    return {Operand::none, static_cast <uint64_t>(0)};
+    return {Operand_Old::none, static_cast <uint64_t>(0)};
 }
 
 DataLocation::DataLocation(uint8_t type, int64_t offset, bool isAddress) : type(type), offset(offset), extractAddress(isAddress) {}
@@ -208,13 +208,13 @@ DataLocation::DataLocation(uint8_t type, ParserVariable* globalPtr, bool isAddre
 void DataLocation::print(std::ofstream& out, uint8_t size) const {
     if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS and Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
         switch (this->type) {
-            case Operand::imm:
+            case Operand_Old::imm:
                 out << '$' << value;
                 return;
-            case Operand::sta:
+            case Operand_Old::sta:
                 out << offset << "(%rbp)";
                 return;
-            case Operand::reg:
+            case Operand_Old::reg:
                 if (extractAddress) {
                     out << "(";
                     for (auto& n : generatorMemory.registers[number].sizeNamePairs) {
@@ -231,10 +231,10 @@ void DataLocation::print(std::ofstream& out, uint8_t size) const {
                     }
                 }
                 break;
-            case Operand::aadr:
+            case Operand_Old::aadr:
                 out << "$" << globalPtr->nameForOutput();
                 return;
-            case Operand::sla:
+            case Operand_Old::sla:
                 out << "$LS" << number;
             return;
             default:
@@ -246,11 +246,11 @@ void DataLocation::print(std::ofstream& out, uint8_t size) const {
 DataLocation::DataLocation(const std::string& operand) {
     type = GetOperandType(operand);
     switch (type) {
-        case Operand::reg:
-        case Operand::imm:
+        case Operand_Old::reg:
+        case Operand_Old::imm:
             value = std::stoull(operand.substr(1, operand.size() - 1));
             return;
-        case Operand::sta:
+        case Operand_Old::sta:
             offset = std::stoll(operand.substr(1, operand.size() - 1));
             return;
         default:
@@ -268,11 +268,11 @@ bool DataLocation::operator==(const DataLocation& data) const {
 
 std::string DataLocation::forMove() const {
     switch (type) {
-        case Operand::reg:
+        case Operand_Old::reg:
             return "%" + std::to_string(number);
-        case Operand::sta:
+        case Operand_Old::sta:
             return "@" + std::to_string(offset);
-        case Operand::imm:
+        case Operand_Old::imm:
             return "$" + std::to_string(value);
         default:
             CodeGeneratorError("Invalid DataLocation type for string!");
@@ -364,7 +364,7 @@ void DEPRECATEDInstruction::outputX86_64(std::ofstream& out) const {
             case x86_64::OLD_imul:
                 // TODO: repeat the meltdown and understand why intel reference is lying about 2 operand with imm
                 PrintWithSpaces("imul" + X86_64GNU_ASPrefix(sizeAfter), out);
-                if (op3.type != Operand::none) {
+                if (op3.type != Operand_Old::none) {
                     if (Optimizations::mergeThreeOperandInstruction and op1 == op2) {
                         op3.print(out, sizeAfter);
                         out << ", ";

@@ -11,10 +11,10 @@
 struct OpCombination {
     // here we need to define a possible combination of operands, with the inclusion of different register combinations
     // general types of operands
-    uint8_t type1: 4 = Operand::none;
-    uint8_t type2: 4 = Operand::none;
-    uint8_t type3: 4 = Operand::none;
-    uint8_t type4: 4 = Operand::none;
+    uint8_t type1: 4 = Operand_Old::none;
+    uint8_t type2: 4 = Operand_Old::none;
+    uint8_t type3: 4 = Operand_Old::none;
+    uint8_t type4: 4 = Operand_Old::none;
     // these contain allowed registers
     std::vector<uint16_t> allowed1, allowed2, allowed3, allowed4;
     // first is register, second is value to set
@@ -112,7 +112,7 @@ void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::str
 void X86_64DereferencePointer(VariableInfo source, VariableInfo target);
 void SetValueAtAddress(VariableInfo source, uint64_t addressRegister, uint64_t size);
 
-DataLocation FindViableRegister(DataLocation reserved = DataLocation(Operand::none, uint64_t(0)));
+DataLocation FindViableRegister(DataLocation reserved = DataLocation(Operand_Old::none, uint64_t(0)));
 
 uint8_t GetOperandType(const std::string& operand);
 

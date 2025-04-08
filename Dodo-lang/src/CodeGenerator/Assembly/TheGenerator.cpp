@@ -9,21 +9,21 @@
 
 uint8_t GetOperandType(const std::string& operand) {
     if (operand.front() == '%') {
-        return Operand::reg;
+        return Operand_Old::reg;
     }
     if (operand.front() == '@') {
-        return Operand::sta;
+        return Operand_Old::sta;
     }
     if (operand.front() == '$') {
-        return Operand::imm;
+        return Operand_Old::imm;
     }
     if (operand.front() == 'i' or operand.front() == 'u' or operand.front() == 'f') {
-        return Operand::var;
+        return Operand_Old::var;
     }
     if (operand.front() == '^') {
-        return Operand::adr;
+        return Operand_Old::adr;
     }
-    return Operand::none;
+    return Operand_Old::none;
 }
 
 std::vector<uint8_t> GetOperandTypes(const InstructionRequirements& req) {
@@ -33,15 +33,15 @@ std::vector<uint8_t> GetOperandTypes(const InstructionRequirements& req) {
         return types;
     }
     types.push_back(GetOperandType(req.op1));
-    if (types.back() == Operand::var) {
+    if (types.back() == Operand_Old::var) {
         auto loc = generatorMemory.findThing(req.op1);
-        if (loc.type == Operand::none) {
+        if (loc.type == Operand_Old::none) {
             auto& life = variableLifetimes[req.op1];
-            if (life.assignStatus == Operand::sta) {
-                loc.type = Operand::sta;
+            if (life.assignStatus == Operand_Old::sta) {
+                loc.type = Operand_Old::sta;
             }
-            else if (life.assignStatus == Operand::reg) {
-                loc.type = Operand::reg;
+            else if (life.assignStatus == Operand_Old::reg) {
+                loc.type = Operand_Old::reg;
             }
             else {
                 CodeGeneratorError("Unimplemented: Invalid location!");
@@ -53,15 +53,15 @@ std::vector<uint8_t> GetOperandTypes(const InstructionRequirements& req) {
         return types;
     }
     types.push_back(GetOperandType(req.op2));
-    if (types.back() == Operand::var) {
+    if (types.back() == Operand_Old::var) {
         auto loc = generatorMemory.findThing(req.op2);
-        if (loc.type == Operand::none) {
+        if (loc.type == Operand_Old::none) {
             auto& life = variableLifetimes[req.op2];
-            if (life.assignStatus == Operand::sta) {
-                loc.type = Operand::sta;
+            if (life.assignStatus == Operand_Old::sta) {
+                loc.type = Operand_Old::sta;
             }
-            else if (life.assignStatus == Operand::reg) {
-                loc.type = Operand::reg;
+            else if (life.assignStatus == Operand_Old::reg) {
+                loc.type = Operand_Old::reg;
             }
             else {
                 CodeGeneratorError("Unimplemented: Invalid location!");
@@ -73,15 +73,15 @@ std::vector<uint8_t> GetOperandTypes(const InstructionRequirements& req) {
         return types;
     }
     types.push_back(GetOperandType(req.op3));
-    if (types.back() == Operand::var) {
+    if (types.back() == Operand_Old::var) {
         auto loc = generatorMemory.findThing(req.op3);
-        if (loc.type == Operand::none) {
+        if (loc.type == Operand_Old::none) {
             auto& life = variableLifetimes[req.op3];
-            if (life.assignStatus == Operand::sta) {
-                loc.type = Operand::sta;
+            if (life.assignStatus == Operand_Old::sta) {
+                loc.type = Operand_Old::sta;
             }
-            else if (life.assignStatus == Operand::reg) {
-                loc.type = Operand::reg;
+            else if (life.assignStatus == Operand_Old::reg) {
+                loc.type = Operand_Old::reg;
             }
             else {
                 CodeGeneratorError("Unimplemented: Invalid location!");
@@ -93,15 +93,15 @@ std::vector<uint8_t> GetOperandTypes(const InstructionRequirements& req) {
         return types;
     }
     types.push_back(GetOperandType(req.op4));
-    if (types.back() == Operand::var) {
+    if (types.back() == Operand_Old::var) {
         auto loc = generatorMemory.findThing(req.op4);
-        if (loc.type == Operand::none) {
+        if (loc.type == Operand_Old::none) {
             auto& life = variableLifetimes[req.op4];
-            if (life.assignStatus == Operand::sta) {
-                loc.type = Operand::sta;
+            if (life.assignStatus == Operand_Old::sta) {
+                loc.type = Operand_Old::sta;
             }
-            else if (life.assignStatus == Operand::reg) {
-                loc.type = Operand::reg;
+            else if (life.assignStatus == Operand_Old::reg) {
+                loc.type = Operand_Old::reg;
             }
             else {
                 CodeGeneratorError("Unimplemented: Invalid location!");
@@ -128,7 +128,7 @@ OpCombination& ChooseOpCombination(InstructionRequirements& req, std::vector<uin
         std::array<const uint8_t, 4> currentTypes = {n.type1, n.type2, n.type3, n.type4};
         uint8_t operandAmount = 0;
         for (; operandAmount < 4; operandAmount++) {
-            if (currentTypes[operandAmount] == Operand::none) {
+            if (currentTypes[operandAmount] == Operand_Old::none) {
                 break;
             }
         }
@@ -141,18 +141,18 @@ OpCombination& ChooseOpCombination(InstructionRequirements& req, std::vector<uin
         // when size is confirmed types need to be checked
         for (uint8_t m = 0; m < operands.size(); m++) {
             switch (operands[m]) {
-                case Operand::reg:
-                case Operand::sta:
+                case Operand_Old::reg:
+                case Operand_Old::sta:
                     // if the operand is a register or stack location then it can accept a register or stack if needed
-                    if (currentTypes[m] != Operand::reg and currentTypes[m] != Operand::sta) {
+                    if (currentTypes[m] != Operand_Old::reg and currentTypes[m] != Operand_Old::sta) {
                         isValid = false;
                     }
                     match+=3;
                     break;
 
-                case Operand::imm:
+                case Operand_Old::imm:
                     // if the operand is a register or stack location then it can accept a register or stack if needed
-                    if (currentTypes[m] != Operand::imm) {
+                    if (currentTypes[m] != Operand_Old::imm) {
                         match+=1;
                     }
                     else {
@@ -186,13 +186,13 @@ OpCombination& ChooseOpCombination(InstructionRequirements& req, std::vector<uin
 void UpdateVariables() {
     for (auto& n: generatorMemory.registers) {
         uint8_t type = GetOperandType(n.content.value);
-        if (type == Operand::var and variableLifetimes[n.content.value].lastUse <= currentBytecodeIndex) {
+        if (type == Operand_Old::var and variableLifetimes[n.content.value].lastUse <= currentBytecodeIndex) {
             n.content.value = "!";
         }
     }
     for (uint64_t n = 0; n < generatorMemory.stack.size(); n++) {
         uint8_t type = GetOperandType(generatorMemory.stack[n].content.value);
-        if (type == Operand::var and
+        if (type == Operand_Old::var and
             variableLifetimes[generatorMemory.stack[n].content.value].lastUse <= currentBytecodeIndex) {
             generatorMemory.stack.erase(generatorMemory.stack.begin() + n);
         }
@@ -231,7 +231,7 @@ internal::StackEntry* FindStackVariableByOffset(std::uint64_t offset) {
 // adds a variable slot on the stack, pass a variable with prefix
 internal::StackEntry* AddStackVariable(std::string name) {
     auto& life = variableLifetimes[name];
-    if (life.assignStatus == Operand::sta) {
+    if (life.assignStatus == Operand_Old::sta) {
         auto size = GetVariableType(name).size;
         for (uint64_t n = 0; n < generatorMemory.stack.size(); n++) {
             if (generatorMemory.stack[n].offset < life.staOffset) {
@@ -242,7 +242,7 @@ internal::StackEntry* AddStackVariable(std::string name) {
         generatorMemory.stack.emplace_back(variableLifetimes[name].staOffset, 1, size, internal::ContentEntry("!"));
         return &generatorMemory.stack.back();
     }
-    
+
     int64_t size = std::stoll(name.substr(1, 1));
     if (GetOperandType(name) != Subtype::value) {
         size = Options::addressSize;
@@ -287,10 +287,10 @@ internal::StackEntry* AddStackVariable(std::string name) {
 
 void SetContent(DataLocation location, const std::string& content) {
     switch (location.type) {
-        case Operand::reg:
+        case Operand_Old::reg:
             generatorMemory.registers[location.value].content.value = content;
             return;
-        case Operand::sta:
+        case Operand_Old::sta:
             FindStackVariableByOffset(location.offset)->content.value = content;
             return;
     }
@@ -343,9 +343,9 @@ VariableInfo::VariableInfo(VariableType value, DataLocation location, std::strin
 
 VariableInfo VariableInfo::FromLocation(DataLocation location) {
     switch (location.type) {
-        case Operand::reg:
+        case Operand_Old::reg:
             return VariableInfo("%" + std::to_string(location.number));
-        case Operand::sta:
+        case Operand_Old::sta:
             return VariableInfo("@" + std::to_string(location.offset));
         default:
             CodeGeneratorError("Unimplemented: non register/stack variable info from location!");
@@ -358,14 +358,14 @@ VariableInfo::VariableInfo(const std::string& name) {
     // check if it's even a variable
     if (identifier == "!") {
         // it's literally nothing
-        location.type = Operand::none;
+        location.type = Operand_Old::none;
         // and type
         value.type = Type::none;
         return;
     }
     if (identifier.starts_with("\"")) {
         // it's a const string somewhere in memory
-        location.type = Operand::sla;
+        location.type = Operand_Old::sla;
         location.number = std::stoull(identifier.substr(1));
         value.type = Type::none;
         value.isAddress = true;
@@ -374,7 +374,7 @@ VariableInfo::VariableInfo(const std::string& name) {
     }
     if (identifier.starts_with("$")) {
         // it's a value
-        location.type = Operand::imm;
+        location.type = Operand_Old::imm;
         location.value = std::stoull(identifier.substr(1));
 
         // and type
@@ -383,7 +383,7 @@ VariableInfo::VariableInfo(const std::string& name) {
     }
     if (identifier.starts_with("%")) {
         // it's a register
-        location.type = Operand::reg;
+        location.type = Operand_Old::reg;
         location.value = std::stoull(identifier.substr(1));
 
         // and type, let's check what's in the register
@@ -397,7 +397,7 @@ VariableInfo::VariableInfo(const std::string& name) {
         if (GetVariableType(content).subtype != Subtype::value) {
             // in that case check if a pointer of this exact type exists
             auto location = generatorMemory.findThing(content);
-            if (location.type == Operand::none) {
+            if (location.type == Operand_Old::none) {
                 // in that case change the identifier to the main value
                 content = FindMainName(content);
             }
@@ -416,9 +416,9 @@ VariableInfo::VariableInfo(const std::string& name) {
             // search for the location in simulated memory
             location = generatorMemory.findThing(content);
 
-            if (location.type == Operand::none) {
+            if (location.type == Operand_Old::none) {
                 // location wasn't found, so it's on the heap or wherever the assembler decides to put it
-                location.type = Operand::aadr;
+                location.type = Operand_Old::aadr;
                 location.globalPtr = &var;
             }
             value = GetVariableType(content);
@@ -434,7 +434,7 @@ VariableInfo::VariableInfo(const std::string& name) {
     }
     if (identifier.starts_with("@")) {
         // it's a register
-        location.type = Operand::sta;
+        location.type = Operand_Old::sta;
         location.offset = std::stoll(identifier.substr(1));
 
         // and type, let's check what's in the register
@@ -450,7 +450,7 @@ VariableInfo::VariableInfo(const std::string& name) {
         if (GetVariableType(content).subtype != Subtype::value) {
             // in that case check if a pointer of this exact type exists
             auto location = generatorMemory.findThing(content);
-            if (location.type == Operand::none) {
+            if (location.type == Operand_Old::none) {
                 // in that case change the identifier to the main value
                 content = FindMainName(content);
             }
@@ -469,9 +469,9 @@ VariableInfo::VariableInfo(const std::string& name) {
             // search for the location in simulated memory
             location = generatorMemory.findThing(content);
 
-            if (location.type == Operand::none) {
+            if (location.type == Operand_Old::none) {
                 // location wasn't found, so it's on the heap or wherever the assembler decides to put it
-                location.type = Operand::aadr;
+                location.type = Operand_Old::aadr;
                 location.globalPtr = &var;
             }
             identifier = content;
@@ -487,7 +487,7 @@ VariableInfo::VariableInfo(const std::string& name) {
     if (GetVariableType(identifier).subtype != Subtype::value) {
         // in that case check if a pointer of this exact type exists
         auto location = generatorMemory.findThing(identifier);
-        if (location.type == Operand::none) {
+        if (location.type == Operand_Old::none) {
             // in that case change the identifier to the main value
             identifier = FindMainName(identifier);
         }
@@ -505,13 +505,13 @@ VariableInfo::VariableInfo(const std::string& name) {
         // search for the location in simulated memory
         location = generatorMemory.findThing(identifier);
 
-        if (location.type == Operand::none) {
+        if (location.type == Operand_Old::none) {
             // location wasn't found, so it's on the heap or wherever the assembler decides to put it
-            location.type = Operand::aadr;
+            location.type = Operand_Old::aadr;
             location.globalPtr = &var;
         }
         value = GetVariableType(name);
-        
+
         return;
     }
 
@@ -522,7 +522,7 @@ VariableInfo::VariableInfo(const std::string& name) {
     location = generatorMemory.findThing(identifier);
 }
 
-// this function does not care if the variable already exists elsewhere, 
+// this function does not care if the variable already exists elsewhere,
 // if it needs to exist in one place use the MoveVariableElsewhere
 void CopyVariableElsewhereNoReference(VariableInfo source) {
     CopyVariableElsewhere(source);
@@ -540,21 +540,21 @@ void CopyVariableElsewhere(VariableInfo& source) {
             return;
         }
     }
-    
+
     // in this case it's already in it's assigned place, look for a free register
     for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
         // TODO: add allowed value types check to this when adding floats
         if (generatorMemory.registers[n].content.value == "!" or generatorMemory.registers[n].content.value.starts_with("$")) {
-            MoveValue(source, VariableInfo::FromLocation({Operand::reg, n}), source.identifier, source.value.size);
+            MoveValue(source, VariableInfo::FromLocation({Operand_Old::reg, n}), source.identifier, source.value.size);
             if (Optimizations::checkPotentialUselessStores) {
                 storesToCheck.emplace_back(finalInstructions.size() - 1, source.identifier);
             }
             return;
         }
     }
-    
+
     // in other cases move it to the stack at a safe offset
-    MoveValue(source, VariableInfo::FromLocation({Operand::sta, AddStackVariable(source.identifier)->offset}), source.identifier, source.value.size);
+    MoveValue(source, VariableInfo::FromLocation({Operand_Old::sta, AddStackVariable(source.identifier)->offset}), source.identifier, source.value.size);
     if (Optimizations::checkPotentialUselessStores) {
         storesToCheck.emplace_back(finalInstructions.size() - 1, source.identifier);
     }
@@ -566,8 +566,8 @@ void MoveVariableElsewhereNoReference(VariableInfo source) {
 }
 void MoveVariableElsewhere(VariableInfo& source) {
     for (size_t n = 0; n < generatorMemory.registers.size(); n++) {
-        if (generatorMemory.registers[n].content.value == source.identifier and 
-        source.location.type != Operand::reg and source.location.number != n) {
+        if (generatorMemory.registers[n].content.value == source.identifier and
+        source.location.type != Operand_Old::reg and source.location.number != n) {
             // it's duplicated, end the function
             return;
         }
@@ -575,7 +575,7 @@ void MoveVariableElsewhere(VariableInfo& source) {
 
     for (auto & n : generatorMemory.stack) {
         if (n.content.value == source.identifier and
-            source.location.type != Operand::sta and source.location.offset != n.offset) {
+            source.location.type != Operand_Old::sta and source.location.offset != n.offset) {
             // it's duplicated, end the function
             return;
         }
@@ -608,7 +608,7 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
     if (source.value.type != Value::floatingPoint and target.value.type != Value::floatingPoint) {
         // we have two integers so that's laughably simple
         DEPRECATEDInstruction ins;
-        
+
         // determine the instruction type
         if (source.value.size < target.value.size) {
             if (source.value.type == Value::unsignedInteger) {
@@ -621,7 +621,7 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
         else {
             ins.type = x86_64::OLD_mov;
         }
-        
+
         // now assign sizes
         ins.sizeAfter = target.value.size;
         ins.sizeBefore = source.value.size;
@@ -636,7 +636,7 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
         finalInstructions.push_back(ins);
         SetContent(target.location, source.identifier);
     }
-        
+
     else {
         CodeGeneratorError("Unimplemented: x86-64 floating point conversions!");
     }
@@ -646,18 +646,18 @@ void X86_64PlaceConvertedValue(VariableInfo source, VariableInfo target) {
 DataLocation FindViableRegister(DataLocation reserved) {
     for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
         if (generatorMemory.registers[n].content.value == "!") {
-            if (reserved.type == Operand::reg and n == reserved.number) {
+            if (reserved.type == Operand_Old::reg and n == reserved.number) {
                 continue;
             }
-            return {Operand::reg, n};
+            return {Operand_Old::reg, n};
         }
     }
     for (uint64_t n = 0; n < generatorMemory.registers.size(); n++) {
         if (generatorMemory.registers[n].content.value.starts_with("$")) {
-            if (reserved.type == Operand::reg and n == reserved.number) {
+            if (reserved.type == Operand_Old::reg and n == reserved.number) {
                 continue;
             }
-            return {Operand::reg, n};
+            return {Operand_Old::reg, n};
         }
     }
     CodeGeneratorError("Unimplemented: Complex register finding!");
@@ -675,8 +675,8 @@ void X86_64PureMove(DataLocation source, DataLocation target, uint64_t size, boo
     ins.type = x86_64::OLD_mov;
     ins.sizeAfter = ins.sizeBefore = size;
     ins.op2 = source;
-    if (source.type == Operand::sta) {
-        if (target.type == Operand::sta or source.extractAddress) {
+    if (source.type == Operand_Old::sta) {
+        if (target.type == Operand_Old::sta or source.extractAddress) {
             if (not findRouteRegister) {
                 CodeGeneratorError("Bug: unexpected stack to stack move");
             }
@@ -699,7 +699,7 @@ void MoveAssignedToStack(VariableInfo& var) {
         if (generatorMemory.stack[n].offset < life.staOffset) {
             internal::StackEntry temp(life.staOffset, 1, var.value.size, internal::ContentEntry(var.identifier));
             generatorMemory.stack.emplace(generatorMemory.stack.begin() + n, std::move(temp));
-            var.location.type = Operand::sta;
+            var.location.type = Operand_Old::sta;
             var.location.offset = life.staOffset;
             return;
         }
@@ -708,7 +708,7 @@ void MoveAssignedToStack(VariableInfo& var) {
     // if it gets here then there is no variable with more negative offset so just push it on the back
     internal::StackEntry temp(life.staOffset, 1, var.value.size, internal::ContentEntry(var.identifier));
     generatorMemory.stack.emplace_back(std::move(temp));
-    var.location.type = Operand::sta;
+    var.location.type = Operand_Old::sta;
     var.location.offset = life.staOffset;
 }
 
@@ -717,16 +717,16 @@ void X86_64DereferencePointer(VariableInfo source, VariableInfo target) {
     if (source.value.subtype == Subtype::value and not source.value.isAddress) {
         CodeGeneratorError("Bug: tried to dereference a non-pointer!");
     }
-    if (source.location.type != Operand::reg) {
+    if (source.location.type != Operand_Old::reg) {
         auto where = FindViableRegister();
         MoveValue(source, VariableInfo::FromLocation(where), source.identifier, Options::addressSize);
         source.location = where;
         source.location.extractAddress = true;
     }
-    if (target.location.type != Operand::reg) {
+    if (target.location.type != Operand_Old::reg) {
         CodeGeneratorError("Bug: tried to dereference a variable into a non register location!");
     }
-    
+
     // ensure there is nothing in the target
     if (target.value.type != ParserType::none and not target.identifier.contains("glob.")) {
         MoveVariableElsewhere(target);
@@ -735,28 +735,28 @@ void X86_64DereferencePointer(VariableInfo source, VariableInfo target) {
 
     target.value = source.value;
     // now we just need to dereference the variable itself
-    X86_64PlaceConvertedValue(VariableInfo(GetVariableType(source.identifier), {Operand::reg, source.location.number, true}, source.identifier), target);
+    X86_64PlaceConvertedValue(VariableInfo(GetVariableType(source.identifier), {Operand_Old::reg, source.location.number, true}, source.identifier), target);
 }
 
 // gets the address of the source variable into the designated location
 void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::string contentToSet) {
     if (source.identifier.contains("glob.")) {
-        X86_64PureMove({Operand::aadr, &source.extractGlobalVariable()}, target.location, Options::addressSize);
+        X86_64PureMove({Operand_Old::aadr, &source.extractGlobalVariable()}, target.location, Options::addressSize);
         SetContent(target.location, contentToSet);
         return;
     }
 
     // if it's not a global variable then we need to ensure it actually exists in the stack
-    if (source.location.type != Operand::sta) {
+    if (source.location.type != Operand_Old::sta) {
         auto& life = variableLifetimes[source.identifier];
-        if (life.assignStatus != Operand::sta) {
+        if (life.assignStatus != Operand_Old::sta) {
             CodeGeneratorError("Bug: Variable that has it's address taken wasn't assigned to stack!");
         }
 
         // in that case it's correctly assigned to the stack but not there, that's unacceptable
         // but let's check if it didn't just grab the wrong variable instance
         if (FindStackVariableByOffset(life.staOffset) != nullptr) {
-            source.location.type = Operand::sta;
+            source.location.type = Operand_Old::sta;
             source.location.offset = life.staOffset;
         }
         else {
@@ -771,7 +771,7 @@ void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::str
     ins.op1 = target.location;
     ins.op2 = source.location;
     ins.sizeAfter = ins.sizeBefore = Options::addressSize;
-    if (target.location.type != Operand::reg) {
+    if (target.location.type != Operand_Old::reg) {
         CodeGeneratorError("Bug: Tried to load variable address not into register!");
     }
 
@@ -781,7 +781,7 @@ void X86_64GetVariableAddress(VariableInfo source, VariableInfo target, std::str
 
 // this places a global variable in given place
 void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressOnly = false) {
-    if (target.location.type != Operand::reg) {
+    if (target.location.type != Operand_Old::reg) {
         CodeGeneratorError("Unimplemented: Unsupported global variable placement point!");
     }
 
@@ -794,7 +794,7 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
     ins.type = x86_64::OLD_mov;
     ins.sizeAfter = ins.sizeBefore = Options::addressSize;
     ins.op1 = FindViableRegister();
-    ins.op2 = {Operand::aadr, &base};
+    ins.op2 = {Operand_Old::aadr, &base};
     finalInstructions.push_back(ins);
     SetContent(ins.op1, "^" + source.identifier);
     if (addressOnly) {
@@ -806,26 +806,26 @@ void PlaceGlobalVariable(VariableInfo source, VariableInfo target, bool addressO
         // they are of the same type so just extract the value
         ins.sizeAfter = ins.sizeBefore = source.value.size;
         ins.op1 = target.location;
-        ins.op2 = {Operand::reg, target.location.number, true};
+        ins.op2 = {Operand_Old::reg, target.location.number, true};
         finalInstructions.push_back(ins);
         SetContent(target.location, source.identifier);
     }
     else {
-        X86_64PlaceConvertedValue({base.type, {Operand::reg, target.location.number, true}, source.identifier}, {source.value, target.location, target.identifier});
+        X86_64PlaceConvertedValue({base.type, {Operand_Old::reg, target.location.number, true}, source.identifier}, {source.value, target.location, target.identifier});
     }
 }
 
 void SetValueAtAddress(VariableInfo source, uint64_t addressRegister, uint64_t size) {
-    X86_64PureMove(source.location, {Operand::reg, addressRegister, true}, size);
+    X86_64PureMove(source.location, {Operand_Old::reg, addressRegister, true}, size);
 }
 
 std::string shutupcompiler = "";
 
 const std::string& ContentAtLocation(DataLocation location) {
     switch (location.type) {
-        case Operand::reg:
+        case Operand_Old::reg:
             return generatorMemory.registers[location.value].content.value;
-        case Operand::sta:
+        case Operand_Old::sta:
             return FindStackVariableByOffset(location.offset)->content.value;
     }
     CodeGeneratorError("Unimplemented: Non stack/register content set!");
@@ -843,9 +843,9 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
     if (contentType.isAddress != source.value.isAddress and contentType.type != Value::none) {
         CodeGeneratorError("Bug: Invalid type combination in value move!");
     }
-    
-    if (target.value.type != Value::none and not target.identifier.contains("glob.") and target.location.type == Operand::reg) {
-        // there is something in the target location, it needs to be copied elsewhere 
+
+    if (target.value.type != Value::none and not target.identifier.contains("glob.") and target.location.type == Operand_Old::reg) {
+        // there is something in the target location, it needs to be copied elsewhere
         MoveVariableElsewhere(target);
         SetContent(target.location, "!");
     }
@@ -858,7 +858,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
                 source.location = base.location;
             }
             else {
-                source.location.type = Operand::convert;
+                source.location.type = Operand_Old::convert;
             }
         }
         else {
@@ -867,9 +867,9 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
             return;
         }
     }
-    
+
     // at this point the original target location can be assumed to be empty and ready for input, hurray!
-    if (source.location.type != Operand::convert) {
+    if (source.location.type != Operand_Old::convert) {
         // Even more hooray! This variable exists so it just needs to be moved into place and that's it!
         if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
             DEPRECATEDInstruction ins;
@@ -887,7 +887,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
                 ins.op2 = source.location;
                 ins.op1 = target.location;
             }
-            if (ins.op1.type == Operand::sta and ins.op2.type == Operand::sta) {
+            if (ins.op1.type == Operand_Old::sta and ins.op2.type == Operand_Old::sta) {
                 CodeGeneratorError("Unimplemented: X86-64 stack to stack move!");
             }
             finalInstructions.push_back(ins);
@@ -900,7 +900,7 @@ void MoveValue(VariableInfo source, VariableInfo target, std::string contentToSe
     }
 
     // conversion here
-    if (source.location.type == Operand::imm) {
+    if (source.location.type == Operand_Old::imm) {
         X86_64PureMove(source.location, target.location, target.value.size);
         SetContent(target.location, contentToSet);
         return;
@@ -919,20 +919,20 @@ void FillDesignatedPlaces(uint64_t index) {
             if (n.second.firstUse <= index and n.second.lastUse >= index) {
                 // this variable exists, it needs to be ensured that it's in place
                 auto data = generatorMemory.findThing(n.first);
-                if (data.type == Operand::none) {
+                if (data.type == Operand_Old::none) {
                     CodeGeneratorError("Bug: Move of non existent variable to designated register, should be unreachable!");
                     return;
                 }
 
                 // if it's fine check if the data is in the right place
-                if (n.second.assignStatus == Operand::reg) {
+                if (n.second.assignStatus == Operand_Old::reg) {
                     if (generatorMemory.registers[n.second.regNumber].content.value != n.first) {
                         MoveValue(VariableInfo(n.first), VariableInfo("%" + std::to_string(n.second.regNumber)), n.first, GetVariableType(n.first).size);
                         changes++;
                         SetContent(data, "!");
                     }
                 }
-                else if (n.second.assignStatus == Operand::sta) {
+                else if (n.second.assignStatus == Operand_Old::sta) {
                     if (FindStackVariableByName(n.first) == nullptr) {
                         auto* sta = AddStackVariable(n.first);
                         sta->content.value = "!";
@@ -1022,51 +1022,51 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     for (uint8_t n = 0; n < operands.size(); n++) {
         if (operands[n].second.type != vec[n].first) {
             // location needs to change
-            if (operands[n].second.type == Operand::reg) {
-                if (vec[n].first == Operand::sta) {
+            if (operands[n].second.type == Operand_Old::reg) {
+                if (vec[n].first == Operand_Old::sta) {
                     // move to stack
                     auto* stackLoc = FindStackVariableByName(operands[n].first);
                     if (stackLoc == nullptr) {
                         stackLoc = AddStackVariable(operands[n].first);
                         stackLoc->content.value = "!";
                     }
-                    operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::sta, stackLoc->offset));
+                    operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::sta, stackLoc->offset));
                 }
                 else {
                     CodeGeneratorError("Unimplemented!");
                 }
             }
-            else if (operands[n].second.type == Operand::sta) {
+            else if (operands[n].second.type == Operand_Old::sta) {
                 // needs to be moved to register
                 // no certain location yet
-                operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::reg, uint64_t()));
+                operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::reg, uint64_t()));
             }
-            else if (operands[n].second.type == Operand::imm) {
-                if (vec[n].first == Operand::reg) {
+            else if (operands[n].second.type == Operand_Old::imm) {
+                if (vec[n].first == Operand_Old::reg) {
                     // needs to be moved to register
                     // no certain location yet
-                    operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::reg, uint64_t()));
+                    operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::reg, uint64_t()));
                 }
-                else if (vec[n].first == Operand::sta) {
+                else if (vec[n].first == Operand_Old::sta) {
                     // move to stack
                     auto* stackLoc = AddStackVariable(operands[n].first);
                     stackLoc->content.value = "!";
-                    operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::sta, stackLoc->offset));
+                    operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::sta, stackLoc->offset));
                 }
             }
-            else if (operands[n].second.type == Operand::none) {
+            else if (operands[n].second.type == Operand_Old::none) {
                 if (operands[n].first.contains("glob.")) {
                     // it's a global variable
-                    if (vec[n].first == Operand::reg) {
+                    if (vec[n].first == Operand_Old::reg) {
                         // needs to be moved to register
                         // no certain location yet
-                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::reg, uint64_t()));
+                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::reg, uint64_t()));
                     }
-                    else if (vec[n].first == Operand::sta) {
+                    else if (vec[n].first == Operand_Old::sta) {
                         // move to stack
                         auto* stackLoc = AddStackVariable(operands[n].first);
                         stackLoc->content.value = "!";
-                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::sta, stackLoc->offset));
+                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::sta, stackLoc->offset));
                     }
                     continue;
                 }
@@ -1075,10 +1075,10 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                 auto mainLocation = generatorMemory.findThing(*lastMainName);
                 // if main was used for the last time here, it can be used instead of a new register
                 // but for now only if it's smaller
-                
+
                 bool isValid = false;
                 if (main.lastUse == index and lastMainName->at(1) >= operands[n].first[1]) {
-                    if (mainLocation.type == Operand::reg) {
+                    if (mainLocation.type == Operand_Old::reg) {
                         for (auto& k : *vec[n].second) {
                             if (k == mainLocation.number) {
                                 isValid = true;
@@ -1095,16 +1095,16 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                     operands[n].second = mainLocation;
                 }
                 else {
-                    if (vec[n].first == Operand::reg) {
+                    if (vec[n].first == Operand_Old::reg) {
                         // needs to be moved to register
                         // no certain location yet
-                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::reg, uint64_t()));
+                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::reg, uint64_t()));
                     }
-                    else if (vec[n].first == Operand::sta) {
+                    else if (vec[n].first == Operand_Old::sta) {
                         // move to stack
                         auto* stackLoc = AddStackVariable(operands[n].first);
                         stackLoc->content.value = "!";
-                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::sta, stackLoc->offset));
+                        operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::sta, stackLoc->offset));
                     }
                 }
             }
@@ -1112,7 +1112,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                 CodeGeneratorError("Unimplemented!");
             }
         }
-        else if (operands[n].second.type == Operand::reg) {
+        else if (operands[n].second.type == Operand_Old::reg) {
             bool isValid = false;
             for (auto& m : *vec[n].second) {
                 if (m == operands[n].second.value) {
@@ -1124,14 +1124,14 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                 occupied[operands[n].second.value] = true;
             }
             else {
-                operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand::reg, uint64_t()));
+                operandsToMove.emplace_back(n, MoveStruct::move, DataLocation(Operand_Old::reg, uint64_t()));
             }
         }
     }
 
     // find the registers for things that require them
     for (auto& n : operandsToMove) {
-        if (n.where.type == Operand::reg) {
+        if (n.where.type == Operand_Old::reg) {
             bool found = false;
             for (auto& m : *vec[n.number].second) {
                 // find the first valid register
@@ -1155,7 +1155,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
 
     // find which values need to be copied too
     for (uint8_t n = 0; n < operands.size(); n++) {
-        if (operands[n].second.type == Operand::imm) {
+        if (operands[n].second.type == Operand_Old::imm) {
             continue;
         }
         auto& life = variableLifetimes[operands[n].first];
@@ -1164,15 +1164,15 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
         if (life.lastUse > index) {
             // if it will check if it's value will be removed
             for (auto& m : combination.results) {
-                if (m.first.type == Operand::replace and m.first.value == n) {
+                if (m.first.type == Operand_Old::replace and m.first.value == n) {
                     // replace var on stack or in register
-                    if (operands[n].second.type == Operand::reg) {
+                    if (operands[n].second.type == Operand_Old::reg) {
                         // it's a register
                         // TODO: add a check if the copy could be moved away from assigned location and only if not move the original
                         DataLocation& current = operands[n].second;
-                        if (life.assignStatus == Operand::reg) {
+                        if (life.assignStatus == Operand_Old::reg) {
                             if (current.number != life.regNumber) {
-                                operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(life.regNumber)));
+                                operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand_Old::reg, uint64_t(life.regNumber)));
                                 continue;
                             }
                             // find a free register, starting from back to reduce the risk of multiple moves
@@ -1180,7 +1180,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                             for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k--) {
                                 auto& reg = generatorMemory.registers[k];
                                 if (reg.content.value == "!" and not occupied[k]) {
-                                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
+                                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand_Old::reg, uint64_t(k)));
                                     found = true;
                                     occupied[k] = true;
                                     break;
@@ -1192,7 +1192,7 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                             for (int64_t k = generatorMemory.registers.size() -1; k >= 0; k++) {
                                 auto& reg = generatorMemory.registers[k];
                                 if (reg.content.value.starts_with("$") and not occupied[k]) {
-                                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::reg, uint64_t(k)));
+                                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand_Old::reg, uint64_t(k)));
                                     found = true;
                                     occupied[k] = true;
                                     break;
@@ -1206,27 +1206,27 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
                         // just move a copy to stack for now, I will optimize this once it works
                         auto* stackLoc = AddStackVariable(operands[n].first);
                         stackLoc->content.value = "!";
-                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::sta, stackLoc->offset));
+                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand_Old::sta, stackLoc->offset));
                     }
-                    else if (operands[n].second.type == Operand::sta) {
+                    else if (operands[n].second.type == Operand_Old::sta) {
                         // it's on stack
                         // just copy it to another place on stack for now
                         auto* stackLoc = AddStackVariable(operands[n].first);
                         stackLoc->content.value = "!";
-                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::sta, stackLoc->offset));
+                        operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand_Old::sta, stackLoc->offset));
                     }
                     else {
                         CodeGeneratorError("Unimplemented!");
                     }
 
                 }
-                else if (m.first.type == Operand::reg and operands[n].second.type == Operand::reg and m.first.value == operands[n].second.value) {
+                else if (m.first.type == Operand_Old::reg and operands[n].second.type == Operand_Old::reg and m.first.value == operands[n].second.value) {
                     // register with this value will be replaced
 
                     // just move a copy to stack for now, I will optimize this once it works
                     auto* stackLoc = AddStackVariable(operands[n].first);
                     stackLoc->content.value = "!";
-                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand::sta, stackLoc->offset));
+                    operandsToMove.emplace_back(n, MoveStruct::copy, DataLocation(Operand_Old::sta, stackLoc->offset));
 
                 }
             }
@@ -1237,10 +1237,10 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     for (auto& n : operandsToMove) {
         std::string target;
         switch (n.where.type) {
-            case Operand::sta:
+            case Operand_Old::sta:
                 MoveValue(VariableInfo(operands[n.number].first), VariableInfo("@" + std::to_string(n.where.offset)), operands[n.number].first, req.instructionSize);
                 break;
-            case Operand::reg:
+            case Operand_Old::reg:
                 MoveValue(VariableInfo(operands[n.number].first), VariableInfo("%" + std::to_string(n.where.value)), operands[n.number].first, req.instructionSize);
                 break;
             default:
@@ -1279,18 +1279,18 @@ void GenerateInstruction(InstructionRequirements req, uint64_t index) {
     if (not req.combinations.empty()) {
         for (auto& n : combination.results) {
             switch (n.first.type) {
-                case Operand::sta:
+                case Operand_Old::sta:
                     FindStackVariableByOffset(n.first.offset)->content.value = n.second;
                     break;
-                case Operand::reg:
+                case Operand_Old::reg:
                     generatorMemory.registers[n.first.value].content.value = n.second;
                     break;
-                case Operand::replace:
+                case Operand_Old::replace:
                     switch (operands[n.first.value].second.type) {
-                        case Operand::sta:
+                        case Operand_Old::sta:
                             FindStackVariableByOffset(operands[n.first.value].second.offset)->content.value = n.second;
                             break;
-                        case Operand::reg:
+                        case Operand_Old::reg:
                             generatorMemory.registers[operands[n.first.value].second.value].content.value = n.second;
                             break;
                         default:
@@ -1370,11 +1370,11 @@ void AssignExpressionToVariable(const std::string& exp, const std::string& var) 
         VariableInfo source(var);
         ins.sizeAfter = ins.sizeBefore = source.value.size;
         ins.type = x86_64::OLD_mov;
-        where.type = Operand::reg;
+        where.type = Operand_Old::reg;
         where.extractAddress = true;
         ins.op1 = where;
         ins.op2 = generatorMemory.findThing(exp);
-        if (ins.op2.type == Operand::none) {
+        if (ins.op2.type == Operand_Old::none) {
             CodeGeneratorError("Bug: Move of non existent variable to global!");
         }
         finalInstructions.push_back(ins);

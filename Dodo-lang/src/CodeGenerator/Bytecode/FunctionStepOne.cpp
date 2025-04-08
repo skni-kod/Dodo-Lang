@@ -663,10 +663,10 @@ void BytecodeAddArguments(const ParserFunction& function) {
         // now just find their types and add bytecodes at right locations, easy-peasy
         VariableType type(parserTypes[n.typeName]);
         type.subtype = n.subtype;
-        if (n.locationType == Operand::reg) {
+        if (n.locationType == Operand_Old::reg) {
             bytecodes.emplace_back(BytecodeOld::addFromArgument, "%" + std::to_string(n.locationValue), n.name + "#0-0", type);
         }
-        else if (n.locationType == Operand::sta) {
+        else if (n.locationType == Operand_Old::sta) {
             bytecodes.emplace_back(BytecodeOld::addFromArgument, "@" + std::to_string(n.locationValue), n.name + "#0-0", type);
         }
         // TODO: add mutability here
