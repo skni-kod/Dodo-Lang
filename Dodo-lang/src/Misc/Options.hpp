@@ -55,7 +55,7 @@ namespace Options {
         GAS, NASM
     };
     inline uint8_t assemblyFlavor = AssemblyFlavor::GAS;
-    inline uint8_t instructionSpace = 8;
+    inline uint8_t instructionSpace = 12;
     inline uint8_t functionIndentation = 4;
     inline bool helpOption = false;
 }

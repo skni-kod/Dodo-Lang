@@ -8,6 +8,32 @@
 
 // This is the scary file when all the terrifying assembly stuff roots from
 
+struct AsmOperand {
+    #ifdef PACKED_ENUM_VARIABLES
+    Location::Type op : 4 = Location::None;
+    // type of value
+    Type::TypeEnum type : 2 = Type::none;
+    #else
+    uint8_t op : 3 = Operand::None;
+    // type of value
+    uint8_t type : 2 = Type::none;
+    #endif
+    // if set to true then the address in the operand should be used instead of it
+    bool useAddress : 1 = false;
+    // size for operation in bytes
+    uint8_t size = 0;
+    // value to set in the operand
+    OperandValue value = {};
+    AsmOperand() = default;
+    AsmOperand(BytecodeOperand op, BytecodeContext& context);
+    // overrides the location to something else while preserving the size and type of operand
+    AsmOperand(BytecodeOperand op, BytecodeContext& context, Location::Type location, OperandValue value);
+    [[nodiscard]] AsmOperand CopyTo(Location::Type location, OperandValue value) const;
+    VariableObject& object(BytecodeContext& context) const;
+
+    bool operator==(const AsmOperand& target) const = default;
+};
+
 // represents a register in cpu
 // all that data will probably not be used in favor of assigning possible locations for each instruction since there's little pattern to it
 struct Register {
@@ -59,7 +85,7 @@ struct Register {
     bool canUseSinglePrecisionFloats       : 1 = false; // can the register perform operations on single precision floats?
     bool canUseDoublePrecisionFloats       : 1 = false; // can the register perform operations on double precision floats?
 
-    BytecodeOperand content = {}; // the content that is assumed to be present in the register
+    AsmOperand content = {}; // the content that is assumed to be present in the register
 
     bool canBeLongStored(const VariableObject& variable) const;
     bool canBeStored(const VariableObject& variable) const;
@@ -67,11 +93,22 @@ struct Register {
 
 // represents a single entry on the stack
 struct StackEntry {
-    BytecodeOperand content;
+    AsmOperand content;
     // offset from base pointer, beware that value must be AT least equal in negative to size since it's negative indexing,
     // alternatively it can be positive value if it's an argument for a function call
     int32_t offset = 0;
     uint32_t size = 0;
+};
+
+struct Place {
+    union {
+        Register* reg = nullptr;
+        StackEntry* sta;
+    };
+    Location::Type where : 8 = Location::None;
+    Place() = default;
+    Place(Register* reg, Location::Type where);
+    Place(StackEntry* sta, Location::Type where);
 };
 
 // represents a virtual processor
@@ -81,24 +118,11 @@ struct Processor {
 
     // clears the data to default state before use
     void clear();
+
+    Place get(AsmOperand& op);
+    AsmOperand getContent(AsmOperand& op, BytecodeContext& context);
 };
 
-struct AsmOperand {
-    #ifdef PACKED_ENUM_VARIABLES
-    Location::Type op : 4 = Location::None;
-    // type of value
-    Type::TypeEnum type : 2 = Type::none;
-    #else
-    uint8_t op : 3 = Operand::None;
-    // type of value
-    uint8_t type : 2 = Type::none;
-    #endif
-    // size for operation in bytes
-    uint8_t size = 0;
-    // value to set in the operand
-    OperandValue value;
-
-};
 
 struct AsmInstruction {
     // TODO: move to union when other targets are added
@@ -130,17 +154,19 @@ struct AsmInstructionResultInput {
             uint8_t operandNumber;
         };
     };
-    OperandValue result = {};
+    AsmOperand value;
 
     AsmInstructionResultInput() = default;
-    AsmInstructionResultInput(bool isInput, AsmOperand operand, OperandValue value);
-    AsmInstructionResultInput(bool isInput, uint8_t operandNumber, OperandValue value);
+    AsmInstructionResultInput(bool isInput, AsmOperand location, AsmOperand value);
+    AsmInstructionResultInput(bool isInput, uint8_t operandNumber, AsmOperand value);
 };
 
 struct AsmOpDefinition {
     Location::Type opType : 8 = Location::None;
     uint8_t sizeMin = 0;
     uint8_t sizeMax = 0;
+    bool isInput  : 1 = false;
+    bool isOutput : 1 = false;
 };
 
 struct AsmInstructionVariant {
@@ -181,21 +207,13 @@ struct AsmInstructionVariant {
 
 struct AsmInstructionInfo {
     std::vector <AsmInstructionVariant> variants;
+    AsmOperand source1 = {}; // source 1 for operation
+    AsmOperand source2 = {}; // source 2 for operation
+    AsmOperand source3 = {}; // source 3 for operation
+    AsmOperand source4 = {}; // source 4 for operation
+    AsmOperand destination = {}; // destination for operation result
     AsmInstructionVariant* selected = nullptr;
 };
-
-// only to test the syntax
-inline AsmInstructionInfo test = {
-    {
-        AsmInstructionVariant(x86_64::div, Options::None, {Location::Register, 8, 64},
-            {
-                RegisterRange(x86_64::RAX, x86_64::RDX, true, false, false, false),
-                RegisterRange(x86_64::R8, x86_64::R15, true, false, false, false)
-            },
-            {
-                AsmInstructionResultInput(false, AsmOperand(Location::Register, Type::unsignedInteger, 64, OperandValue()), OperandValue())
-            })
-    }};
 
 // functions
 void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstructionInfo& instruction, std::vector<AsmInstruction>& instructions, uint32_t index);

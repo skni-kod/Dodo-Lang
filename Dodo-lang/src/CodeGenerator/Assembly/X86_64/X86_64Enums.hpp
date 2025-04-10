@@ -28,7 +28,7 @@ namespace x86_64 {
         RCX = 2, ECX = 2, CX = 2, CL = 2, // 8 - 64 bit - general purpose, Counter
         RDX = 3, EDX = 3, DX = 3, DL = 3, // 8 - 64 bit - general purpose, Data, RAX extension for double width operations
         RSI = 4, ESI = 4, SI = 4, SIL = 4, // 8 - 64 bit - Source Index
-        RDI = 5, EDi = 5, DI = 5, DIL = 5, // 8 - 64 bit - Destination Index
+        RDI = 5, EDI = 5, DI = 5, DIL = 5, // 8 - 64 bit - Destination Index
         RSP = 6, ESP = 6, SP = 6, SPL = 6, // 8 - 64 bit - Stack Pointer
         RBP = 7, EBP = 7, BP = 7, BPL = 7, // 8 - 64 bit - Base Pointer
         R8 = 8, R8D = 8, R8W = 8, R8B = 8, // 8 - 64 bit - general purpose

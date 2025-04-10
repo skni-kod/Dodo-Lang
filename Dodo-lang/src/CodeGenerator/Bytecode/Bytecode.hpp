@@ -101,10 +101,11 @@ namespace Location {
         Call = 5,
         Argument = 6,
         Register = 7, Reg = 7, reg = 7,
-        Heap = 8, Hea = 8, hea = 8,
+        Memory = 8, Mem = 8, mem = 8,
         Stack, Sta = 9, sta = 9,
         Offset = 10, Off = 10, off = 10,
-        Zeroed = 11, Zer = 11, zer = 11, Zero = 11, zero = 11
+        Zeroed = 11, Zer = 11, zer = 11, Zero = 11, zero = 11,
+        Operand = 12, Op = 12, op = 12
     };
 }
 

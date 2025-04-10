@@ -6,12 +6,12 @@
 #include "GenerateCodeInternal.hpp"
 #include "MemoryStructure.hpp"
 #include "Bytecode/Bytecode.hpp"
-#include "Assembly/X86_64/X86_64Assembly.hpp"
 #include <filesystem>
 #include <fstream>
 #include <Increment.hpp>
 #include <Lifetime.hpp>
 #include <X86_64Config.hpp>
+#include "X86_64Convert.hpp"
 
 #include "Options.hpp"
 
@@ -154,6 +154,7 @@ void GenerateCode() {
         CalculateLifetimes(context);
         proc.clear();
         CalculateMemoryAssignments(proc, context);
+        x86_64::ConvertBytecode(context, proc, out);
     }
 
     
