@@ -2,7 +2,7 @@
 #include "X86_64.hpp"
 
 // target resolution functions
-std::vector <MoveInfo> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
+std::vector <AsmInstruction> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
     switch (Options::targetArchitecture) {
         case Options::TargetArchitecture::x86_64:
             return x86_64::AddConvertionsToMove(move, context, proc);
@@ -121,9 +121,26 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     // now all the moves should be in the vectors and can be executed, though I probably forgot about something
     // let's get their actual instruction representations
     // the possibility of these moves needing to use occupied locations needs to be taken into consideration
-    std::vector <std::vector <MoveInfo>> actualMoves;
+    std::vector <std::vector <AsmInstruction>> actualMoves;
 
     for (auto& n : moves) {
         actualMoves.push_back(AddConvertionsToMove(n, context, processor));
     }
+
+    // TODO: do something here
+
+    for (auto& n : actualMoves) {
+        for (auto& m : n) {
+            instructions.push_back(m);
+        }
+    }
+
+    // adding the instruction itself
+    AsmInstruction ins;
+    ins.code = selected.code;
+    // TODO: add operands
+
+    instructions.push_back(ins);
+
+    // TODO: add result setting
 }

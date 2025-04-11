@@ -21,13 +21,21 @@ struct AsmOperand {
     // if set to true then the address in the operand should be used instead of it
     bool useAddress : 1 = false;
     // size for operation in bytes
-    uint8_t size = 0;
+    enum LabelType {
+        none, function, jump, string
+    };
+    union {
+        uint8_t size = 0;
+        LabelType labelType : 8;
+    };
+
     // value to set in the operand
     OperandValue value = {};
     AsmOperand() = default;
     AsmOperand(BytecodeOperand op, BytecodeContext& context);
     // overrides the location to something else while preserving the size and type of operand
     AsmOperand(BytecodeOperand op, BytecodeContext& context, Location::Type location, OperandValue value);
+    AsmOperand(ParserFunctionMethod* functionMethod);
     [[nodiscard]] AsmOperand CopyTo(Location::Type location, OperandValue value) const;
     VariableObject& object(BytecodeContext& context) const;
 
@@ -125,8 +133,7 @@ struct Processor {
 
 
 struct AsmInstruction {
-    // TODO: move to union when other targets are added
-    x86_64::InstructionCode code : 8 = x86_64::none;
+    uint16_t code = 0;
     AsmOperand op1, op2, op3, op4;
 };
 

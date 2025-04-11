@@ -2,7 +2,7 @@
 
 namespace x86_64 {
 
-    std::ostream& PrintRegisterName(uint16_t number, uint8_t size, std::ostream& out) {
+    std::ostream& PrintRegisterName(uint16_t number, uint8_t size, std::ofstream& out) {
         switch (number) {
             case RAX:
                 if (size == 8) return out << "rax";
@@ -490,15 +490,19 @@ namespace x86_64 {
         return out;
     }
 
-    void PrintOperand(const AsmOperand& op, std::ostream& out) {
+    void PrintOperand(const AsmOperand& op, std::ofstream& out) {
         switch (op.op) {
         case Location::Literal:
-            out << "$" << op.value.u64;
+            out << "$" << std::to_string(op.value.u64);
             return;
         case Location::String:
             CodeGeneratorError("Internal: unimplemented operand print!");
             return;
-        case Location::Label:
+            case Location::Label:
+            if (op.labelType == AsmOperand::function) {
+                out << op.value.function->getFullName();
+                return;
+            }
             CodeGeneratorError("Internal: unimplemented operand print!");
             return;
         case Location::Call:
@@ -524,21 +528,21 @@ namespace x86_64 {
         }
     }
 
-    char GASPrefix(const AsmOperand& op) {
+    std::string GASPrefix(const AsmOperand& op) {
         switch (op.size) {
-            case 8: return 'q';
-            case 4: return 'd';
-            case 2: return 'w';
-            case 1: return 'b';
+            case 8: return "q";
+            case 4: return "d";
+            case 2: return "w";
+            case 1: return "b";
             default: CodeGeneratorError("Internal: invalid GAS prefix size!");
         }
-        return 0;
+        return "";
     }
 
     std::string GetMnemonic(const AsmInstruction& ins) {
         switch (ins.code) {
         case InstructionCode::mov:
-            return "mov" + GASPrefix(ins.op1);
+            return "mov";
         case InstructionCode::movss:
             return "";
         case InstructionCode::vmovss:
@@ -560,9 +564,9 @@ namespace x86_64 {
         case InstructionCode::and_op:
             return "";
         case InstructionCode::call:
-            return "";
+            return "call";
         case InstructionCode::cmp:
-            return "";
+            return "cmp";
         case InstructionCode::comiss:
             return "";
         case InstructionCode::vcomiss:
@@ -760,21 +764,28 @@ namespace x86_64 {
     }
 
     void PrintInstruction(AsmInstruction& ins, std::ofstream& out) {
-        auto menomnic = GetMnemonic(ins);
-        out << menomnic;
+        if (ins.code == label) {
+            PrintOperand(ins.op1, out);
+            out << ":\n";
+            return;
+        }
+        auto mnemonic = GetMnemonic(ins);
+         out << std::string(Options::functionIndentation, ' ');
+        out << mnemonic;
         if (ins.op1.op == Location::None) {out << "\n"; return;}
-        if (menomnic.size() < Options::instructionSpace) {
-            out << std::string(Options::instructionSpace - menomnic.size(), ' ');
+        if (mnemonic.size() < Options::instructionSpace) {
+            out << std::string(Options::instructionSpace - mnemonic.size(), ' ');
         }
         else {
             out << " ";
         }
-        PrintOperand(ins.op1, out);
 
         if (ins.op2.op != Location::None) {
-            out << ", ";
             PrintOperand(ins.op2, out);
+            out << ", ";
         }
+
+        PrintOperand(ins.op1, out);
 
         if (ins.op3.op != Location::None) {
             out << ", ";

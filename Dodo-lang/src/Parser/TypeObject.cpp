@@ -73,3 +73,16 @@ bool TypeMeta::operator==(const TypeMeta& other) const {
     // TODO: what about mutability
     return true;
 }
+
+std::string ParserFunctionMethod::getFullName() const {
+    std::string name;
+    if (returnType.typeName != nullptr) name = *returnType.typeName;
+    name += "$";
+    name += (returnType.type.isMutable ? "m" : "") + std::string(returnType.type.pointerLevel, 'p') + (returnType.type.isReference ? "r" : "");
+    name += "." + *this->name;
+    for (auto& n : parameters) {
+        name += "." + n.typeName() + "$";
+        name += (n.typeMeta().isMutable ? "m" : "") + std::string(n.typeMeta().pointerLevel, 'p') + (n.typeMeta().isReference ? "r" : "");
+    }
+    return std::move(name);
+}

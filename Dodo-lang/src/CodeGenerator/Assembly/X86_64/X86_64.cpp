@@ -1,7 +1,7 @@
 #include "X86_64.hpp"
 
 namespace x86_64 {
-    std::vector <MoveInfo> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
+    std::vector <AsmInstruction> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
 
         // assumes every move contains known locations only, since we need to know which one exactly to move
         // so those can be: registers, stack offsets, literals, labels and addresses
@@ -21,7 +21,7 @@ namespace x86_64 {
                 (not s.useAddress and s.op == Location::imm and not t.useAddress and (t.op == Location::reg or t.op == Location::sta or t.op == Location::mem))
                 or
                 (not s.useAddress and s.op == Location::mem and not t.useAddress and (t.op == Location::reg or t.op == Location::sta))
-            )) return {move};
+            )) return { AsmInstruction(mov, t, s, {}, {})};
         if (s.type == Type::address and t.type != Type::address
             and (
                 (not s.useAddress and s.op == Location::reg and t.useAddress and t.op == Location::reg)
@@ -29,7 +29,7 @@ namespace x86_64 {
                 (s.useAddress and s.op == Location::reg and not t.useAddress and t.op == Location::reg)
                 or
                 (not s.useAddress and s.op == Location::imm and t.useAddress and t.op == Location::reg)
-            )) return {move};
+            )) return { AsmInstruction(mov, t, s, {}, {})};
 
         CodeGeneratorError("Internal: unimplemented conversion!");
         return {};

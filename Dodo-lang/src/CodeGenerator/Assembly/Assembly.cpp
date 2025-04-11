@@ -90,6 +90,12 @@ AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context, Location::T
     else CodeGeneratorError("Unsupported operand type!");
 }
 
+AsmOperand::AsmOperand(ParserFunctionMethod* functionMethod) {
+    op = Location::Label;
+    labelType = function;
+    value.function = functionMethod;
+}
+
 AsmOperand AsmOperand::CopyTo(Location::Type location, OperandValue value) const {
     AsmOperand op(*this);
     op.op = location;

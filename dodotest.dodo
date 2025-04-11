@@ -26,5 +26,9 @@ type test {
 let i32 r = 10;
 */
 i32 Main() {
-    return 0;
+    return 5;
+}
+
+i64*** test() {
+    return 100;
 }

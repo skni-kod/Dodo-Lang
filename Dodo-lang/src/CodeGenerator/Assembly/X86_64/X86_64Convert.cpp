@@ -1,5 +1,7 @@
 #include "X86_64Convert.hpp"
 
+#include "X86_64.hpp"
+
 namespace x86_64 {
     void ConvertBytecode(BytecodeContext& context, Processor& processor, std::ofstream& out) {
         std::vector <AsmInstruction> instructions;
@@ -39,5 +41,7 @@ namespace x86_64 {
                     CodeGeneratorError("Unhandled bytecode type in x86-64 converter!");
             }
         }
+
+        PrintInstructions(instructions, out);
     }
 }

@@ -224,6 +224,8 @@ struct ParserFunctionMethod {
     std::vector<ParserMemberVariableParameter> parameters;
     ParserValueTypeObject returnType;
     TypeObject* parentType = nullptr;
+
+    std::string getFullName() const;
 };
 
 // TODO: figure out a way to change this to temp type

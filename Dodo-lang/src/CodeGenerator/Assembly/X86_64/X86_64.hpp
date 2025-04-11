@@ -6,9 +6,10 @@
 #include "InstructionPlanningInternal.hpp"
 
 namespace x86_64 {
-    std::vector <MoveInfo> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc);
+    std::vector <AsmInstruction> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc);
 
     void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ofstream& out);
+    void PrintInstruction(AsmInstruction& ins, std::ofstream& out);
 }
 
 #endif //X86_64_HPP
