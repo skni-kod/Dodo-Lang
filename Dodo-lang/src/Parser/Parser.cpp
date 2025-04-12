@@ -1,14 +1,14 @@
 #include "Parser.hpp"
+
+#include <AnalysisInternal.hpp>
+#include <iostream>
+
 #include "Generator.tpp"
-#include "ParserVariables.hpp"
 #include "SyntaxAnalysis/SyntaxAnalysis.hpp"
 #include "GenerateCode.hpp"
 #include "Lexing.hpp"
 #include "Options.hpp"
 
-
-//uint64_t currentLine = 0;
-//const std::string* currentFile = nullptr;
 
 uint64_t GetCurrentLine() {
     return currentLine;
@@ -64,7 +64,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
         std::cout << "INFO L2: Finished type parsing with: " << types.size() << " type definition(s)\n";
         if (Options::informationLevel > Options::InformationLevel::general) {
             std::cout << "INFO L3: Defined types:\n";
-            for (const auto& n : types.map) {
+            for (const auto& n : types) {
                 std::cout << n.second;
             }
         }
@@ -84,7 +84,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
     }
 
     // Step 4: adding parent type pointers to methods
-    for (auto& n : types.map) {
+    for (auto& n : types) {
         for (auto& m : n.second.methods) {
             m.parentType = &n.second;
         }

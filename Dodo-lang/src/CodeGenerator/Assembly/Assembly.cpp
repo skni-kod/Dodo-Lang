@@ -1,5 +1,7 @@
 #include "Assembly.hpp"
 
+#include <GenerateCode.hpp>
+#include <Parser.hpp>
 #include <utility>
 
 void Processor::clear() {
@@ -199,6 +201,93 @@ VariableObject& AsmOperand::object(BytecodeContext& context) const {
         default:
             CodeGeneratorError("Internal: could not find a variable object!");
         return globalVariableObjects[0];
+    }
+}
+
+void AsmOperand::print(std::ostream& out, BytecodeContext& context) {
+    switch (op) {
+        case Location::Variable:
+            out << "Variable: ";
+        {
+            auto& obj = object(context);
+            if (value.variable.type != VariableLocation::Temporary) out << *obj.identifier;
+            else out << "Temporary: " << std::to_string(value.variable.number);
+        }
+            break;
+        case Location::Literal:
+            out << "Literal:";
+            switch (type) {
+                case Type::address:
+                    switch (Options::addressSize) {
+                        case 1:
+                            out << "fixed address: " << value.u8;
+                        case 2:
+                            out << "fixed address: " << value.u16;
+                        case 4:
+                            out << "fixed address: " << value.u32;
+                        case 8:
+                            out << "fixed address: " << value.u64;
+                        default:
+                            break;
+                    }
+                case Type::floatingPoint:
+                    switch (size) {
+                        case 2:
+                            CodeGeneratorError("16 bit floats not supported in printing!");
+                        case 4:
+                            out << "floating point literal: " << value.f32;
+                        case 8:
+                            out << "floating point literal: " << value.f64;
+                        default:
+                            break;
+                    }
+                    break;
+                case Type::signedInteger:
+                    switch (size) {
+                        case 1:
+                            out << "signed integer literal: " << value.i8;
+                        case 2:
+                            out << "signed integer literal: " << value.i16;
+                        case 4:
+                            out << "signed integer literal: " << value.i32;
+                        case 8:
+                            out << "signed integer literal: " << value.i64;
+                        default:
+                            break;
+                    }
+                break;
+                case Type::unsignedInteger:
+                    switch (size) {
+                        case 1:
+                            out << "unsigned integer literal: " << static_cast <uint64_t>(value.u8);
+                        case 2:
+                            out << "unsigned integer literal: " << value.u16;
+                        case 4:
+                            out << "unsigned integer literal: " << value.u32;
+                        case 8:
+                            out << "unsigned integer literal: " << value.u64;
+                        default:
+                            break;
+                    }
+            }
+            break;
+        case Location::String:
+            out << "String: " << *passedStrings[value.string];
+            break;
+        case Location::Label:
+            out << "";
+            break;
+        case Location::Memory:
+            out << "";
+            break;
+        case Location::Offset:
+            out << "";
+            break;
+        case Location::Zeroed:
+            out << "";
+            break;
+        default:
+            CodeGeneratorError("Internal: unhandled operand print case!");
     }
 }
 

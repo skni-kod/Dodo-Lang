@@ -1,5 +1,8 @@
 #ifndef INCREMENTED_VALUE
+#define INCREMENTED_VALUE
 
-#define INCREMENTED_VALUE "0.2.3 (type-rework assembly generator development), build: 1180 (2025-04-12)"
+#include <string>
+
+const std::string incrementedVersionValue =  "0.2.3 (type-rework assembly generator development), build: 1253 (2025-04-12)";
 
 #endif

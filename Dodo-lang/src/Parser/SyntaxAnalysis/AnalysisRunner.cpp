@@ -1,6 +1,5 @@
 #include "SyntaxAnalysis.hpp"
 #include "AnalysisInternal.hpp"
-#include "ParserVariables.hpp"
 
 std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToken*>& generator, LexerToken* first) {
     ParserValueTypeObject output;

@@ -40,6 +40,7 @@ struct AsmOperand {
     AsmOperand(ParserFunctionMethod* functionMethod);
     [[nodiscard]] AsmOperand copyTo(Location::Type location, OperandValue value) const;
     VariableObject& object(BytecodeContext& context) const;
+    void print(std::ostream& out, BytecodeContext& context);
 
     bool operator==(const AsmOperand& target) const;
 };

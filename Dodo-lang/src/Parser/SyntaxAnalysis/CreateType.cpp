@@ -1,7 +1,6 @@
 #include "AnalysisInternal.hpp"
 #include "SyntaxAnalysis.hpp"
 #include "TypeObject.hpp"
-#include "../ParserVariables.hpp"
 
 // TODO: add name syntax checks
 void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
@@ -72,7 +71,7 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
         ParserError("Expected type name identifier after type keyword!");
 
     }
-    if (types.isKey(*current->text)) {
+    if (types.contains(*current->text)) {
         ParserError("Type name duplication: \"" + *current->text + "\"!");
     }
     type.typeName = *current->text;
@@ -82,7 +81,7 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
     }
     current = generator();
     if (current->MatchKeyword(Keyword::End)) {
-        types.map.emplace(type.typeName, std::move(type));
+        types.emplace(type.typeName, std::move(type));
         return;
     }
     if (not current->MatchOperator(Operator::BraceOpen)) {
@@ -96,7 +95,7 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
         ParserError("Member-less complex types are prohibited!");
     }
 
-    types.map.emplace(type.typeName, std::move(type));
+    types.emplace(type.typeName, std::move(type));
 }
 
 std::pair<uint64_t, uint64_t> CalculateTypeSize(TypeObject& type) {
@@ -144,7 +143,7 @@ void CalculateTypeSizes() {
     uint64_t lastCount = 0xFFFFFFFFFFFFFFFF;
     while (true) {
         uint64_t currentCount = 0;
-        for (auto& n : types.map) {
+        for (auto& n : types) {
             currentCount += (CalculateTypeSize(n.second).first == 0);
         }
 

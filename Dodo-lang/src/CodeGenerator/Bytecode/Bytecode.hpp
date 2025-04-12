@@ -3,93 +3,9 @@
 
 #include <cstdint>
 #include <string>
+#include <TypeObject.hpp>
 #include <vector>
-#include "GenerateCode.hpp"
-
-struct BytecodeOld {
-    enum {
-        // !!! keep this updated with ParserValue list, maybe do a macro
-
-        // s + t -> n
-        add,
-        // s - t -> n
-        subtract,
-        // s * t -> n
-        multiply,
-        // s / t -> n
-        divide,
-        // t = s()
-        callFunction,
-        // &s -> n
-        getAddress,
-        // *s -> n
-        getValue,
-        // s -> (...[n])
-        moveArgument,
-        // return s
-        returnValue,
-        // push
-        pushLevel,
-        // pop
-        popLevel,
-        // jmp s
-        jump,
-        // <cond. jump> s, condition in number
-        jumpConditionalFalse,
-        // <cond. jump> s, condition in number
-        jumpConditionalTrue,
-        // cmp s t
-        compare,
-        // tp t = s
-        declare,
-        // t = s, 1 in number means to change value pointed to
-        assign,
-        // none
-        none,
-        // type letter + number in s
-        addLabel,
-        // t = s
-        moveValue,
-        // t = s
-        addFromArgument,
-        // call syscall number n, return value in source
-        syscall
-
-    };
-
-    // l exp r
-    INSERT_CONDITION_ENUM
-
-    uint64_t code = none;
-    // number will be used for things like argument number etc
-    std::string source;
-    std::string target;
-    uint64_t number = 0;
-    VariableType type;
-
-    BytecodeOld() = default;
-
-    explicit BytecodeOld(uint64_t code);
-
-    BytecodeOld(uint64_t code, std::string source);
-
-    BytecodeOld(uint64_t code, std::string source, uint64_t number);
-
-    BytecodeOld(uint64_t code, std::string source, VariableType type);
-
-    BytecodeOld(uint64_t code, std::string source, uint64_t number, VariableType type);
-
-    BytecodeOld(uint64_t code, std::string source, std::string target, VariableType type);
-
-    BytecodeOld(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type);
-};
-
-std::ostream& operator<<(std::ostream& out, const BytecodeOld& code);
-
-// bytecodes inside given function
-inline std::vector<BytecodeOld> bytecodes;
-
-// new code
+#include "Options.hpp"
 
 namespace Location {
     enum Type {

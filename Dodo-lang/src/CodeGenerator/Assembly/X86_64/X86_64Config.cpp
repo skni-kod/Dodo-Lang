@@ -33,7 +33,24 @@ namespace x86_64 {
                     {x86_64::ES, true, true, false, false, false, true, false, false, true, false, false, false, false, false, false, 2, true, false, false, false, true, false, false, false, false, false, false, false},
                     {x86_64::FS, true, true, true, false, false, true, false, false, true, false, false, false, false, false, false, 2, true, false, false, false, true, false, false, false, false, false, false, false},
                     {x86_64::GS, true, true, true, false, false, true, false, false, true, false, false, false, false, false, false, 2, true, false, false, false, true, false, false, false, false, false, false, false},
-                    {x86_64::RFLAGS, true, true, false, false, false, false, true, false, false, false, true, false, false, false, false, 8, true, false, false, false, false, false, false, false, false, false, false, false}
+                    {x86_64::RFLAGS, true, true, false, false, false, false, true, false, false, false, true, false, false, false, false, 8, true, false, false, false, false, false, false, false, false, false, false, false},
+                    {x86_64::XMM0, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM1, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM2, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM3, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM4, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM5, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM6, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM7, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM8, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM9, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM10, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM11, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM12, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM13, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM14, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM15, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true}
+
                 };
                 break;
             case Options::AMD64_v2:
@@ -64,22 +81,22 @@ namespace x86_64 {
                     {x86_64::FS, true, true, true, false, false, true, false, false, true, false, false, false, false, false, false, 2, true, false, false, false, true, false, false, false, false, false, false, false},
                     {x86_64::GS, true, true, true, false, false, true, false, false, true, false, false, false, false, false, false, 2, true, false, false, false, true, false, false, false, false, false, false, false},
                     {x86_64::RFLAGS, true, true, false, false, false, false, true, false, false, false, true, false, false, false, false, 8, true, false, false, false, false, false, false, false, false, false, false, false},
-                    {x86_64::XMM0, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM1, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM2, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM3, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM4, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM5, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM6, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM7, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM8, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM9, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM10, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM11, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM12, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM13, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM14, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true},
-                    {x86_64::XMM15, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 16, true, true, true, true, true, true, true, false, false, false, true, true}
+                    {x86_64::XMM0, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM1, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM2, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM3, true, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM4, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM5, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM6, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM7, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM8, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM9, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM10, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM11, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM12, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM13, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM14, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true},
+                    {x86_64::XMM15, false, true, true, false, false, false, false, false, true, true, true, false, false, false, true, 32, true, true, true, true, true, true, true, false, false, false, true, true}
                 };
                 break;
             case Options::AMD64_v4:

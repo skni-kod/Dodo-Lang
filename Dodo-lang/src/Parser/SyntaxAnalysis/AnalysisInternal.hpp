@@ -2,7 +2,6 @@
 #define DODO_LANG_ANALYSIS_INTERNAL_HPP
 
 #include "Generator.tpp"
-#include "ParserVariables.hpp"
 
 void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken);
 
@@ -15,7 +14,7 @@ std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToke
 // stops when it encounters a ';', '=' or some type of bracket beyond those opened in it
 // returns a pointer to token it stopped on
 LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <ParserTreeValue>& valueArray, std::vector <LexerToken*> tokens);
-
+void CheckGlobalVariables();
 bool IsLValue(std::vector <ParserTreeValue>& valueArray, uint32_t start);
 
 #endif //DODO_LANG_ANALYSIS_INTERNAL_HPP

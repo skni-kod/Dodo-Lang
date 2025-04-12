@@ -11,37 +11,10 @@
 
 struct LexerToken;
 
-#define INSERT_TYPE_ENUM \
-enum TypeEnum { \
-none = 0, address = 0, unsignedInteger, signedInteger, floatingPoint \
-}; \
-
-#define INSERT_SUBTYPE_ENUM \
-enum Subtype { \
-none, value, pointer, reference \
-};
-
-#define INSERT_CONDITION_ENUM \
-enum Condition { \
-equals, notEquals, greater, greaterEqual, lesser, lesserEqual \
-};
-
 namespace Type {
-    INSERT_TYPE_ENUM
-}
-
-
-// TODO: figure out why it's named that
-namespace Value {
-    INSERT_TYPE_ENUM
-}
-
-namespace Subtype {
-    INSERT_SUBTYPE_ENUM
-}
-
-namespace Primitive {
-    INSERT_TYPE_ENUM
+    enum TypeEnum {
+        none = 0, address = 0, unsignedInteger, signedInteger, floatingPoint
+    };
 }
 
 struct TypeMeta {
@@ -246,6 +219,7 @@ struct TypeObject {
     ParserFunctionMethod& findMethod(std::string* identifier);
 };
 
+inline std::unordered_map<std::string, TypeObject> types;
 inline std::unordered_map <std::string, ParserFunctionMethod> functions;
 inline std::unordered_map <std::string, ParserMemberVariableParameter> globalVariables;
 

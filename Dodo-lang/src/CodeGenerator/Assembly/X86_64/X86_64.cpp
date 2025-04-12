@@ -1,11 +1,32 @@
 #include "X86_64.hpp"
 
-namespace x86_64 {
-    void MoveConverted(AsmOperand s, AsmOperand t, BytecodeContext& context, Processor& proc) {
+#include <GenerateCode.hpp>
 
+namespace x86_64 {
+    bool IsIntegerOperationRegister(uint8_t number) {
+        if (number <= RDI) return true;
+        if (number >= R8 and number <= R15) return true;
+        if (number >= R16) return true;
+        return false;
     }
 
-    std::vector <AsmInstruction> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
+    bool IsIntegerOperationRegister(const AsmOperand op) {
+        if (op.op != Location::reg) return false;
+        if (op.value.reg <= RDI) return true;
+        if (op.value.reg >= R8 and op.value.reg <= R15) return true;
+        if (op.value.reg >= R16) return true;
+        return false;
+    }
+
+    bool IsFloatOperationRegister(uint8_t number) {
+        return number >= ZMM0 and number <= ZMM31;
+    }
+
+    bool IsFloatOperationRegister(const AsmOperand op) {
+        return op.op == Location::reg and (op.value.reg >= ZMM0 and op.value.reg <= ZMM31);
+    }
+
+    std::vector <AsmInstruction> AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
 
         // assumes every move contains known locations only, since we need to know which one exactly to move
         // so those can be: registers, stack offsets, literals, labels and addresses
@@ -15,203 +36,132 @@ namespace x86_64 {
         auto& t = move.target;
 
         std::vector <AsmInstruction> moves;
-        
-        // if it can be a direct operation it can be skipped
-        // hopefully I considered all the cases and didn't make if completely broken
-        if (s.size == t.size and s.type == t.type
-            and (
-                (not s.useAddress and s.op == Location::reg and not t.useAddress and (t.op == Location::reg or t.op == Location::sta or t.op == Location::mem))
-                or
-                (not s.useAddress and s.op == Location::sta and not t.useAddress and t.op == Location::reg)
-                or
-                (not s.useAddress and s.op == Location::imm and not t.useAddress and (t.op == Location::reg or t.op == Location::sta or t.op == Location::mem))
-                or
-                (not s.useAddress and s.op == Location::mem and not t.useAddress and (t.op == Location::reg or t.op == Location::sta))
-            )) return { AsmInstruction(mov, t, s)};
-        if (s.type == Type::address and t.type != Type::address
-            and (
-                (not s.useAddress and s.op == Location::reg and t.useAddress and t.op == Location::reg)
-                or
-                (s.useAddress and s.op == Location::reg and not t.useAddress and t.op == Location::reg)
-                or
-                (not s.useAddress and s.op == Location::imm and t.useAddress and t.op == Location::reg)
-            )) return { AsmInstruction(mov, t, s)};
 
-        // immediate values can be moved to stack registers and arbitrary address
-        if (s.op == Location::imm) {
-            if (t.op == Location::reg) {
-                if (     t.useAddress
-                    and ((t.value.reg >= RAX and t.value.reg <= R15)
-                    or   (t.value.reg >= R16 and t.value.reg <= R31))) {
-                    // there is an address in the target register, so the literal needs to be stored there
-                    // thankfully it can be done directly though
-                    moves.emplace_back(mov, t, s);
-                    // TODO: implement a way to change values here
-                }
-                else if (t.op == Location::off or t.op == Location::mem) {
-                    // moving to a given offset in memory or address given label
-                    moves.emplace_back(mov, t, s);
-                    // TODO: implement a way to change values here
-                }
-                else if (t.useAddress) CodeGeneratorError("Internal: invalid x86-64 address register!");
-                else if (t.value.reg >= XMM0 and t.value.reg <= XMM1) {
-                    // xmm registers cannot get values directly from immediate and cannot be used as address storage
-                    // first the value needs to be moved to memory
-                    // then from memory into xmm
-                    if (t.size == 4) {
-                        // single precision
-                        auto temp = proc.tempStack(4);
-                        moves.emplace_back(mov, temp, s);
-                        moves.emplace_back(movss, t, temp);
-                        proc.registers[t.value.reg].content = s;
-                    }
-                    else if (t.size == 8) {
-                        // double precision
-                        auto temp = proc.tempStack(8);
-                        moves.emplace_back(mov, temp, s);
-                        moves.emplace_back(movsd, t, temp);
-                        proc.registers[t.value.reg].content = s;
-                    }
-                    else CodeGeneratorError("Half precision floats not supported in x86-64!");
+        if (s == t) return {};
 
-                }
-                else if ((t.value.reg >= RAX and t.value.reg <= RDX)
-                    or   (t.value.reg >= R8  and t.value.reg <= R15)
-                    or   (t.value.reg >= R16 and t.value.reg <= R31)) {
-                    // these registers can be directly moved to
-                    moves.emplace_back(mov, t, s);
-                    proc.registers[t.value.reg].content = s;
-                }
-                else CodeGeneratorError("Internal: invalid register for conversions!");
-            }
-            else if (t.op == Location::sta) {
-                // a very simple case
-                moves.emplace_back(mov, t, s);
-                proc.get(t).sta->content = s;
-            }
-            else CodeGeneratorError("Internal: invalid imm -> somewhere move!");
+        // Here it is rewritten to be based on types and not where stiff is moved from
+
+        if (s.useAddress and not t.useAddress) {
+            CodeGeneratorError("Internal: address to non address not implemented!");
         }
-        // TODO: could stack be treated the same as general memory?
-        else if (s.op == Location::sta) {
-            // things from stack can be moved directly only to registers, however there can be type conversions involved
-            if (t.op == Location::reg and not t.useAddress) {
-                // moving to registers should be simple, though the damn conversions might happen
+        else if (t.useAddress and not s.useAddress) {
+            CodeGeneratorError("Internal: non address to address not implemented!");
+        }
+        else if (not t.useAddress and not s.useAddress) {
+            if (s.type == Type::address) {
+                // addresses can be only moved if not used, so that's simple
+                // TODO: make this possible for things like printing addresses
+                if (t.type != Type::address) CodeGeneratorError("Internal: address to non address move!");
+                if (s.size != 8 or t.size != 8) CodeGeneratorError("Internal: wrong address operand size!");
+                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: invalid register for address storage!");
 
-                // TODO: add temporary register getting functions if needed
-                if (s.type == Type::address) {
-                    if (t.value.reg > RDX and (t.value.reg < R8 or t.value.reg > R15) and t.value.reg < R16) CodeGeneratorError("Internal: address move in invalid register!");
-                    // addresses are always of fixed size and cannot be moved to non-address locations
-                    if (t.type != Type::address) CodeGeneratorError("Internal: cannot move address to non address without using it!");
-                    moves.emplace_back(mov, t, s);
+                // now actually moving it
+                if (s.op == Location::imm) {
+                    if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
+                    else CodeGeneratorError("Internal: Invalid address immediate target!");
                 }
-                else if ((s.type == Type::unsignedInteger or s.type == Type::signedInteger) and t.type == Type::unsignedInteger) {
-                    if (t.value.reg > RDX and (t.value.reg < R8 or t.value.reg > R15) and t.value.reg < R16) CodeGeneratorError("Internal: integer conversion in invalid register!");
-                    // if the target is bigger, move with 0 extension
-                    // if the target is smaller move only part of the value
-                    // if they are the same do a normal move
-                    s.type = Type::unsignedInteger;
-                    if (s.size == t.size) moves.emplace_back(mov, t, s);
-                    else {
-                        if (s.size == 1) moves.emplace_back(movzx, t, s);
-                        else if (s.size == 2) {
-                            if (t.size > 2) moves.emplace_back(movzx, t, s);
-                            else {
-                                s.size = 1;
-                                moves.emplace_back(mov, t, s);
-                            }
-                        }
-                        else if (s.size == 4) {
-                            if (t.size == 8) {
-                                // that is a special case where x86 didn't include movzx
-                                // we need to move a zero in first and then the value to get the correct one
-                                AsmOperand zero;
-                                zero.op = Location::Literal;
-                                zero.type = s.type;
-                                zero.size = t.size;
-                                zero.value.u64 = 0;
-                                moves.emplace_back(mov, t, zero);
-                                moves.emplace_back(mov, t, s);
-                            }
-                            else {
-                                s.size = t.size;
-                                moves.emplace_back(mov, t, s);
-                            }
-                        }
-                        else {
-                            s.size = t.size;
-                            moves.emplace_back(mov, t, s);
-                        }
-                    }
+                else if (s.op == Location::sta) {
+                    if (t.op == Location::reg) moves.emplace_back(mov, t, s);
+                    else if (t.op == Location::sta) CodeGeneratorError("Internal: Invalid address stack to stack!");
+                    else CodeGeneratorError("Internal: Invalid address stack target!");
                 }
-                else if ((s.type == Type::signedInteger or s.type == Type::unsignedInteger) and t.type == Type::signedInteger) {
-                    if (t.value.reg > RDX and (t.value.reg < R8 or t.value.reg > R15) and t.value.reg < R16) CodeGeneratorError("Internal: integer conversion in invalid register!");
-                    // in that case we treat things as if we started with a signed and convert it accordingly
-                    s.type = Type::signedInteger;
+                else if (s.op == Location::reg) {
+                    if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
+                    else CodeGeneratorError("Internal: Invalid address register target!");
+                }
+                else if (s.op == Location::mem) {
+                    if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
+                    else CodeGeneratorError("Internal: Invalid address memory target!");
+                }
+                else CodeGeneratorError("Internal: invalid address source!");
+            }
+            else if (s.type != Type::floatingPoint and t.type == Type::unsignedInteger) {
+                // in case of unsigned target we treat the integer source as an unsigned too
+                s.type = Type::unsignedInteger;
+                if (s.op == t.op and s.op == Location::sta) CodeGeneratorError("Internal: stack to stack move unimplemented!");
+                if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) CodeGeneratorError("Internal: non integer register source!");
+                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: non integer register target!");
+                if (s.op == Location::imm) moves.emplace_back(mov, t, s);
+                else if ((s.op == Location::reg and t.op == Location::sta)
+                    or (s.op == Location::sta and t.op == Location::reg)
+                    or (s.op == Location::reg and t.op == Location::reg)) {
                     if (s.size == t.size) moves.emplace_back(mov, t, s);
-                    else if (s.size == 1) moves.emplace_back(movsx, t, s);
-                    else if (s.size == 2) {
-                        if (t.size > 2) moves.emplace_back(movsx, t, s);
-                        else {
-                            s.size = t.size;
-                            moves.emplace_back(mov, t, s);
-                        }
-                    }
-                    else if (s.size == 4) {
-                        if (t.size > 4) moves.emplace_back(movsxd, t, s);
-                        else {
-                            s.size = t.size;
-                            moves.emplace_back(mov, t, s);
-                        }
-                    }
-                    else {
+                    else if (s.size > t.size) {
                         s.size = t.size;
                         moves.emplace_back(mov, t, s);
                     }
-                }
-                else if (s.type != Type::floatingPoint and t.type == Type::floatingPoint) {
-                    if (t.value.reg < XMM0 or t.value.reg > XMM31) CodeGeneratorError("Internal: float conversion in non XMM register!");
-                    // converting from non-floats to floats is a much more complex thing
-                    // first off the source needs to be 32 or 64 bits
-                    // TODO: add moving into a temp register here
-                    if (s.size < 4) CodeGeneratorError("Internal: operand to small to convert to float!");
-                    if (t.size == 4) {
-                        // converting to single precision float
-                        moves.emplace_back(cvtsi2ss, t, s);
+                    else {
+                        if (s.size != 4 and t.size != 8)  moves.emplace_back(movzx, t, s);
+                        else {
+                            // 4 -> 8 byte is a special case where movzx does not apply and we need to split it
+                            moves.emplace_back(movzx, t, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0));
+                            moves.emplace_back(movzx, t, s);
+                        }
                     }
-                    else moves.emplace_back(cvtsi2sd, t, s);
                 }
-                else if (s.type == Type::floatingPoint and t.type != Type::floatingPoint) {
-                    if (t.value.reg > RDX and (t.value.reg < R8 or t.value.reg > R15) and t.value.reg < R16) CodeGeneratorError("Internal: float to conversion in invalid target register!");
-                    if (s.op != Location::sta and (s.op != Location::reg or s.value.reg < XMM0 or s.value.reg > XMM31)) CodeGeneratorError("Internal: float to integer conversion in invalid source location!");
-                    if (t.size < 4) CodeGeneratorError("Internal: too small target for float to integer conversion!");
-                    // convert from float to signed integer, yes even for unsigned targets
-                    if (s.size == 4) {
-                        moves.emplace_back(cvtss2si, t, s);
+                else CodeGeneratorError("Internal: unimplemented unsigned conversion!");
+            }
+            else if (s.type != Type::floatingPoint and t.type == Type::signedInteger) {
+                // in case of signed target we treat the integer source as a signed too
+                s.type = Type::signedInteger;
+                if (s.op == t.op and s.op == Location::sta) CodeGeneratorError("Internal: stack to stack move unimplemented!");
+                if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) CodeGeneratorError("Internal: non integer register source!");
+                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: non integer register target!");
+                if (s.op == Location::imm) moves.emplace_back(mov, t, s);
+                else if ((s.op == Location::reg and t.op == Location::sta)
+                    or (s.op == Location::sta and t.op == Location::reg)
+                    or (s.op == Location::reg and t.op == Location::reg)) {
+                    if (s.size == t.size) moves.emplace_back(mov, t, s);
+                    else if (s.size > t.size) {
+                        s.size = t.size;
+                        moves.emplace_back(mov, t, s);
                     }
-                    else moves.emplace_back(cvtsd2si, t, s);
+                    else moves.emplace_back(movsx, t, s);
                 }
-                else if (s.type == t.type and s.type == Type::floatingPoint) {
-                    if (t.value.reg < XMM0 or t.value.reg > XMM31) CodeGeneratorError("Internal: float conversion in non XMM register!");
-                    if (s.op != Location::sta and (s.op != Location::reg or s.value.reg < XMM0 or s.value.reg > XMM31)) CodeGeneratorError("Internal: float conversion in invalid source location!");
-                    if (s.size == t.size) {
-                        if (s.size == 4) moves.emplace_back(movss, t, s);
-                        else moves.emplace_back(movsd, t, s);
+                else CodeGeneratorError("Internal: unimplemented signed conversion!");
+            }
+            else if (s.type != Type::floatingPoint and t.type == Type::floatingPoint) {
+                // converting to floating point can only start from a 32-bit or 64-bit integer register or memory location
+                if (    (s.op != Location::reg or not IsIntegerOperationRegister(s.value.reg) or s.size < 4)
+                    and ((s.op != Location::sta or s.op != Location::mem) or s.size < 4)) CodeGeneratorError("Internal: invalid source for conversion into float!");
+                if (not IsFloatOperationRegister(t)) CodeGeneratorError("Internal: non SSE/AVX register as float from int target!");
+
+                if (t.size == 4) moves.emplace_back(cvtsi2ss, t, s);
+                else moves.emplace_back(cvtsi2sd, t, s);
+            }
+            else if (s.type == Type::floatingPoint and t.type != Type::floatingPoint) {
+                if (not IsFloatOperationRegister(s) and (s.op != Location::sta or s.size < 4)) CodeGeneratorError("Internal: invalid source for float into int!");
+                if (not IsIntegerOperationRegister(t) or t.size < 4) CodeGeneratorError("Internal: invalid target for float into int!");
+
+                if (s.size == 4) moves.emplace_back(cvtss2si, t, s);
+                else moves.emplace_back(cvtsd2si, t, s);
+            }
+            else if (s.type == Type::floatingPoint and t.type == Type::floatingPoint) {
+                if (s.size == t.size) {
+                    if (IsFloatOperationRegister(s)) {
+                        if (IsFloatOperationRegister(t) or (t.op == Location::sta or t.op == Location::mem)) {
+                            if (s.size == 4) moves.emplace_back(movss, t, s);
+                            else moves.emplace_back(movsd, t, s);
+                        }
+                        else CodeGeneratorError("Internal: invalid target in float move!");
                     }
-                    // target is a double
-                    else if (s.size == 4) moves.emplace_back(cvtss2sd, t, s);
-                    // source is a double
+                    else if (s.op == Location::sta or s.op == Location::mem) {
+                        if (IsFloatOperationRegister(t)) {
+                            if (s.size == 4) moves.emplace_back(movss, t, s);
+                            else moves.emplace_back(movsd, t, s);
+                        }
+                        else CodeGeneratorError("Internal: invalid target in float move!");
+                    }
+                }
+                else {
+                    if (not IsFloatOperationRegister(t) and ((s.op != Location::sta and s.op != Location::mem) or s.size < 4)) CodeGeneratorError("Internal: invalid source for float size conversion!");
+                    if (not IsFloatOperationRegister(t)) CodeGeneratorError("Internal: invalid target for float size conversion!");
+                    if (s.size == 4) moves.emplace_back(cvtss2sd, t, s);
                     else moves.emplace_back(cvtsd2ss, t, s);
                 }
-                else CodeGeneratorError("Internal: unhanded type conversion in x86-64!");
-                proc.get(t).reg->content = s;
             }
-            else if (t.op == Location::sta) {
-                CodeGeneratorError("Internal: memory to memory moves not implemented!");
-            }
-            else CodeGeneratorError("Internal: invalid sta -> somewhere move!");
         }
-        else CodeGeneratorError("Internal: unimplemented conversion!");
-
+        else CodeGeneratorError("Internal: address to address move!");
         return moves;
     }
 
@@ -234,7 +184,7 @@ namespace x86_64 {
                 result.emplace_back(Location::reg, Type::address, false, Options::addressSize, RDI);
             }
 
-            // TODO: add "eightbytes" for structures
+            // TODO: add "eightbytes" for structures, mostly for syscalls/c calls
             for (auto& n : target.parameters) {
                 if (n.typeObject == nullptr) {
                     n.typeObject = &types[n.typeName()];

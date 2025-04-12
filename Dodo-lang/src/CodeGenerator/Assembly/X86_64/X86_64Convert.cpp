@@ -1,4 +1,6 @@
-#include "X86_64Convert.hpp"
+#include <GenerateCode.hpp>
+#include <iostream>
+#include <fstream>
 
 #include "X86_64.hpp"
 
@@ -28,13 +30,17 @@ namespace x86_64 {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: ";
                         PrintRegisterName(n.number, n.content.size, std::cout);
+                        std::cout << ": ";
+                        n.content.print(std::cout, context);
                         std::cout << "\n";
                     }
                 }
                 std::cout << "INFO L3: Stack:\n";
                 for (auto& n : processor.stack) {
                     if (n.content.op != Location::None) {
-                        std::cout << "INFO L3: " << n.offset << ": \n";
+                        std::cout << "INFO L3: " << n.offset << ": ";
+                        n.content.print(std::cout, context);
+                        std::cout << "\n";
                     }
                 }
             }
@@ -48,7 +54,7 @@ namespace x86_64 {
                             argumentOffset = off;
                         }
                         if (argumentPlaces[current.op3Value.ui].op == Location::sta)
-                            processor.stack.emplace(processor.stack.begin(),AsmOperand(current.op1(), context),
+                            processor.stack.emplace_back(AsmOperand(current.op1(), context),
                             argumentPlaces[current.op3Value.ui].value.offset, argumentPlaces[current.op3Value.ui].size);
 
                         processor.getContentRef(argumentPlaces[current.op3Value.ui]) = AsmOperand(current.op1(), context);
@@ -57,8 +63,21 @@ namespace x86_64 {
                     break;
                 case Bytecode::Return: {
                     AsmInstructionInfo instruction;
-                    // TODO: add return type check for floats
-                    instruction = {{
+                    if (source->parentType == nullptr) source->parentType = &types[*source->returnType.typeName];
+                    if (not source->returnType.type.pointerLevel and not source->returnType.type.isReference and
+                    source->parentType->isPrimitive and source->parentType->primitiveType == Type::floatingPoint)
+                        instruction = {{
+                        // variants of the instruction:
+                        AsmInstructionVariant(ret, Options::None,
+                            // operands:
+                            // non operand values that need to be put into places:
+                            {
+                                AsmInstructionResultInput(true, AsmOperand(current.op1(), context, Location::reg, XMM0), AsmOperand(current.op1(), context))
+                        })},
+                        // data for the operation itself: source 1, source 2, source 3, destination
+                        AsmOperand(current.op1(), context)
+                    };
+                    else instruction = {{
                         // variants of the instruction:
                         AsmInstructionVariant(ret, Options::None,
                             // operands:
@@ -69,6 +88,7 @@ namespace x86_64 {
                         // data for the operation itself: source 1, source 2, source 3, destination
                         AsmOperand(current.op1(), context)
                     };
+
 
                     ExecuteInstruction(context, processor, instruction, instructions, index);
 

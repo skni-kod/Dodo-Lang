@@ -1,3 +1,5 @@
+#include <GenerateCode.hpp>
+
 #include "X86_64.hpp"
 
 namespace x86_64 {

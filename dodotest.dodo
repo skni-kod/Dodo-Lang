@@ -29,6 +29,6 @@ i32 Main() {
     return 5;
 }
 
-i32 test(let i32 k) {
-    return k;
+f32 test(let f32 t1, let f32 t2, let f32 t3, let f32 t4, let f32 t5, let f32 t6, let f32 t7, let f32 t8, let f32 t9) {
+    return t9;
 }

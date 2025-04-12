@@ -14,13 +14,13 @@ std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
     if (type.isPrimitive) {
         out << "INFO L3: Primitive type " << type.typeName << ", representing a";
         switch (type.primitiveType) {
-            case Primitive::floatingPoint:
+            case Type::floatingPoint:
                 out << " floating point value sized ";
             break;
-            case Primitive::unsignedInteger:
+            case Type::unsignedInteger:
                 out << "n unsigned integer value sized ";
             break;
-            case Primitive::signedInteger:
+            case Type::signedInteger:
                 out << "n integer value sized ";
             break;
             default:

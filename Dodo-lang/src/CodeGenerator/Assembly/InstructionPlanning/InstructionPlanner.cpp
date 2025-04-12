@@ -1,3 +1,5 @@
+#include <GenerateCode.hpp>
+
 #include "InstructionPlanningInternal.hpp"
 #include "X86_64.hpp"
 
@@ -5,7 +7,7 @@
 std::vector <AsmInstruction> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
     switch (Options::targetArchitecture) {
         case Options::TargetArchitecture::x86_64:
-            return x86_64::AddConvertionsToMove(move, context, proc);
+            return x86_64::AddConversionsToMove(move, context, proc);
         default:
             CodeGeneratorError("Internal: invalid architecture in move conversion!");
     }

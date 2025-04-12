@@ -1,3 +1,6 @@
+#include <GenerateCode.hpp>
+#include <Lexing.hpp>
+
 #include "BytecodeInternal.hpp"
 
 // goes through the bytecode for the given method/function and parses arguments with type check

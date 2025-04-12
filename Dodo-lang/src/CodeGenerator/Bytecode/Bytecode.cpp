@@ -1,5 +1,9 @@
+#include <GenerateCode.hpp>
+
 #include "BytecodeInternal.hpp"
 #include <iostream>
+#include <Lexing.hpp>
+#include <Parser.hpp>
 
 // checks literal types, matches then with sizes and issues errors and warnings
 void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta) {
@@ -232,12 +236,12 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
                 or type->primitiveType != Type::unsignedInteger or typeMeta.pointerLevel != 1)
                     CodeGeneratorError("String literals can only be assigned to 1 byte unsigned integer pointers!");
 
-            Strings.emplace_back(current.identifier, static_cast <bool>(typeMeta.isMutable));
-            return {Location::String, {Strings.size() - 1}};
+            passedStrings.emplace_back(current.identifier);
+            return {Location::String, {passedStrings.size() - 1}};
         case ParserOperation::Definition:
             code.type = Bytecode::Define;
-            if (not types.map.contains(*current.identifier)) CodeGeneratorError("Type " + *current.identifier + " does not exist!");
-            type = &types.map[*current.identifier];
+            if (not types.contains(*current.identifier)) CodeGeneratorError("Type " + *current.identifier + " does not exist!");
+            type = &types[*current.identifier];
             if (isGlobal) {
                 // if it's global give it a number and push back a pointer
                 code.op1({Location::Variable, {{VariableLocation::Global, 0, globalVariableObjects.size()}}});
@@ -783,176 +787,4 @@ ParserFunctionMethod& TypeObject::findMethod(std::string* identifier) {
 
     CodeGeneratorError("Could not find a method with identifier: " + *identifier + " in type: " + typeName + "!");
     return methods.front();
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// old code
-
-BytecodeOld::BytecodeOld(uint64_t code) : code(code) {}
-
-BytecodeOld::BytecodeOld(uint64_t code, std::string source) : code(code), source(source) {}
-
-BytecodeOld::BytecodeOld(uint64_t code, std::string source, uint64_t number) : code(code), source(source), number(number) {}
-
-BytecodeOld::BytecodeOld(uint64_t code, std::string source, VariableType type) : code(code), source(source), type(type) {}
-
-BytecodeOld::BytecodeOld(uint64_t code, std::string source, uint64_t number, VariableType type) : code(code), source(source),
-                                                                                            number(number),
-                                                                                            type(type) {}
-
-BytecodeOld::BytecodeOld(uint64_t code, std::string source, std::string target, VariableType type) : code(code),
-                                                                                               source(source),
-                                                                                               target(target),
-                                                                                               type(type) {}
-
-BytecodeOld::BytecodeOld(uint64_t code, std::string source, std::string target, uint64_t number, VariableType type) : code(
-        code), source(source), target(target), number(number), type(type) {}
-
-std::string EnumToVarType(uint8_t type) {
-    switch (type) {
-        case Type::signedInteger:
-            return "signed integer";
-        case Type::unsignedInteger:
-            return "unsigned integer";
-        case Type::floatingPoint:
-            return "floating point";
-        default:
-            CodeGeneratorError("Invalid type in string conversion!");
-    }
-    return "";
-}
-
-std::string EnumToComparisonType(uint8_t type) {
-    switch (type) {
-        case BytecodeOld::Condition::notEquals:
-            return "is not equal";
-        case BytecodeOld::Condition::equals:
-            return "is equal";
-        case BytecodeOld::Condition::greaterEqual:
-            return "is greater or equal";
-        case BytecodeOld::Condition::greater:
-            return "is greater";
-        case BytecodeOld::Condition::lesserEqual:
-            return "is lesser or equal";
-        case BytecodeOld::Condition::lesser:
-            return "is lesser";
-        default:
-            CodeGeneratorError("Invalid type in string conversion!");
-    }
-    return "";
-}
-
-std::string EnumToComparisonTypeNegative(uint8_t type) {
-    switch (type) {
-        case BytecodeOld::Condition::notEquals:
-            return "is equal";
-        case BytecodeOld::Condition::equals:
-            return "is not equal";
-        case BytecodeOld::Condition::greaterEqual:
-            return "is lesser";
-        case BytecodeOld::Condition::greater:
-            return "is lesser or equal";
-        case BytecodeOld::Condition::lesserEqual:
-            return "is greater";
-        case BytecodeOld::Condition::lesser:
-            return "is greater or equal";
-        default:
-            CodeGeneratorError("Invalid type in string conversion!");
-    }
-    return "";
-}
-
-std::ostream& operator<<(std::ostream& out, const BytecodeOld& code) {
-    // none, add, subtract, multiply, divide, callFunction, returnValue, pushLevel, popLevel, jump,
-    //        compare, declare, assign
-    switch (code.code) {
-        case BytecodeOld::none:
-            out << "Invalid instruction\n";
-            break;
-        case BytecodeOld::add:
-            out << "Add: " << code.source << " to: " << code.target << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN << "#"
-                << code.number << "-0 using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::subtract:
-            out << "Subtract: " << code.source << " from: " << code.target << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
-                << "#" << code.number << "-0 using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::multiply:
-            out << "Multiply: " << code.target << " by: " << code.source << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
-                << "#" << code.number << "-0 using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::divide:
-            out << "Divide: " << code.target << " by: " << code.source << ", store result as: " << code.type.getPrefix() << EXPRESSION_SIGN
-                << "#" << code.number << "-0 using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::callFunction:
-            if (code.target.empty()) {
-                out << "Call function: " << code.source << "( ... )\n";
-            }
-            else {
-                out << "Call function: " << code.source << "( ... ) of type: " << code.type << " and store result in: "
-                    << code.target << "\n";
-            }
-            break;
-        case BytecodeOld::getAddress:
-            out << "Extract address of: " << code.source  << " and store result as: " << VariableType(code.type.size, code.type.type, code.type.subtype + 1).getPrefix() << EXPRESSION_SIGN
-                << "#" << code.number << "-0 using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::getValue:
-            out << "Extract value at: " << code.source  << " and store result as: " << VariableType(code.type.size, code.type.type, code.type.subtype - 1).getPrefix() << EXPRESSION_SIGN
-                << "#" << code.number << "-0 using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::moveArgument:
-            out << "Move: " << code.source << " as a function argument, using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::returnValue:
-            out << "Return value of: " << code.source << " using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::pushLevel:
-            out << "Push variable level\n";
-            break;
-        case BytecodeOld::popLevel:
-            out << "Pop variable level\n";
-            break;
-        case BytecodeOld::jumpConditionalFalse:
-            out << "Jump to: " << code.source << " if left is " << EnumToComparisonTypeNegative(code.number)
-                << " than right\n";
-            break;
-        case BytecodeOld::jumpConditionalTrue:
-            out << "Jump to: " << code.source << " if left is " << EnumToComparisonType(code.number) << " than right\n";
-            break;
-        case BytecodeOld::jump:
-            out << "Jump to: " << code.source << "\n";
-            break;
-        case BytecodeOld::compare:
-            out << "Compare: " << code.source << " with: " << code.target << " using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::declare:
-            out << "Declare variable: " << code.target << " of type: " << code.type << " with assigned value of: "
-                << code.source << "\n";
-            break;
-        case BytecodeOld::assign:
-            if (code.number) {
-                out << "Assign value of: " << code.source << " to the value pointed at by: " << code.target << " using type: " << code.type << "\n";
-            }
-            else {
-                out << "Assign value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
-            }
-            break;
-        case BytecodeOld::addLabel:
-            out << "Add label: " << code.source << "\n";
-            break;
-        case BytecodeOld::moveValue:
-            out << "Move value of: " << code.source << " to: " << code.target << " using type: " << code.type << "\n";
-            break;
-        case BytecodeOld::addFromArgument:
-            out << "Add variable named: " << code.target << " from argument located at: " << code.source << "\n";
-            break;
-        case BytecodeOld::syscall:
-            out << "Call syscall number: " << code.number << "\n";
-        break;
-        default:
-            CodeGeneratorError("Invalid bytecode code!");
-            break;
-    }
-    return out;
 }
