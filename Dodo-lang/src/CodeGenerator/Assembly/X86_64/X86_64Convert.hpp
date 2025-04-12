@@ -5,7 +5,7 @@
 
 namespace x86_64 {
     // converts bytecode to actual assembly within a processor
-    void ConvertBytecode(BytecodeContext& context, Processor& processor, std::ofstream& out);
+    void ConvertBytecode(BytecodeContext& context, Processor& processor, ParserFunctionMethod* source, std::ofstream& out);
 }
 
 #endif

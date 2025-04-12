@@ -111,6 +111,8 @@ void GenerateCode() {
 
         CalculateLifetimes(context);
         CalculateMemoryAssignments(proc, context);
+        CalculateMemoryAssignments(proc, context);
+        x86_64::ConvertBytecode(context, proc, nullptr, out);
 
         {
             if (not functions.contains("Main")) CodeGeneratorError("Function \"Main\" not found!");
@@ -142,7 +144,7 @@ void GenerateCode() {
             CalculateLifetimes(context);
             proc.clear();
             CalculateMemoryAssignments(proc, context);
-            x86_64::ConvertBytecode(context, proc, out);
+            x86_64::ConvertBytecode(context, proc, &m, out);
         }
     }
 
@@ -162,7 +164,7 @@ void GenerateCode() {
         auto label = AsmInstruction(x86_64::label, AsmOperand(&n.second));
         out << "\n";
         x86_64::PrintInstruction(label, out);
-        x86_64::ConvertBytecode(context, proc, out);
+        x86_64::ConvertBytecode(context, proc, &n.second, out);
     }
 
     

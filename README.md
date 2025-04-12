@@ -33,5 +33,6 @@ The project is being developed as a SKNI "KOD" project.
   - global functions need support for overloading
   - global variables and not treated as pointers
 - assembly generator - early stages
-  - processor model with registers and stack is ready for x86-64
-  - lifetime of variables is calculated
+  - all basic x86-64 instructions have been defined and are being implemented
+  - added printing functions
+  - can output return of literals and arguments

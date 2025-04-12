@@ -406,7 +406,7 @@ namespace x86_64 {
         // reg(64/32/16) <- (reg/mem)(8/16)
         movsx,
         // Move With Sign-Extension
-        // reg32 <- reg64/mem64
+        // reg64 <- reg32/mem32
         movsxd,
         // TODO: what about 32 bit to 64 bit? Probably 2 commands
         // Move With Zero-Extend

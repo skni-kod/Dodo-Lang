@@ -33,58 +33,58 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     for (auto& n : instruction.selected->resultsAndInputs) {
         if (n.isInput) {
             if (n.isFixedLocation) moves.emplace_back(n.value, n.fixedLocation);
-            else moves.emplace_back(n.value, n.value.CopyTo(Location::Operand, n.operandNumber));
+            else moves.emplace_back(n.value, n.value.copyTo(Location::Operand, n.operandNumber));
         }
         else {
             if (n.isFixedLocation) results.emplace_back(n.fixedLocation, n.value);
-            else results.emplace_back(n.value.CopyTo(Location::Operand, n.operandNumber), n.value);
+            else results.emplace_back(n.value.copyTo(Location::Operand, n.operandNumber), n.value);
         }
     }
 
     bool foundOutput = false;
     uint8_t inputCounter = 0;
     if (selected.op1.isInput) {
-        moves.emplace_back(instruction.source1, instruction.source1.CopyTo(Location::op, 1));
+        moves.emplace_back(instruction.source1, instruction.source1.copyTo(Location::op, 1));
         inputCounter++;
     }
     if (selected.op1.isOutput) {
         foundOutput = true;
-        results.emplace_back(instruction.destination.CopyTo(Location::op, 1), instruction.destination);
+        results.emplace_back(instruction.destination.copyTo(Location::op, 1), instruction.destination);
     }
 
     if (selected.op2.isInput) {
-        if (inputCounter) moves.emplace_back(instruction.source2, instruction.source2.CopyTo(Location::op, 2));
-        else moves.emplace_back(instruction.source1, instruction.source1.CopyTo(Location::op, 2));
+        if (inputCounter) moves.emplace_back(instruction.source2, instruction.source2.copyTo(Location::op, 2));
+        else moves.emplace_back(instruction.source1, instruction.source1.copyTo(Location::op, 2));
         inputCounter++;
     }
 
     if (not foundOutput and selected.op2.isOutput) {
         foundOutput = true;
-        results.emplace_back(instruction.destination.CopyTo(Location::op, 2), instruction.destination);
+        results.emplace_back(instruction.destination.copyTo(Location::op, 2), instruction.destination);
     }
 
     if (selected.op3.isInput) {
-        if (inputCounter == 2) moves.emplace_back(instruction.source3, instruction.source3.CopyTo(Location::op, 3));
-        else if (inputCounter == 1) moves.emplace_back(instruction.source2, instruction.source2.CopyTo(Location::op, 3));
-        else moves.emplace_back(instruction.source1, instruction.source1.CopyTo(Location::op, 3));
+        if (inputCounter == 2) moves.emplace_back(instruction.source3, instruction.source3.copyTo(Location::op, 3));
+        else if (inputCounter == 1) moves.emplace_back(instruction.source2, instruction.source2.copyTo(Location::op, 3));
+        else moves.emplace_back(instruction.source1, instruction.source1.copyTo(Location::op, 3));
         inputCounter++;
     }
 
     if (not foundOutput and selected.op3.isOutput) {
         foundOutput = true;
-        results.emplace_back(instruction.destination.CopyTo(Location::op, 3), instruction.destination);
+        results.emplace_back(instruction.destination.copyTo(Location::op, 3), instruction.destination);
     }
 
     if (selected.op4.isInput) {
-        if (inputCounter == 3) moves.emplace_back(instruction.source4, instruction.source4.CopyTo(Location::op, 4));
-        else if (inputCounter == 2) moves.emplace_back(instruction.source3, instruction.source3.CopyTo(Location::op, 4));
-        else if (inputCounter == 1) moves.emplace_back(instruction.source2, instruction.source2.CopyTo(Location::op, 4));
-        else moves.emplace_back(instruction.source1, instruction.source1.CopyTo(Location::op, 4));
+        if (inputCounter == 3) moves.emplace_back(instruction.source4, instruction.source4.copyTo(Location::op, 4));
+        else if (inputCounter == 2) moves.emplace_back(instruction.source3, instruction.source3.copyTo(Location::op, 4));
+        else if (inputCounter == 1) moves.emplace_back(instruction.source2, instruction.source2.copyTo(Location::op, 4));
+        else moves.emplace_back(instruction.source1, instruction.source1.copyTo(Location::op, 4));
     }
 
     if (not foundOutput and selected.op4.isOutput) {
         foundOutput = true;
-        results.emplace_back(instruction.destination.CopyTo(Location::op, 4), instruction.destination);
+        results.emplace_back(instruction.destination.copyTo(Location::op, 4), instruction.destination);
     }
 
     // now checking for things that might need to be moved in the locations
@@ -124,6 +124,9 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     std::vector <std::vector <AsmInstruction>> actualMoves;
 
     for (auto& n : moves) {
+        // TODO: change the place variables get converted
+        if (n.source.op == Location::Variable) n.source = processor.getLocation(n.source);
+        if (n.target.op == Location::Variable) n.target = processor.getLocation(n.target);
         actualMoves.push_back(AddConvertionsToMove(n, context, processor));
     }
 

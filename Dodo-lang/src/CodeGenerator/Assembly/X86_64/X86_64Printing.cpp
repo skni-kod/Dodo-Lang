@@ -2,7 +2,7 @@
 
 namespace x86_64 {
 
-    std::ostream& PrintRegisterName(uint16_t number, uint8_t size, std::ofstream& out) {
+    std::ostream& PrintRegisterName(uint16_t number, uint8_t size, std::ostream& out) {
         switch (number) {
             case RAX:
                 if (size == 8) return out << "rax";
@@ -101,292 +101,292 @@ namespace x86_64 {
                 if (size == 1) return out << "r15b";
             break;
             case ZMM0:
-                if (size == 64) return out << "ZMM0";
-                if (size == 32) return out << "YMM0";
-                if (size == 16) return out << "XMM0";
-                if (size == 8 ) return out << "XMM0";
-                if (size == 4 ) return out << "XMM0";
-                if (size == 2 ) return out << "XMM0";
-                if (size == 1 ) return out << "XMM0";
+                if (size == 64) return out << "zmm0";
+                if (size == 32) return out << "ymm0";
+                if (size == 16) return out << "xmm0";
+                if (size == 8 ) return out << "xmm0";
+                if (size == 4 ) return out << "xmm0";
+                if (size == 2 ) return out << "xmm0";
+                if (size == 1 ) return out << "xmm0";
             break;
             case ZMM1:
-                if (size == 64) return out << "ZMM1";
-                if (size == 32) return out << "YMM1";
-                if (size == 16) return out << "XMM1";
-                if (size == 8 ) return out << "XMM1";
-                if (size == 4 ) return out << "XMM1";
-                if (size == 2 ) return out << "XMM1";
-                if (size == 1 ) return out << "XMM1";
+                if (size == 64) return out << "zmm1";
+                if (size == 32) return out << "ymm1";
+                if (size == 16) return out << "xmm1";
+                if (size == 8 ) return out << "xmm1";
+                if (size == 4 ) return out << "xmm1";
+                if (size == 2 ) return out << "xmm1";
+                if (size == 1 ) return out << "xmm1";
             break;
             case ZMM2:
-                if (size == 64) return out << "ZMM2";
-                if (size == 32) return out << "YMM2";
-                if (size == 16) return out << "XMM2";
-                if (size == 8 ) return out << "XMM2";
-                if (size == 4 ) return out << "XMM2";
-                if (size == 2 ) return out << "XMM2";
-                if (size == 1 ) return out << "XMM2";
+                if (size == 64) return out << "zmm2";
+                if (size == 32) return out << "ymm2";
+                if (size == 16) return out << "xmm2";
+                if (size == 8 ) return out << "xmm2";
+                if (size == 4 ) return out << "xmm2";
+                if (size == 2 ) return out << "xmm2";
+                if (size == 1 ) return out << "xmm2";
             break;
             case ZMM3:
-                if (size == 64) return out << "ZMM3";
-                if (size == 32) return out << "YMM3";
-                if (size == 16) return out << "XMM3";
-                if (size == 8 ) return out << "XMM3";
-                if (size == 4 ) return out << "XMM3";
-                if (size == 2 ) return out << "XMM3";
-                if (size == 1 ) return out << "XMM3";
+                if (size == 64) return out << "zmm3";
+                if (size == 32) return out << "ymm3";
+                if (size == 16) return out << "xmm3";
+                if (size == 8 ) return out << "xmm3";
+                if (size == 4 ) return out << "xmm3";
+                if (size == 2 ) return out << "xmm3";
+                if (size == 1 ) return out << "xmm3";
             break;
             case ZMM4:
-                if (size == 64) return out << "ZMM4";
-                if (size == 32) return out << "YMM4";
-                if (size == 16) return out << "XMM4";
-                if (size == 8 ) return out << "XMM4";
-                if (size == 4 ) return out << "XMM4";
-                if (size == 2 ) return out << "XMM4";
-                if (size == 1 ) return out << "XMM4";
+                if (size == 64) return out << "zmm4";
+                if (size == 32) return out << "ymm4";
+                if (size == 16) return out << "xmm4";
+                if (size == 8 ) return out << "xmm4";
+                if (size == 4 ) return out << "xmm4";
+                if (size == 2 ) return out << "xmm4";
+                if (size == 1 ) return out << "xmm4";
             break;
             case ZMM5:
-                if (size == 64) return out << "ZMM5";
-                if (size == 32) return out << "YMM5";
-                if (size == 16) return out << "XMM5";
-                if (size == 8 ) return out << "XMM5";
-                if (size == 4 ) return out << "XMM5";
-                if (size == 2 ) return out << "XMM5";
-                if (size == 1 ) return out << "XMM5";
+                if (size == 64) return out << "zmm5";
+                if (size == 32) return out << "ymm5";
+                if (size == 16) return out << "xmm5";
+                if (size == 8 ) return out << "xmm5";
+                if (size == 4 ) return out << "xmm5";
+                if (size == 2 ) return out << "xmm5";
+                if (size == 1 ) return out << "xmm5";
             break;
             case ZMM6:
-                if (size == 64) return out << "ZMM6";
-                if (size == 32) return out << "YMM6";
-                if (size == 16) return out << "XMM6";
-                if (size == 8 ) return out << "XMM6";
-                if (size == 4 ) return out << "XMM6";
-                if (size == 2 ) return out << "XMM6";
-                if (size == 1 ) return out << "XMM6";
+                if (size == 64) return out << "zmm6";
+                if (size == 32) return out << "ymm6";
+                if (size == 16) return out << "xmm6";
+                if (size == 8 ) return out << "xmm6";
+                if (size == 4 ) return out << "xmm6";
+                if (size == 2 ) return out << "xmm6";
+                if (size == 1 ) return out << "xmm6";
             break;
             case ZMM7:
-                if (size == 64) return out << "ZMM7";
-                if (size == 32) return out << "YMM7";
-                if (size == 16) return out << "XMM7";
-                if (size == 8 ) return out << "XMM7";
-                if (size == 4 ) return out << "XMM7";
-                if (size == 2 ) return out << "XMM7";
-                if (size == 1 ) return out << "XMM7";
+                if (size == 64) return out << "zmm7";
+                if (size == 32) return out << "ymm7";
+                if (size == 16) return out << "xmm7";
+                if (size == 8 ) return out << "xmm7";
+                if (size == 4 ) return out << "xmm7";
+                if (size == 2 ) return out << "xmm7";
+                if (size == 1 ) return out << "xmm7";
             break;
             case ZMM8:
-                if (size == 64) return out << "ZMM8";
-                if (size == 32) return out << "YMM8";
-                if (size == 16) return out << "XMM8";
-                if (size == 8 ) return out << "XMM8";
-                if (size == 4 ) return out << "XMM8";
-                if (size == 2 ) return out << "XMM8";
-                if (size == 1 ) return out << "XMM8";
+                if (size == 64) return out << "zmm8";
+                if (size == 32) return out << "ymm8";
+                if (size == 16) return out << "xmm8";
+                if (size == 8 ) return out << "xmm8";
+                if (size == 4 ) return out << "xmm8";
+                if (size == 2 ) return out << "xmm8";
+                if (size == 1 ) return out << "xmm8";
             break;
             case ZMM9:
-                if (size == 64) return out << "ZMM9";
-                if (size == 32) return out << "YMM9";
-                if (size == 16) return out << "XMM9";
-                if (size == 8 ) return out << "XMM9";
-                if (size == 4 ) return out << "XMM9";
-                if (size == 2 ) return out << "XMM9";
-                if (size == 1 ) return out << "XMM9";
+                if (size == 64) return out << "zmm9";
+                if (size == 32) return out << "ymm9";
+                if (size == 16) return out << "xmm9";
+                if (size == 8 ) return out << "xmm9";
+                if (size == 4 ) return out << "xmm9";
+                if (size == 2 ) return out << "xmm9";
+                if (size == 1 ) return out << "xmm9";
             break;
             case ZMM10:
-                if (size == 64) return out << "ZMM10";
-                if (size == 32) return out << "YMM10";
-                if (size == 16) return out << "XMM10";
-                if (size == 8 ) return out << "XMM10";
-                if (size == 4 ) return out << "XMM10";
-                if (size == 2 ) return out << "XMM10";
-                if (size == 1 ) return out << "XMM10";
+                if (size == 64) return out << "zmm10";
+                if (size == 32) return out << "ymm10";
+                if (size == 16) return out << "xmm10";
+                if (size == 8 ) return out << "xmm10";
+                if (size == 4 ) return out << "xmm10";
+                if (size == 2 ) return out << "xmm10";
+                if (size == 1 ) return out << "xmm10";
             break;
             case ZMM11:
-                if (size == 64) return out << "ZMM11";
-                if (size == 32) return out << "YMM11";
-                if (size == 16) return out << "XMM11";
-                if (size == 8 ) return out << "XMM11";
-                if (size == 4 ) return out << "XMM11";
-                if (size == 2 ) return out << "XMM11";
-                if (size == 1 ) return out << "XMM11";
+                if (size == 64) return out << "zmm11";
+                if (size == 32) return out << "ymm11";
+                if (size == 16) return out << "xmm11";
+                if (size == 8 ) return out << "xmm11";
+                if (size == 4 ) return out << "xmm11";
+                if (size == 2 ) return out << "xmm11";
+                if (size == 1 ) return out << "xmm11";
             break;
             case ZMM12:
-                if (size == 64) return out << "ZMM12";
-                if (size == 32) return out << "YMM12";
-                if (size == 16) return out << "XMM12";
-                if (size == 8 ) return out << "XMM12";
-                if (size == 4 ) return out << "XMM12";
-                if (size == 2 ) return out << "XMM12";
-                if (size == 1 ) return out << "XMM12";
+                if (size == 64) return out << "zmm12";
+                if (size == 32) return out << "ymm12";
+                if (size == 16) return out << "xmm12";
+                if (size == 8 ) return out << "xmm12";
+                if (size == 4 ) return out << "xmm12";
+                if (size == 2 ) return out << "xmm12";
+                if (size == 1 ) return out << "xmm12";
             break;
             case ZMM13:
-                if (size == 64) return out << "ZMM13";
-                if (size == 32) return out << "YMM13";
-                if (size == 16) return out << "XMM13";
-                if (size == 8 ) return out << "XMM13";
-                if (size == 4 ) return out << "XMM13";
-                if (size == 2 ) return out << "XMM13";
-                if (size == 1 ) return out << "XMM13";
+                if (size == 64) return out << "zmm13";
+                if (size == 32) return out << "ymm13";
+                if (size == 16) return out << "xmm13";
+                if (size == 8 ) return out << "xmm13";
+                if (size == 4 ) return out << "xmm13";
+                if (size == 2 ) return out << "xmm13";
+                if (size == 1 ) return out << "xmm13";
             break;
             case ZMM14:
-                if (size == 64) return out << "ZMM14";
-                if (size == 32) return out << "YMM14";
-                if (size == 16) return out << "XMM14";
-                if (size == 8 ) return out << "XMM14";
-                if (size == 4 ) return out << "XMM14";
-                if (size == 2 ) return out << "XMM14";
-                if (size == 1 ) return out << "XMM14";
+                if (size == 64) return out << "zmm14";
+                if (size == 32) return out << "ymm14";
+                if (size == 16) return out << "xmm14";
+                if (size == 8 ) return out << "xmm14";
+                if (size == 4 ) return out << "xmm14";
+                if (size == 2 ) return out << "xmm14";
+                if (size == 1 ) return out << "xmm14";
             break;
             case ZMM15:
-                if (size == 64) return out << "ZMM15";
-                if (size == 32) return out << "YMM15";
-                if (size == 16) return out << "XMM15";
-                if (size == 8 ) return out << "XMM15";
-                if (size == 4 ) return out << "XMM15";
-                if (size == 2 ) return out << "XMM15";
-                if (size == 1 ) return out << "XMM15";
+                if (size == 64) return out << "zmm15";
+                if (size == 32) return out << "ymm15";
+                if (size == 16) return out << "xmm15";
+                if (size == 8 ) return out << "xmm15";
+                if (size == 4 ) return out << "xmm15";
+                if (size == 2 ) return out << "xmm15";
+                if (size == 1 ) return out << "xmm15";
             break;
             case ZMM16:
-                if (size == 64) return out << "ZMM16";
-                if (size == 32) return out << "YMM16";
-                if (size == 16) return out << "XMM16";
-                if (size == 8 ) return out << "XMM16";
-                if (size == 4 ) return out << "XMM16";
-                if (size == 2 ) return out << "XMM16";
-                if (size == 1 ) return out << "XMM16";
+                if (size == 64) return out << "zmm16";
+                if (size == 32) return out << "ymm16";
+                if (size == 16) return out << "xmm16";
+                if (size == 8 ) return out << "xmm16";
+                if (size == 4 ) return out << "xmm16";
+                if (size == 2 ) return out << "xmm16";
+                if (size == 1 ) return out << "xmm16";
             break;
             case ZMM17:
-                if (size == 64) return out << "ZMM17";
-                if (size == 32) return out << "YMM17";
-                if (size == 16) return out << "XMM17";
-                if (size == 8 ) return out << "XMM17";
-                if (size == 4 ) return out << "XMM17";
-                if (size == 2 ) return out << "XMM17";
-                if (size == 1 ) return out << "XMM17";
+                if (size == 64) return out << "zmm17";
+                if (size == 32) return out << "ymm17";
+                if (size == 16) return out << "xmm17";
+                if (size == 8 ) return out << "xmm17";
+                if (size == 4 ) return out << "xmm17";
+                if (size == 2 ) return out << "xmm17";
+                if (size == 1 ) return out << "xmm17";
             break;
             case ZMM18:
-                if (size == 64) return out << "ZMM18";
-                if (size == 32) return out << "YMM18";
-                if (size == 16) return out << "XMM18";
-                if (size == 8 ) return out << "XMM18";
-                if (size == 4 ) return out << "XMM18";
-                if (size == 2 ) return out << "XMM18";
-                if (size == 1 ) return out << "XMM18";
+                if (size == 64) return out << "zmm18";
+                if (size == 32) return out << "ymm18";
+                if (size == 16) return out << "xmm18";
+                if (size == 8 ) return out << "xmm18";
+                if (size == 4 ) return out << "xmm18";
+                if (size == 2 ) return out << "xmm18";
+                if (size == 1 ) return out << "xmm18";
             break;
             case ZMM19:
-                if (size == 64) return out << "ZMM19";
-                if (size == 32) return out << "YMM19";
-                if (size == 16) return out << "XMM19";
-                if (size == 8 ) return out << "XMM19";
-                if (size == 4 ) return out << "XMM19";
-                if (size == 2 ) return out << "XMM19";
-                if (size == 1 ) return out << "XMM19";
+                if (size == 64) return out << "zmm19";
+                if (size == 32) return out << "ymm19";
+                if (size == 16) return out << "xmm19";
+                if (size == 8 ) return out << "xmm19";
+                if (size == 4 ) return out << "xmm19";
+                if (size == 2 ) return out << "xmm19";
+                if (size == 1 ) return out << "xmm19";
             break;
             case ZMM20:
-                if (size == 64) return out << "ZMM20";
-                if (size == 32) return out << "YMM20";
-                if (size == 16) return out << "XMM20";
-                if (size == 8 ) return out << "XMM20";
-                if (size == 4 ) return out << "XMM20";
-                if (size == 2 ) return out << "XMM20";
-                if (size == 1 ) return out << "XMM20";
+                if (size == 64) return out << "zmm20";
+                if (size == 32) return out << "ymm20";
+                if (size == 16) return out << "xmm20";
+                if (size == 8 ) return out << "xmm20";
+                if (size == 4 ) return out << "xmm20";
+                if (size == 2 ) return out << "xmm20";
+                if (size == 1 ) return out << "xmm20";
             break;
             case ZMM21:
-                if (size == 64) return out << "ZMM21";
-                if (size == 32) return out << "YMM21";
-                if (size == 16) return out << "XMM21";
-                if (size == 8 ) return out << "XMM21";
-                if (size == 4 ) return out << "XMM21";
-                if (size == 2 ) return out << "XMM21";
-                if (size == 1 ) return out << "XMM21";
+                if (size == 64) return out << "zmm21";
+                if (size == 32) return out << "ymm21";
+                if (size == 16) return out << "xmm21";
+                if (size == 8 ) return out << "xmm21";
+                if (size == 4 ) return out << "xmm21";
+                if (size == 2 ) return out << "xmm21";
+                if (size == 1 ) return out << "xmm21";
             break;
             case ZMM22:
-                if (size == 64) return out << "ZMM22";
-                if (size == 32) return out << "YMM22";
-                if (size == 16) return out << "XMM22";
-                if (size == 8 ) return out << "XMM22";
-                if (size == 4 ) return out << "XMM22";
-                if (size == 2 ) return out << "XMM22";
-                if (size == 1 ) return out << "XMM22";
+                if (size == 64) return out << "zmm22";
+                if (size == 32) return out << "ymm22";
+                if (size == 16) return out << "xmm22";
+                if (size == 8 ) return out << "xmm22";
+                if (size == 4 ) return out << "xmm22";
+                if (size == 2 ) return out << "xmm22";
+                if (size == 1 ) return out << "xmm22";
             break;
             case ZMM23:
-                if (size == 64) return out << "ZMM23";
-                if (size == 32) return out << "YMM23";
-                if (size == 16) return out << "XMM23";
-                if (size == 8 ) return out << "XMM23";
-                if (size == 4 ) return out << "XMM23";
-                if (size == 2 ) return out << "XMM23";
-                if (size == 1 ) return out << "XMM23";
+                if (size == 64) return out << "zmm23";
+                if (size == 32) return out << "ymm23";
+                if (size == 16) return out << "xmm23";
+                if (size == 8 ) return out << "xmm23";
+                if (size == 4 ) return out << "xmm23";
+                if (size == 2 ) return out << "xmm23";
+                if (size == 1 ) return out << "xmm23";
             break;
             case ZMM24:
-                if (size == 64) return out << "ZMM24";
-                if (size == 32) return out << "YMM24";
-                if (size == 16) return out << "XMM24";
-                if (size == 8 ) return out << "XMM24";
-                if (size == 4 ) return out << "XMM24";
-                if (size == 2 ) return out << "XMM24";
-                if (size == 1 ) return out << "XMM24";
+                if (size == 64) return out << "zmm24";
+                if (size == 32) return out << "ymm24";
+                if (size == 16) return out << "xmm24";
+                if (size == 8 ) return out << "xmm24";
+                if (size == 4 ) return out << "xmm24";
+                if (size == 2 ) return out << "xmm24";
+                if (size == 1 ) return out << "xmm24";
             break;
             case ZMM25:
-                if (size == 64) return out << "ZMM25";
-                if (size == 32) return out << "YMM25";
-                if (size == 16) return out << "XMM25";
-                if (size == 8 ) return out << "XMM25";
-                if (size == 4 ) return out << "XMM25";
-                if (size == 2 ) return out << "XMM25";
-                if (size == 1 ) return out << "XMM25";
+                if (size == 64) return out << "zmm25";
+                if (size == 32) return out << "ymm25";
+                if (size == 16) return out << "xmm25";
+                if (size == 8 ) return out << "xmm25";
+                if (size == 4 ) return out << "xmm25";
+                if (size == 2 ) return out << "xmm25";
+                if (size == 1 ) return out << "xmm25";
             break;
             case ZMM26:
-                if (size == 64) return out << "ZMM26";
-                if (size == 32) return out << "YMM26";
-                if (size == 16) return out << "XMM26";
-                if (size == 8 ) return out << "XMM26";
-                if (size == 4 ) return out << "XMM26";
-                if (size == 2 ) return out << "XMM26";
-                if (size == 1 ) return out << "XMM26";
+                if (size == 64) return out << "zmm26";
+                if (size == 32) return out << "ymm26";
+                if (size == 16) return out << "xmm26";
+                if (size == 8 ) return out << "xmm26";
+                if (size == 4 ) return out << "xmm26";
+                if (size == 2 ) return out << "xmm26";
+                if (size == 1 ) return out << "xmm26";
             break;
             case ZMM27:
-                if (size == 64) return out << "ZMM27";
-                if (size == 32) return out << "YMM27";
-                if (size == 16) return out << "XMM27";
-                if (size == 8 ) return out << "XMM27";
-                if (size == 4 ) return out << "XMM27";
-                if (size == 2 ) return out << "XMM27";
-                if (size == 1 ) return out << "XMM27";
+                if (size == 64) return out << "zmm27";
+                if (size == 32) return out << "ymm27";
+                if (size == 16) return out << "xmm27";
+                if (size == 8 ) return out << "xmm27";
+                if (size == 4 ) return out << "xmm27";
+                if (size == 2 ) return out << "xmm27";
+                if (size == 1 ) return out << "xmm27";
             break;
             case ZMM28:
-                if (size == 64) return out << "ZMM28";
-                if (size == 32) return out << "YMM28";
-                if (size == 16) return out << "XMM28";
-                if (size == 8 ) return out << "XMM28";
-                if (size == 4 ) return out << "XMM28";
-                if (size == 2 ) return out << "XMM28";
-                if (size == 1 ) return out << "XMM28";
+                if (size == 64) return out << "zmm28";
+                if (size == 32) return out << "ymm28";
+                if (size == 16) return out << "xmm28";
+                if (size == 8 ) return out << "xmm28";
+                if (size == 4 ) return out << "xmm28";
+                if (size == 2 ) return out << "xmm28";
+                if (size == 1 ) return out << "xmm28";
             break;
             case ZMM29:
-                if (size == 64) return out << "ZMM29";
-                if (size == 32) return out << "YMM29";
-                if (size == 16) return out << "XMM29";
-                if (size == 8 ) return out << "XMM29";
-                if (size == 4 ) return out << "XMM29";
-                if (size == 2 ) return out << "XMM29";
-                if (size == 1 ) return out << "XMM29";
+                if (size == 64) return out << "zmm29";
+                if (size == 32) return out << "ymm29";
+                if (size == 16) return out << "xmm29";
+                if (size == 8 ) return out << "xmm29";
+                if (size == 4 ) return out << "xmm29";
+                if (size == 2 ) return out << "xmm29";
+                if (size == 1 ) return out << "xmm29";
             break;
             case ZMM30:
-                if (size == 64) return out << "ZMM30";
-                if (size == 32) return out << "YMM30";
-                if (size == 16) return out << "XMM30";
-                if (size == 8 ) return out << "XMM30";
-                if (size == 4 ) return out << "XMM30";
-                if (size == 2 ) return out << "XMM30";
-                if (size == 1 ) return out << "XMM30";
+                if (size == 64) return out << "zmm30";
+                if (size == 32) return out << "ymm30";
+                if (size == 16) return out << "xmm30";
+                if (size == 8 ) return out << "xmm30";
+                if (size == 4 ) return out << "xmm30";
+                if (size == 2 ) return out << "xmm30";
+                if (size == 1 ) return out << "xmm30";
             break;
             case ZMM31:
-                if (size == 64) return out << "ZMM31";
-                if (size == 32) return out << "YMM31";
-                if (size == 16) return out << "XMM31";
-                if (size == 8 ) return out << "XMM31";
-                if (size == 4 ) return out << "XMM31";
-                if (size == 2 ) return out << "XMM31";
-                if (size == 1 ) return out << "XMM31";
+                if (size == 64) return out << "zmm31";
+                if (size == 32) return out << "ymm31";
+                if (size == 16) return out << "xmm31";
+                if (size == 8 ) return out << "xmm31";
+                if (size == 4 ) return out << "xmm31";
+                if (size == 2 ) return out << "xmm31";
+                if (size == 1 ) return out << "xmm31";
             break;
             case R16:
                 if (size == 8) return out << "r16";
@@ -490,7 +490,7 @@ namespace x86_64 {
         return out;
     }
 
-    void PrintOperand(const AsmOperand& op, std::ofstream& out) {
+    void PrintOperand(const AsmOperand& op, std::ostream& out) {
         switch (op.op) {
         case Location::Literal:
             out << "$" << std::to_string(op.value.u64);
@@ -518,7 +518,7 @@ namespace x86_64 {
             CodeGeneratorError("Internal: unimplemented operand print!");
             return;
         case Location::Stack:
-            out << op.value.offset << "(%rbp)";
+            out << std::to_string(op.value.offset) << "(%rbp)";
             return;
         case Location::Offset :
             CodeGeneratorError("Internal: unimplemented operand print!");
@@ -531,7 +531,7 @@ namespace x86_64 {
     std::string GASPrefix(const AsmOperand& op) {
         switch (op.size) {
             case 8: return "q";
-            case 4: return "d";
+            case 4: return "l";
             case 2: return "w";
             case 1: return "b";
             default: CodeGeneratorError("Internal: invalid GAS prefix size!");
@@ -542,15 +542,15 @@ namespace x86_64 {
     std::string GetMnemonic(const AsmInstruction& ins) {
         switch (ins.code) {
         case InstructionCode::mov:
-            return "mov";
+            return "mov" + GASPrefix(ins.op1);
         case InstructionCode::movss:
-            return "";
+            return "movss";
         case InstructionCode::vmovss:
-            return "";
+            return "vmovss";
         case InstructionCode::movsd:
-            return "";
+            return "movsd";
         case InstructionCode::vmovsd:
-            return "";
+            return "vmovsd";
         case InstructionCode::add:
             return "";
         case InstructionCode::addsd:
@@ -576,25 +576,33 @@ namespace x86_64 {
         case InstructionCode::vcomisd:
             return "";
         case InstructionCode::cvtsd2si:
-            return "";
+            return "cvtsd2si";
         case InstructionCode::cvtsd2ss:
-            return "";
+            return "cvtsd2ss";
         case InstructionCode::vcvtsd2ss:
             return "";
         case InstructionCode::cvtsi2sd:
-            return "";
+            if (ins.op2.op == Location::sta) {
+                if (ins.op2.size == 4) return "cvtsi2sdl";
+                return "cvtsi2sdq";
+            }
+            return "cvtsi2sd";
         case InstructionCode::vcvtsi2sd:
             return "";
         case InstructionCode::cvtsi2ss:
-            return "";
+            if (ins.op2.op == Location::sta) {
+                if (ins.op2.size == 4) return "cvtsi2ssl";
+                return "cvtsi2ssq";
+            }
+            return "cvtsi2ss";
         case InstructionCode::vcvtsi2ss:
             return "";
         case InstructionCode::cvtss2sd:
-            return "";
+            return "cvtss2sd";
         case InstructionCode::vcvtss2sd:
             return "";
         case InstructionCode::cvtss2si:
-            return "";
+            return "cvtss2si";
         case InstructionCode::vcvtss2si:
             return "";
         case InstructionCode::cvttsd2si:
@@ -763,7 +771,7 @@ namespace x86_64 {
         return "";
     }
 
-    void PrintInstruction(AsmInstruction& ins, std::ofstream& out) {
+    void PrintInstruction(AsmInstruction& ins, std::ostream& out) {
         if (ins.code == label) {
             PrintOperand(ins.op1, out);
             out << ":\n";
@@ -801,7 +809,7 @@ namespace x86_64 {
 
     }
 
-    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ofstream& out) {
+    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out) {
         if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
             for (auto& n : instructions) {
                 PrintInstruction(n, out);

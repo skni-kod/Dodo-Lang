@@ -140,12 +140,15 @@ union OperandValue {
     float f32;
     uint64_t string;
     uint64_t label;
-    uint64_t offset;
+    int64_t offset;
+    uint64_t reg;
     ParserFunctionMethod* function;
     VariableLocation variable;
     OperandValue() = default;
     OperandValue(uint64_t val);
     OperandValue(VariableLocation val);
+
+    bool operator==(const OperandValue& operand_value) const = default;
 };
 
 struct BytecodeOperand {

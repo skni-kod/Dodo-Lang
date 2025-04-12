@@ -25,6 +25,21 @@ Place Processor::get(AsmOperand& op) {
     return {};
 }
 
+AsmOperand& Processor::getContentRef(AsmOperand& op) {
+    if (op.op == Location::reg) {
+        return registers[op.value.ui].content;
+    }
+    if (op.op == Location::sta) {
+        // finding stuff on the stack is way harder
+        for (auto& n : stack) {
+            if (n.offset == op.value.offset) return n.content;
+        }
+        CodeGeneratorError("Internal: invalid processor location for reference!");
+    }
+    CodeGeneratorError("Internal: invalid processor location 3!");
+    return registers[0].content;
+}
+
 AsmOperand Processor::getContent(AsmOperand& op, BytecodeContext& context) {
     if (op.op == Location::reg) {
         return registers[op.value.ui].content;
@@ -41,8 +56,71 @@ AsmOperand Processor::getContent(AsmOperand& op, BytecodeContext& context) {
     return {};
 }
 
+AsmOperand Processor::getLocation(AsmOperand& op) {
+    if (op.op == Location::Variable) {
+        for (uint16_t n = 0; n < registers.size(); n++) {
+            if (registers[n].content == op) {
+                return op.copyTo(Location::reg, n);
+            }
+        }
+        for (auto& n : stack) {
+            if (n.content == op) {
+                OperandValue temp;
+                temp.offset = n.offset;
+                return n.content.copyTo(Location::sta, temp);
+            }
+        }
+        CodeGeneratorError("Internal: variable not found in memory!");
+    }
+    return op;
+}
+
+AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context) {
+    if (value.location == Location::Variable) {
+        auto var = context.getVariableObject(value);
+        int32_t offset;
+        if (var.meta.isReference or var.meta.pointerLevel) {
+            if (stack.empty()) offset = Options::addressSize;
+            else offset = stack.back().offset + Options::addressSize;
+            if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
+            stack.emplace_back(AsmOperand(value, context), -offset, Options::addressSize);
+        }
+        else {
+            auto size = var.type->typeSize;
+            if (stack.empty()) offset = size;
+            else offset = stack.back().offset + size;
+            if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
+            stack.emplace_back(AsmOperand(value, context), -offset, size);
+        }
+        return {stack.back().offset};
+    }
+    CodeGeneratorError("Internal: unsupported stack push!");
+    return {};
+}
+
+AsmOperand Processor::tempStack(uint8_t size, uint8_t alignment) {
+    if (not alignment) alignment = size;
+    AsmOperand location;
+    location.op = Location::sta;
+    if (stack.empty()) {
+        if (size <= alignment) location.value.offset = -alignment;
+        else if (size % alignment != 0) location.value.offset = (-(size / alignment) - 1) * alignment;
+        else location.value.offset = -size;
+    }
+    else CodeGeneratorError("Internal: somehow can't find a stack location!");
+    return location;
+}
+
 Place::Place(Register* reg, const Location::Type where) : reg(reg), where(where) {}
 Place::Place(StackEntry* sta, const Location::Type where) : sta(sta), where(where){}
+
+AsmOperand::AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, uint8_t size, OperandValue value)
+    : op(op), type(type), useAddress(useAddress), size(size), value(value) {}
+
+AsmOperand::AsmOperand(const int32_t stackOffset) {
+    op = Location::sta;
+    value.offset = stackOffset;
+}
 
 AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context) {
     if (op.location == Location::Variable) {
@@ -65,6 +143,10 @@ AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context) {
         value = op.value;
     }
     else CodeGeneratorError("Unsupported operand type!");
+}
+
+bool AsmOperand::operator==(const AsmOperand& target) const {
+    return target.op == op and target.type == type and target.useAddress == useAddress and target.value.ui == value.ui and target.size == size;
 }
 
 AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context, Location::Type location, OperandValue value) {
@@ -96,7 +178,7 @@ AsmOperand::AsmOperand(ParserFunctionMethod* functionMethod) {
     value.function = functionMethod;
 }
 
-AsmOperand AsmOperand::CopyTo(Location::Type location, OperandValue value) const {
+AsmOperand AsmOperand::copyTo(Location::Type location, OperandValue value) const {
     AsmOperand op(*this);
     op.op = location;
     op.value = value;

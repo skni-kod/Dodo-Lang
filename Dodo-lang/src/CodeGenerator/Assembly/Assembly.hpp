@@ -32,14 +32,16 @@ struct AsmOperand {
     // value to set in the operand
     OperandValue value = {};
     AsmOperand() = default;
+    AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, uint8_t size, OperandValue value);
+    AsmOperand(int32_t stackOffset);
     AsmOperand(BytecodeOperand op, BytecodeContext& context);
     // overrides the location to something else while preserving the size and type of operand
     AsmOperand(BytecodeOperand op, BytecodeContext& context, Location::Type location, OperandValue value);
     AsmOperand(ParserFunctionMethod* functionMethod);
-    [[nodiscard]] AsmOperand CopyTo(Location::Type location, OperandValue value) const;
+    [[nodiscard]] AsmOperand copyTo(Location::Type location, OperandValue value) const;
     VariableObject& object(BytecodeContext& context) const;
 
-    bool operator==(const AsmOperand& target) const = default;
+    bool operator==(const AsmOperand& target) const;
 };
 
 // represents a register in cpu
@@ -129,6 +131,12 @@ struct Processor {
 
     Place get(AsmOperand& op);
     AsmOperand getContent(AsmOperand& op, BytecodeContext& context);
+    AsmOperand getLocation(AsmOperand& op);
+    AsmOperand& getContentRef(AsmOperand& op);
+    // pushes variable at the back of the stack
+    AsmOperand pushStack(BytecodeOperand value, BytecodeContext& context);
+    // returns a viable location for this size and alignment
+    AsmOperand tempStack(uint8_t size, uint8_t alignment = 0);
 };
 
 

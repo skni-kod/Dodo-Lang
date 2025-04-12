@@ -3,8 +3,10 @@
 #include "X86_64.hpp"
 
 namespace x86_64 {
-    void ConvertBytecode(BytecodeContext& context, Processor& processor, std::ofstream& out) {
+    void ConvertBytecode(BytecodeContext& context, Processor& processor, ParserFunctionMethod* source, std::ofstream& out) {
         std::vector <AsmInstruction> instructions;
+        std::vector <AsmOperand> argumentPlaces;
+        int32_t argumentOffset = 0;
 
         for (uint32_t index = 0; index < context.codes.size(); index++) {
             auto& current = context.codes[index];
@@ -19,9 +21,44 @@ namespace x86_64 {
             //     currentType = current.opType->primitiveType;
             // }
 
+            // TODO: add printing functions for AsmOperand
+            if (Options::informationLevel >= Options::full) {
+                std::cout << "INFO L3: Processor before instruction " << index << ":\nINFO L3: Registers:\n";
+                for (auto& n : processor.registers) {
+                    if (n.content.op != Location::None) {
+                        std::cout << "INFO L3: ";
+                        PrintRegisterName(n.number, n.content.size, std::cout);
+                        std::cout << "\n";
+                    }
+                }
+                std::cout << "INFO L3: Stack:\n";
+                for (auto& n : processor.stack) {
+                    if (n.content.op != Location::None) {
+                        std::cout << "INFO L3: " << n.offset << ": \n";
+                    }
+                }
+            }
+
             switch (current.type) {
+                case Bytecode::Define:
+                    if (current.op3().location == Location::Argument) {
+                        if (current.op3Value.ui == 0) {
+                            auto [args, off] = GetFunctionMethodArgumentLocations(*source);
+                            argumentPlaces = std::move(args);
+                            argumentOffset = off;
+                        }
+                        if (argumentPlaces[current.op3Value.ui].op == Location::sta)
+                            processor.stack.emplace(processor.stack.begin(),AsmOperand(current.op1(), context),
+                            argumentPlaces[current.op3Value.ui].value.offset, argumentPlaces[current.op3Value.ui].size);
+
+                        processor.getContentRef(argumentPlaces[current.op3Value.ui]) = AsmOperand(current.op1(), context);
+                    }
+                    else processor.pushStack(current.op1(), context);
+                    break;
                 case Bytecode::Return: {
-                    AsmInstructionInfo instruction = {{
+                    AsmInstructionInfo instruction;
+                    // TODO: add return type check for floats
+                    instruction = {{
                         // variants of the instruction:
                         AsmInstructionVariant(ret, Options::None,
                             // operands:
@@ -40,6 +77,8 @@ namespace x86_64 {
                 default:
                     CodeGeneratorError("Unhandled bytecode type in x86-64 converter!");
             }
+
+            // TODO: add removing old values here
         }
 
         PrintInstructions(instructions, out);

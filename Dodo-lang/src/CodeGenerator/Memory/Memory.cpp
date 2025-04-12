@@ -55,7 +55,8 @@ void CalculateMemoryAssignments(Processor& proc, BytecodeContext& context) {
     // now that it's sorted locations can be assigned
     // let's go in order and find out where things can be
     for (auto& n : variables) {
-        // TODO: add non-primitive register storage
+        // TODO: is assigning registers actually a good idea?
+        // TODO: Maybe a system with assembly time conversion would be better
         if (not n->type->isPrimitive and not (n->meta.isReference + n->meta.pointerLevel)) n->location.location = Location::Stack;
         else n->location.location = Location::Register;
 

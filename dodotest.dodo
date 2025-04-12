@@ -29,6 +29,6 @@ i32 Main() {
     return 5;
 }
 
-i64*** test() {
-    return 100;
+i32 test(let i32 k) {
+    return k;
 }
