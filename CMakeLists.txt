@@ -15,12 +15,7 @@ list (REMOVE_DUPLICATES INCLUDE_DIRS)
 
 include_directories(${INCLUDE_DIRS})
 
-add_executable(Dodo_Lang ${SOURCES}
-        Dodo-lang/src/CodeGenerator/Assembly/Assembly.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/InstructionPlanning/InstructionPlanningInternal.hpp
-        Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64.hpp
-        Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64Printing.cpp)
+add_executable(Dodo_Lang ${SOURCES})
 
 add_custom_command(
         OUTPUT Dodo-lang/src/Misc/Increment.hpp
@@ -34,19 +29,10 @@ add_custom_target(IncrementBuildNumber ALL DEPENDS Dodo-lang/src/Misc/Increment.
 
 add_dependencies(Dodo_Lang IncrementBuildNumber)
 
-
-
-# uncomment when project works well
-#if(MSVC)
-#    target_compile_options(Dodo_Lang PRIVATE /W4 /WX)
-#else()
-#    target_compile_options(Dodo_Lang PRIVATE -Wall -Wextra -Wpedantic -Werror)
-#endif()
-
 # run this in build folder to create the executable and get the return value
 # as out.s -o out.o && ld out.o -o out && ./out || echo $?
 
 # example compilation cli arguments
-# dodotest.dodo -o dodotest -l3 -import=../
+# dodoc dodotest.dodo -o dodotest -l3 -import=../
 # to create a stdlib link when in cmake dir
 # sudo ln -s <PATH>/Dodo-lang/Stdlib/ /usr/include/DodoLang

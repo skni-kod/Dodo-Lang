@@ -376,3 +376,29 @@ bool Register::canBeStored(const VariableObject& variable) const {
         default: return false;
     }
 }
+
+void Processor::assignVariable(const AsmOperand variable, const AsmOperand assignedLocation, const AsmOperand value) {
+    for (auto& n : registers) {
+        if (n.content == variable) n.content = {};
+        if (assignedLocation.op == Location::reg and assignedLocation.value.reg == n.number) n.content = value;
+    }
+    for (auto& n : stack) {
+        if (n.content == variable) n.content = {};
+        if (assignedLocation.op == Location::sta and assignedLocation.value.offset == n.offset) n.content = value;
+    }
+}
+
+void Processor::cleanUnusedVariables(BytecodeContext& context, uint32_t index) {
+    for (auto& n : registers) {
+        if (n.content.op == Location::Variable) {
+            auto& obj = n.content.object(context);
+            if (obj.lastUse <= index) n.content = {};
+        }
+    }
+    for (auto& n : stack) {
+        if (n.content.op == Location::Variable) {
+            auto& obj = n.content.object(context);
+            if (obj.lastUse <= index) n.content = {};
+        }
+    }
+}

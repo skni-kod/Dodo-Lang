@@ -107,17 +107,21 @@ void GenerateCode() {
         CalculateMemoryAssignments(proc, context);
         x86_64::ConvertBytecode(context, proc, nullptr, out);
 
-        {
-            if (not functions.contains("Main")) CodeGeneratorError("Function \"Main\" not found!");
-            auto callMain = AsmInstruction(x86_64::call, {&functions["Main"]});
-            x86_64::PrintInstruction(callMain, out);
-        }
-        //PrintWithSpaces("movq", out);
-        //out << "%rax, %rdi\n";
-        //PrintWithSpaces("movq", out);
-        //out << "$60, %rax\n";
-        //PrintWithSpaces("syscall", out);
-        //out << "\n";
+
+        if (not functions.contains("Main")) CodeGeneratorError("Function \"Main\" not found!");
+        x86_64::PrintInstruction(out, {x86_64::call, {&functions["Main"]}});
+
+
+
+        x86_64::PrintInstruction(out, {x86_64::mov,
+            AsmOperand(Location::reg, {}, false, 8, x86_64::RDI),
+            AsmOperand(Location::reg, {}, false, 8, x86_64::RAX)});
+        
+        x86_64::PrintInstruction(out, {x86_64::mov,
+            AsmOperand(Location::reg, {}, false, 8, x86_64::RAX),
+            AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 60)});
+
+        x86_64::PrintInstruction(out, {x86_64::syscall});
     }
     else {
         CodeGeneratorError("Invalid target architecture!");

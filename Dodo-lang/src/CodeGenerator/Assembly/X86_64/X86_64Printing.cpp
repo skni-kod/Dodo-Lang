@@ -554,13 +554,13 @@ namespace x86_64 {
         case InstructionCode::vmovsd:
             return "vmovsd";
         case InstructionCode::add:
-            return "";
+            return "add" + GASPrefix(ins.op1);
         case InstructionCode::addsd:
-            return "";
+            return "addsd";
         case InstructionCode::vaddsd:
             return "";
         case InstructionCode::addss:
-            return "";
+            return "addss";
         case InstructionCode::vaddss:
             return "";
         case InstructionCode::and_op:
@@ -568,7 +568,7 @@ namespace x86_64 {
         case InstructionCode::call:
             return "call";
         case InstructionCode::cmp:
-            return "cmp";
+            return "" ;
         case InstructionCode::comiss:
             return "";
         case InstructionCode::vcomiss:
@@ -584,18 +584,12 @@ namespace x86_64 {
         case InstructionCode::vcvtsd2ss:
             return "";
         case InstructionCode::cvtsi2sd:
-            if (ins.op2.op == Location::sta) {
-                if (ins.op2.size == 4) return "cvtsi2sdl";
-                return "cvtsi2sdq";
-            }
+            if (ins.op2.op == Location::sta) return "cvtsi2sd" + GASPrefix(ins.op2.size);
             return "cvtsi2sd";
         case InstructionCode::vcvtsi2sd:
             return "";
         case InstructionCode::cvtsi2ss:
-            if (ins.op2.op == Location::sta) {
-                if (ins.op2.size == 4) return "cvtsi2ssl";
-                return "cvtsi2ssq";
-            }
+            if (ins.op2.op == Location::sta) return "cvtsi2ss" + GASPrefix(ins.op2.size);
             return "cvtsi2ss";
         case InstructionCode::vcvtsi2ss:
             return "";
@@ -742,13 +736,13 @@ namespace x86_64 {
         case InstructionCode::op_or:
             return "";
         case InstructionCode::pop:
-            return "";
+            return "pop" + GASPrefix(ins.op1);
         case InstructionCode::sal:
             return "";
         case InstructionCode::sar:
             return "";
         case InstructionCode::sub:
-            return "";
+            return "sub" + GASPrefix(ins.op1);
         case InstructionCode::subsd:
             return "";
         case InstructionCode::vsubsd:
@@ -758,11 +752,11 @@ namespace x86_64 {
         case InstructionCode::vsubss:
             return "";
         case InstructionCode::syscall:
-            return "";
+            return "syscall";
         case InstructionCode::ret:
             return "ret";
         case InstructionCode::push:
-            return "";
+            return "push" + GASPrefix(ins.op1);
         case InstructionCode::op_xor:
             return "";
         case InstructionCode::label:
@@ -811,9 +805,58 @@ namespace x86_64 {
 
     }
 
-    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out) {
+    void PrintInstruction(std::ostream& out, AsmInstruction ins) {
+        if (ins.code == label) {
+            PrintOperand(ins.op1, out);
+            out << ":\n";
+            return;
+        }
+        auto mnemonic = GetMnemonic(ins);
+        out << std::string(Options::functionIndentation, ' ');
+        out << mnemonic;
+        if (ins.op1.op == Location::None) {out << "\n"; return;}
+        if (mnemonic.size() < Options::instructionSpace) {
+            out << std::string(Options::instructionSpace - mnemonic.size(), ' ');
+        }
+        else {
+            out << " ";
+        }
+
+        if (ins.op2.op != Location::None) {
+            PrintOperand(ins.op2, out);
+            out << ", ";
+        }
+
+        PrintOperand(ins.op1, out);
+
+        if (ins.op3.op != Location::None) {
+            out << ", ";
+            PrintOperand(ins.op3, out);
+        }
+
+        if (ins.op4.op != Location::None) {
+            out << ", ";
+            PrintOperand(ins.op4, out);
+        }
+
+        out << "\n";
+
+    }
+
+    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset) {
         if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
+            // stack stuff
+            if (maxOffset & 16 != 0) maxOffset = (maxOffset / 16 - 1) * 16;
+            if (maxOffset != 0) {
+                PrintInstruction(out, AsmInstruction(push,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
+                PrintInstruction(out, AsmInstruction(mov,  AsmOperand(Location::reg, Type::address, false, 8, RBP), AsmOperand(Location::reg, Type::address, false, 8, RSP)));
+                PrintInstruction(out, AsmInstruction(sub,  AsmOperand(Location::reg, Type::address, false, 8, RBP), AsmOperand(Location::imm, Type::address, false, 8, -maxOffset)));
+            }
+
             for (auto& n : instructions) {
+                if (n.code == ret and maxOffset != 0) {
+                    PrintInstruction(out, AsmInstruction(pop,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
+                }
                 PrintInstruction(n, out);
             }
         }

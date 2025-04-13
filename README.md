@@ -32,7 +32,8 @@ The project is being developed as a SKNI "KOD" project.
   - pointers might need some work done on dereferencing
   - global functions need support for overloading
   - global variables and not treated as pointers
-- assembly generator - early stages
+- assembly generator - partially done
   - all basic x86-64 instructions have been defined and are being implemented
-  - added printing functions
-  - can output return of literals and arguments
+  - can output instruction with operands that are defined
+  - lacks checks that ensure later used values are not overwritten
+  - moving values and conversions between types largely done
