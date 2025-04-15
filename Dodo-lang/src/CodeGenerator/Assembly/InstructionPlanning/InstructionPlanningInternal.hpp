@@ -3,8 +3,4 @@
 
 #include <Assembly.hpp>
 
-struct MoveInfo {
-    AsmOperand source, target;
-};
-
 #endif //INSTRUCTION_PLANNING_INTERNAL_HPP

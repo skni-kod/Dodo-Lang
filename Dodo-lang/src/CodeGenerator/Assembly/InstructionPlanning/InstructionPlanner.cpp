@@ -1,17 +1,18 @@
 #include <GenerateCode.hpp>
+#include <iostream>
 
 #include "InstructionPlanningInternal.hpp"
 #include "X86_64.hpp"
 
 // target resolution functions
-std::vector <AsmInstruction> AddConvertionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
+void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters) {
     switch (Options::targetArchitecture) {
         case Options::TargetArchitecture::x86_64:
-            return x86_64::AddConversionsToMove(move, context, proc);
+            x86_64::AddConversionsToMove(move, context, proc, instructions, contentToSet, forbiddenRegisters);
+            break;
         default:
             CodeGeneratorError("Internal: invalid architecture in move conversion!");
     }
-    return {};
 }
 
 AsmOpDefinition& GetOpDefinition(AsmInstructionVariant& selected, uint8_t number) {
@@ -35,6 +36,32 @@ bool IsRegisterAllowed(std::vector <RegisterRange>& allowedRegisters, uint8_t op
         }
     }
     return false;
+}
+
+AsmOperand GetFreeRegister(std::vector <RegisterRange>& allowedRegisters, uint8_t opNumber, Processor& processor, std::vector<AsmOperand>* forbiddenRegisters) {
+    for (auto& n : allowedRegisters) {
+        if ((opNumber == 1 and n.canBeOp1) or
+            (opNumber == 2 and n.canBeOp2) or
+            (opNumber == 3 and n.canBeOp3) or
+            (opNumber == 4 and n.canBeOp4)) {
+            for (uint8_t m = n.first; m <= n.last; m++) {
+                if (processor.registers[m].content.op != Location::Variable) {
+                    if (forbiddenRegisters != nullptr) {
+                        bool isValid = true;
+                        for (auto& k : *forbiddenRegisters) {
+                            if (k.value.reg == m) {
+                                isValid = false;
+                            }
+                        }
+                        if (not isValid) continue;
+                    }
+                    return AsmOperand(Location::reg, Type::none, false, processor.registers[m].size, m);
+                }
+            }
+        }
+    }
+    CodeGeneratorError("Internal: could not find a free register!");
+    return {};
 }
 
 // This function is responsible for resolving instruction definition variants,
@@ -132,7 +159,9 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     }
 
     // now that we have all the changes saved we need to resolve the operands
-    for (auto& [source, target] : moves) {
+    for (uint16_t k = 0; k < moves.size(); k++) {
+        auto& source = moves[k].source;
+        auto& target = moves[k].target;
         // if it's a variable get it's location
         if (source.op == Location::Variable) source = processor.getLocation(source);
 
@@ -153,6 +182,14 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                 if (def.opType == Location::sta) {
                     // another simple case
                     target = op = source;
+                }
+                else if (def.opType == Location::reg) {
+                    // in that case we need to move it into a correct register first
+                    auto where = GetFreeRegister(selected.allowedRegisters, target.value.ui, processor, nullptr);
+                    target = target.copyTo(Location::reg, where.value.ui);
+                    op = target;
+                    moves.emplace_back(source, target);
+
                 }
                 else CodeGeneratorError("Internal: unimplemented stack to somewhere move!");
             }
@@ -213,14 +250,10 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     std::vector <std::vector <AsmInstruction>> actualMoves;
 
     for (auto& n : moves) {
-        actualMoves.push_back(AddConvertionsToMove(n, context, processor));
-    }
-
-    // TODO: do something here
-
-    for (auto& n : actualMoves) {
-        for (auto& m : n) {
-            instructions.push_back(m);
+        AddConversionsToMove(n, context, processor, instructions, n.source, nullptr);
+        if (Options::informationLevel >= Options::full) {
+            std::cout << "INFO L3: Generated instruction: ";
+            x86_64::PrintInstruction(instructions.back(), std::cout);
         }
     }
 
@@ -233,6 +266,10 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     ins.op4 = ops[3];
 
     instructions.push_back(ins);
+    if (Options::informationLevel >= Options::full) {
+        std::cout << "INFO L3: Generated instruction: ";
+        x86_64::PrintInstruction(ins, std::cout);
+    }
 
     for (auto& n : results) {
         processor.getContentRef(n.target) = n.source;

@@ -8,6 +8,9 @@
 
 // This is the scary file when all the terrifying assembly stuff roots from
 
+struct AsmInstruction;
+struct Processor;
+
 struct AsmOperand {
     #ifdef PACKED_ENUM_VARIABLES
     Location::Type op : 4 = Location::None;
@@ -41,6 +44,11 @@ struct AsmOperand {
     [[nodiscard]] AsmOperand copyTo(Location::Type location, OperandValue value) const;
     VariableObject& object(BytecodeContext& context) const;
     void print(std::ostream& out, BytecodeContext& context);
+    bool isAtAssignedPlace(BytecodeContext& context, Processor& processor);
+    // moves the value away if it doesn't need to be there and if it doesn't exist elsewhere and returns the same value or
+    // if this is the assigned place then it moves it elsewhere and returns the new place
+    AsmOperand moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, std::vector <AsmOperand>* forbiddenLocations = nullptr);
+    std::vector<AsmOperand> getAllLocations(Processor& processor);
 
     bool operator==(const AsmOperand& target) const;
 };
@@ -132,10 +140,17 @@ struct Processor {
 
     Place get(AsmOperand& op);
     AsmOperand getContent(AsmOperand& op, BytecodeContext& context);
+    AsmOperand getContentAtOffset(int32_t offset);
+    AsmOperand& getContentRefAtOffset(int32_t offset);
     AsmOperand getLocation(AsmOperand& op);
+    // returns a default value if not found
+    AsmOperand getLocationIfExists(AsmOperand& op);
+    AsmOperand getLocationStackBias(AsmOperand& op);
+    AsmOperand getLocationRegisterBias(AsmOperand& op);
     AsmOperand& getContentRef(AsmOperand& op);
     // pushes variable at the back of the stack
     AsmOperand pushStack(BytecodeOperand value, BytecodeContext& context);
+    AsmOperand pushStack(AsmOperand value, BytecodeContext& context);
     // returns a viable location for this size and alignment
     AsmOperand tempStack(uint8_t size, uint8_t alignment = 0);
     // assigns new value to a variable at assigned location and disposes of all other instances of it in memory so that only the newest version exists
@@ -236,8 +251,13 @@ struct AsmInstructionInfo {
     AsmInstructionVariant* selected = nullptr;
 };
 
+struct MoveInfo {
+    AsmOperand source, target;
+};
+
 // functions
 
 void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstructionInfo& instruction, std::vector<AsmInstruction>& instructions, uint32_t index);
+void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr);
 
 #endif //ASSEMBLY_HPP

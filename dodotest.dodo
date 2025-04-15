@@ -26,12 +26,11 @@ type test {
 let i32 r = 10;
 */
 i32 Main() {
-    return 5;
+    //let i32 y = 4;
+    //return y + 3;
 }
 
 f32 test(let f32 val, let f32 added) {
-    let f32 wow = val;
-    wow = wow + added;
-    added += wow;
+    let f32 wow = 5;
     return wow;
 }

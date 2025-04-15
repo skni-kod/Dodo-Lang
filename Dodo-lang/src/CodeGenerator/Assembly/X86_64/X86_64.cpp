@@ -26,7 +26,7 @@ namespace x86_64 {
         return op.op == Location::reg and (op.value.reg >= ZMM0 and op.value.reg <= ZMM31);
     }
 
-    std::vector <AsmInstruction> AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc) {
+    void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters) {
 
         // assumes every move contains known locations only, since we need to know which one exactly to move
         // so those can be: registers, stack offsets, literals, labels and addresses
@@ -35,9 +35,8 @@ namespace x86_64 {
         auto& s = move.source;
         auto& t = move.target;
 
-        std::vector <AsmInstruction> moves;
 
-        if (s == t) return {};
+        if (s == t) return;
 
         // Here it is rewritten to be based on types and not where stiff is moved from
 
@@ -152,6 +151,12 @@ namespace x86_64 {
                         }
                         else CodeGeneratorError("Internal: invalid target in float move!");
                     }
+                    else if (s.op == Location::imm) {
+                        if (t.op == Location::sta) {
+                            moves.emplace_back(mov, t, s);
+                        }
+                        else CodeGeneratorError("Internal: invalid target in float move!");
+                    }
                 }
                 else {
                     if (not IsFloatOperationRegister(t) and ((s.op != Location::sta and s.op != Location::mem) or s.size < 4)) CodeGeneratorError("Internal: invalid source for float size conversion!");
@@ -162,7 +167,8 @@ namespace x86_64 {
             }
         }
         else CodeGeneratorError("Internal: address to address move!");
-        return moves;
+
+        proc.getContentRef(t) = contentToSet;
     }
 
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target) {

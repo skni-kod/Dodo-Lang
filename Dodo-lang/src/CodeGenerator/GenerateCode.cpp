@@ -1,7 +1,6 @@
 #include "GenerateCode.hpp"
 
 #include <Assembly.hpp>
-#include "Memory.hpp"
 
 #include "Bytecode/Bytecode.hpp"
 #include <filesystem>
@@ -103,8 +102,6 @@ void GenerateCode() {
         }
 
         CalculateLifetimes(context);
-        CalculateMemoryAssignments(proc, context);
-        CalculateMemoryAssignments(proc, context);
         x86_64::ConvertBytecode(context, proc, nullptr, out);
 
 
@@ -140,7 +137,6 @@ void GenerateCode() {
             }
             CalculateLifetimes(context);
             proc.clear();
-            CalculateMemoryAssignments(proc, context);
             x86_64::ConvertBytecode(context, proc, &m, out);
         }
     }
@@ -157,7 +153,6 @@ void GenerateCode() {
         }
         CalculateLifetimes(context);
         proc.clear();
-        CalculateMemoryAssignments(proc, context);
         auto label = AsmInstruction(x86_64::label, AsmOperand(&n.second));
         out << "\n";
         x86_64::PrintInstruction(label, out);

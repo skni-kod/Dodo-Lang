@@ -58,6 +58,18 @@ AsmOperand Processor::getContent(AsmOperand& op, BytecodeContext& context) {
     return {};
 }
 
+AsmOperand Processor::getContentAtOffset(int32_t offset) {
+    for (const auto& n : stack) if (n.offset == offset) return n.content;
+    if (stack.empty()) CodeGeneratorError("Internal: cannot get content in stack!");
+    return {};
+}
+
+AsmOperand& Processor::getContentRefAtOffset(int32_t offset) {
+    for (auto& n : stack) if (n.offset == offset) return n.content;
+    if (stack.empty()) CodeGeneratorError("Internal: cannot get content in stack!");
+    return stack[0].content;
+}
+
 AsmOperand Processor::getLocation(AsmOperand& op) {
     if (op.op == Location::Variable) {
         for (uint16_t n = 0; n < registers.size(); n++) {
@@ -77,24 +89,94 @@ AsmOperand Processor::getLocation(AsmOperand& op) {
     return op;
 }
 
+AsmOperand Processor::getLocationIfExists(AsmOperand& op) {
+    if (op.op == Location::Variable) {
+        for (uint16_t n = 0; n < registers.size(); n++) {
+            if (registers[n].content == op) {
+                return registers[n].content.copyTo(Location::reg, n);
+            }
+        }
+        for (auto& n : stack) {
+            if (n.content == op) {
+                OperandValue temp;
+                temp.offset = n.offset;
+                return n.content.copyTo(Location::sta, temp);
+            }
+        }
+    }
+    return {};
+}
+
+AsmOperand Processor::getLocationStackBias(AsmOperand& op) {
+    if (op.op == Location::Variable) {
+        for (auto& n : stack) {
+            if (n.content == op) {
+                OperandValue temp;
+                temp.offset = n.offset;
+                return n.content.copyTo(Location::sta, temp);
+            }
+        }
+        for (uint16_t n = 0; n < registers.size(); n++) {
+            if (registers[n].content == op) {
+                return op.copyTo(Location::reg, n);
+            }
+        }
+        CodeGeneratorError("Internal: variable not found in memory!");
+    }
+    return op;
+}
+
+AsmOperand Processor::getLocationRegisterBias(AsmOperand& op) {
+    return getLocation(op);
+}
+
 AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context) {
     if (value.location == Location::Variable) {
-        auto var = context.getVariableObject(value);
+        auto& var = context.getVariableObject(value);
+        int32_t offset;
+        if (var.meta.isReference or var.meta.pointerLevel) {
+            if (stack.empty()) offset = Options::addressSize;
+            else offset = -stack.back().offset + Options::addressSize;
+            if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
+            stack.emplace_back(AsmOperand(value, context), -offset, Options::addressSize);
+            var.assignedOffset = -offset;
+        }
+        else {
+            auto size = var.type->typeSize;
+            if (stack.empty()) offset = size;
+            else offset = -stack.back().offset + size;
+            if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
+            stack.emplace_back(AsmOperand(value, context), -offset, size);
+            var.assignedOffset = -offset;
+        }
+        return {stack.back().offset};
+    }
+    CodeGeneratorError("Internal: unsupported stack push!");
+    return {};
+}
+
+AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context) {
+    if (value.op == Location::Variable) {
+        auto& var = value.object(context);
         int32_t offset;
         if (var.meta.isReference or var.meta.pointerLevel) {
             if (stack.empty()) offset = Options::addressSize;
             else offset = stack.back().offset + Options::addressSize;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
-            stack.emplace_back(AsmOperand(value, context), -offset, Options::addressSize);
+            stack.emplace_back(value, -offset, Options::addressSize);
+            var.assignedOffset = -offset;
         }
         else {
             auto size = var.type->typeSize;
             if (stack.empty()) offset = size;
             else offset = stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
-            stack.emplace_back(AsmOperand(value, context), -offset, size);
+            stack.emplace_back(value, -offset, size);
+            var.assignedOffset = -offset;
         }
-        return {stack.back().offset};
+        OperandValue off;
+        off.offset = stack.back().offset;
+        return {value.copyTo(Location::sta, off)};
     }
     CodeGeneratorError("Internal: unsupported stack push!");
     return {};
@@ -286,14 +368,74 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context) {
         case Location::Zeroed:
             out << "";
             break;
+        case Location::Stack:
+            out << "Stack: " << std::to_string(value.offset);
+        break;
+        case Location::Register:
+            out << "Register: " << std::to_string(value.reg);
+        break;
         default:
             CodeGeneratorError("Internal: unhandled operand print case!");
     }
 }
 
+bool AsmOperand::isAtAssignedPlace(BytecodeContext& context, Processor& processor) {
+    auto& obj = object(context);
+    if (obj.assignedOffset == 0) return false;
+    auto loc = processor.getLocationStackBias(*this);
+    if (loc.op != Location::sta or loc.value.offset != obj.assignedOffset) return false;
+    return true;
+}
+
+AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, std::vector <AsmOperand>* forbiddenLocations) {
+    if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
+    if (op == Location::reg) {
+        auto& content = processor.registers[value.reg].content;
+        auto locations = content.getAllLocations(processor);
+        uint16_t validPlaces = 0;
+        if (forbiddenLocations == nullptr) validPlaces = locations.size() - 1;
+        else {
+            for (auto& n : locations) {
+                if (n == *this) continue;
+                bool isValid = true;
+                for (auto& m : *forbiddenLocations) {
+                    if (m == n) {isValid = false; break;}
+                }
+                validPlaces += isValid;
+            }
+        }
+
+        if (validPlaces == 0) {
+            // there is no other place that will survive where this value is stored
+            auto& obj = content.object(context);
+            auto move = MoveInfo(*this, processor.pushStack(content, context));
+            obj.assignedOffset = move.target.value.offset;
+            AddConversionsToMove(move, context, processor, instructions, content, forbiddenLocations);
+        }
+
+    }
+    else if (op == Location::sta) {
+        auto& content = processor.getContentRefAtOffset(value.offset);
+        auto& obj = content.object(context);
+        CodeGeneratorError("Internal: moves away to stack are unimplemented!");
+    }
+    return *this;
+}
+
+std::vector<AsmOperand> AsmOperand::getAllLocations(Processor& processor) {
+    std::vector<AsmOperand> result;
+    for (auto& n : processor.registers) {
+        if (n.content == *this) result.push_back(n.content.copyTo(Location::reg, n.number));
+    }
+    for (auto& n : processor.stack) {
+        if (n.content == *this) result.push_back(n.content.copyTo(Location::sta, n.offset));
+    }
+    return std::move(result);
+}
+
 AsmInstructionResultInput::AsmInstructionResultInput(bool isInput, AsmOperand location, AsmOperand value) : isFixedLocation(true), isInput(isInput), fixedLocation(location), value(value) {}
 
-AsmInstructionResultInput::AsmInstructionResultInput(bool isInput, uint8_t operandNumber, AsmOperand value) : isFixedLocation(false), isInput(isInput), operandNumber(operandNumber), value(value) {}
+AsmInstructionResultInput::AsmInstructionResultInput(bool isInput, uint8_t operandNumber, AsmOperand value) : isInput(isInput), operandNumber(operandNumber), value(value) {}
 
 AsmInstructionVariant::AsmInstructionVariant(uint16_t code, Options::ArchitectureVersion minimumVersion,
         std::vector <AsmInstructionResultInput> resultsAndInputs)  :

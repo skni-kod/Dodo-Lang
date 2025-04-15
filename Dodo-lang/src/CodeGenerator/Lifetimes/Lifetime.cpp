@@ -4,10 +4,11 @@ void CalculateLifetimes(BytecodeContext& context) {
 
     // resetting global variable use counters
     for (auto& n : globalVariableObjects) {
-        n.location.location = Location::Mem;
         n.uses = 0;
         n.firstUse = 0;
         n.lastUse = 0;
+        n.assignedOffset = 0;
+        n.isPointedTo = false;
     }
 
     // now going through all the instructions and updating lifetimes accordingly

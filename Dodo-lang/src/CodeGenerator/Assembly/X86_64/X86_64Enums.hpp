@@ -457,6 +457,7 @@ namespace x86_64 {
         // Subtract
         // reg/mem -= imm
         // reg -= reg/mem
+        // mem -= reg
         sub,
         // Subtract Scalar Double Precision Floating-Point Value
         // xmm -= xmm/mem64
