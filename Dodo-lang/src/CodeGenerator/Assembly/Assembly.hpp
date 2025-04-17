@@ -42,12 +42,12 @@ struct AsmOperand {
     AsmOperand(BytecodeOperand op, BytecodeContext& context, Location::Type location, OperandValue value);
     AsmOperand(ParserFunctionMethod* functionMethod);
     [[nodiscard]] AsmOperand copyTo(Location::Type location, OperandValue value) const;
-    VariableObject& object(BytecodeContext& context) const;
-    void print(std::ostream& out, BytecodeContext& context);
+    VariableObject& object(BytecodeContext& context, Processor& processor) const;
+    void print(std::ostream& out, BytecodeContext& context, Processor& processor);
     bool isAtAssignedPlace(BytecodeContext& context, Processor& processor);
     // moves the value away if it doesn't need to be there and if it doesn't exist elsewhere and returns the same value or
     // if this is the assigned place then it moves it elsewhere and returns the new place
-    AsmOperand moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, std::vector <AsmOperand>* forbiddenLocations = nullptr);
+    AsmOperand moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations = nullptr);
     std::vector<AsmOperand> getAllLocations(Processor& processor);
 
     bool operator==(const AsmOperand& target) const;
@@ -134,6 +134,7 @@ struct Place {
 struct Processor {
     std::vector <Register> registers;
     std::vector <StackEntry> stack;
+    uint32_t index = 0;
 
     // clears the data to default state before use
     void clear();
@@ -155,7 +156,7 @@ struct Processor {
     AsmOperand tempStack(uint8_t size, uint8_t alignment = 0);
     // assigns new value to a variable at assigned location and disposes of all other instances of it in memory so that only the newest version exists
     // TODO: add support for pointers to ensure there is always a value at the address pointed to
-    void assignVariable(AsmOperand variable, AsmOperand assignedLocation, AsmOperand value);
+    void assignVariable(AsmOperand variable, AsmOperand source, BytecodeContext& context, std::vector<AsmInstruction>& instructions);
     // call AFTER the actions as it removes everything not used beyond this index
     void cleanUnusedVariables(BytecodeContext& context, uint32_t index);
 };

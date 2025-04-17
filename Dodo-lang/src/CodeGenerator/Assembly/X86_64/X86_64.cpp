@@ -36,7 +36,12 @@ namespace x86_64 {
         auto& t = move.target;
 
 
-        if (s == t) return;
+        if (s == t) {
+            if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) proc.getContentRef(t) = proc.getContent(contentToSet, context);
+            else proc.getContentRef(t) = contentToSet;
+
+            return;
+        }
 
         // Here it is rewritten to be based on types and not where stiff is moved from
 

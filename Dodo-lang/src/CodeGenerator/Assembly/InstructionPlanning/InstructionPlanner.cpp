@@ -225,7 +225,7 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
 
         // when it gets here we know that there is something there
         if (content.op == Location::Variable) {
-            auto& object = content.object(context);
+            auto& object = content.object(context, processor);
 
             // that means it escaped clearing and can be removed safely
             if (object.lastUse < index) {
@@ -251,10 +251,6 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
 
     for (auto& n : moves) {
         AddConversionsToMove(n, context, processor, instructions, n.source, nullptr);
-        if (Options::informationLevel >= Options::full) {
-            std::cout << "INFO L3: Generated instruction: ";
-            x86_64::PrintInstruction(instructions.back(), std::cout);
-        }
     }
 
     // adding the instruction itself
@@ -265,13 +261,16 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     ins.op3 = ops[2];
     ins.op4 = ops[3];
 
-    instructions.push_back(ins);
-    if (Options::informationLevel >= Options::full) {
-        std::cout << "INFO L3: Generated instruction: ";
-        x86_64::PrintInstruction(ins, std::cout);
+    for (auto& n : results) {
+        if (n.source.op == Location::Variable and n.source.object(context, processor).lastUse <= index) continue;
+        if (n.target.op == Location::Variable) {
+            auto loc = n.target.moveAwayOrGetNewLocation(context, processor, instructions, index, nullptr);
+            processor.getContentRef(loc) = n.source;
+        }
+        else {
+            processor.getContentRef(n.target) = n.source;
+        }
     }
 
-    for (auto& n : results) {
-        processor.getContentRef(n.target) = n.source;
-    }
+    instructions.push_back(ins);
 }

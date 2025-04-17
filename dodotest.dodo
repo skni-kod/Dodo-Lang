@@ -32,5 +32,7 @@ i32 Main() {
 
 f32 test(let f32 val, let f32 added) {
     let f32 wow = 5;
-    return wow;
+    val += wow;
+    let f32 t = added + val;
+    return t + wow;
 }

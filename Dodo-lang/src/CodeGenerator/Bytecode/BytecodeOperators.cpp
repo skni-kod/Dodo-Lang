@@ -466,7 +466,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     }
                     else {
                         code.type = Bytecode::AssignTo;
-                        code.op3(context.insertTemporary(type, typeMeta));
+                        code.op3(code.op1());
                     }
 
                     break;

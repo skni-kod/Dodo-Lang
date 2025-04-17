@@ -11,7 +11,9 @@ namespace x86_64 {
         int32_t argumentOffset = 0;
         int32_t maxOffset = 0;
 
-        for (uint32_t index = 0; index < context.codes.size(); index++) {
+        for (uint32_t index = processor.index = 0; index < context.codes.size(); processor.index = ++index) {
+            uint32_t printingStart = instructions.size();
+
             auto& current = context.codes[index];
             uint16_t currentSize;
             Type::TypeEnum currentType;
@@ -31,7 +33,7 @@ namespace x86_64 {
                         std::cout << "INFO L3: ";
                         PrintRegisterName(n.number, n.content.size, std::cout);
                         std::cout << ": ";
-                        n.content.print(std::cout, context);
+                        n.content.print(std::cout, context, processor);
                         std::cout << "\n";
                     }
                 }
@@ -39,7 +41,7 @@ namespace x86_64 {
                 for (auto& n : processor.stack) {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: " << n.offset << ": ";
-                        n.content.print(std::cout, context);
+                        n.content.print(std::cout, context, processor);
                         std::cout << "\n";
                     }
                 }
@@ -97,61 +99,22 @@ namespace x86_64 {
                     break;
                 }
                 case Bytecode::AssignTo: {
-                    // TODO: improve this as needed
                     auto sourceOp = AsmOperand(current.op1(), context);
-                    auto value = AsmOperand(current.op2(), context);
-                    auto result = AsmOperand(current.op3(), context);
+                    auto valueOp = AsmOperand(current.op2(), context);
 
-                    if (sourceOp.op != Location::Variable) CodeGeneratorError("Internal: assignment to non-variable!");
-                    auto sourcePlaces = sourceOp.getAllLocations(processor);
-                    // now let's see if the source even exists, if it doesn't let's get a place on the stack I guess
-                    if (sourcePlaces.empty()) {
-                        // it does not so let's give it a place
-                        processor.pushStack(sourceOp, context);
-                    }
-                    // since it's established the variable exists somewhere we can actually assign its value
-                    // let's see what the value we need to set is
-                    if (value.op == Location::Variable) {
-                        // if it's a variable then we just need to find it and do an overwrite-protected move
-                        auto reassigned = processor.getLocation(value).moveAwayOrGetNewLocation(context, processor, instructions, nullptr);
-                        processor.assignVariable(sourceOp, processor.getLocation(reassigned), result);
-                    }
-                    else {
-                        // TODO: add pointer stuff
-                        // if it's not a variable thing then we need to move it into the place
-                        auto obj = sourceOp.object(context);
-                        if (obj.assignedOffset != 0) {
-                            // in that case we MUST move the value into the assigned place
-                            if (result.object(context).uses == 0) {
-                                // if the resulting temporary is not used then let's assign the value of the variable
-                                MoveInfo move = {value, sourceOp.copyTo(Location::sta, obj.assignedOffset)};
-                                x86_64::AddConversionsToMove(move, context, processor, instructions, sourceOp, nullptr);
-                                processor.assignVariable(sourceOp, move.target, sourceOp);
-                            }
-                            else if (obj.lastUse == index) {
-                                // if the variable no longer exists after that then there is no harm in overwriting it
-                                MoveInfo move = {value, sourceOp.copyTo(Location::sta, obj.assignedOffset)};
-                                x86_64::AddConversionsToMove(move, context, processor, instructions, result, nullptr);
-                                processor.assignVariable(sourceOp, move.target, result);
-                            }
-                            else CodeGeneratorError("Internal: unimplemented both variable and result exist after instruction!");
-                        }
-                        else {
-                            // if it's not assigned then it's only in registers so any place should suffice, let's find any and assign the value
-                            if (result.object(context).uses == 0) {
-                                MoveInfo move = {value, processor.getLocation(sourceOp)};
-                                x86_64::AddConversionsToMove(move, context, processor, instructions, sourceOp, nullptr);
-                                processor.assignVariable(sourceOp, move.target, sourceOp);
-                            }
-                            else if (obj.lastUse == index) {
-                                MoveInfo move = {value, processor.getLocation(sourceOp)};
-                                x86_64::AddConversionsToMove(move, context, processor, instructions, result, nullptr);
-                                processor.assignVariable(sourceOp, move.target, result);
-                            }
-                            else CodeGeneratorError("Internal: unimplemented both variable and result exist after instruction!");
+                    bool skip = false;
 
-                        }
+                    if (sourceOp.object(context, processor).lastUse <= index) skip = true;
+
+                    // let's find out what the value is
+                    if (valueOp.op == Location::Variable) {
+
+
+                        valueOp = processor.getLocation(valueOp);
                     }
+
+                    // now let's assign the location or value to the variable
+                    if (not skip) processor.assignVariable(sourceOp, valueOp, context, instructions);
                 }
 
                     break;
@@ -415,6 +378,12 @@ namespace x86_64 {
             // TODO: maybe iterate to not include unused or something
             if (not processor.stack.empty() and processor.stack.back().offset < maxOffset) maxOffset = processor.stack.back().offset < maxOffset;
             processor.cleanUnusedVariables(context, index);
+            if (Options::informationLevel >= Options::full) {
+                for (; printingStart < instructions.size(); printingStart++) {
+                    std::cout << "INFO L3: Generated instruction: ";
+                    x86_64::PrintInstruction(instructions[printingStart], std::cout);
+                }
+            }
 
         }
 
@@ -425,7 +394,7 @@ namespace x86_64 {
                     std::cout << "INFO L3: ";
                     PrintRegisterName(n.number, n.content.size, std::cout);
                     std::cout << ": ";
-                    n.content.print(std::cout, context);
+                    n.content.print(std::cout, context, processor);
                     std::cout << "\n";
                 }
             }
@@ -433,7 +402,7 @@ namespace x86_64 {
             for (auto& n : processor.stack) {
                 if (n.content.op != Location::None) {
                     std::cout << "INFO L3: " << n.offset << ": ";
-                    n.content.print(std::cout, context);
+                    n.content.print(std::cout, context, processor);
                     std::cout << "\n";
                 }
             }
