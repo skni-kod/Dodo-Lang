@@ -91,6 +91,8 @@ struct Bytecode {
     enum BytecodeInstruction {
         None,
         // variable manipulation
+        //      syntax: op1 (variable) as type op2 -> op3 / result
+        Cast,
         //      syntax: op1 (variable) = op3 / result
         Define,
         //      syntax: op1 (variable) = op2 (any scalar), result in op3 / result

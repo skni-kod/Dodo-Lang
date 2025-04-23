@@ -191,6 +191,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::BinNot:
             out << "binary NOT of " << code.op1();
             break;
+        case Bytecode::Cast:
+            out << "cast " << code.op1() << " to type " << code.opType->typeName << std::string(code.opTypeMeta.pointerLevel, '*') << std::string(code.opTypeMeta.isReference, '&') << " and store the result in " << code.op3();
+            break;
         default:
             CodeGeneratorError("Unhandled bytecode instruction in printing!");
     }

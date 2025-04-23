@@ -154,6 +154,8 @@ struct Processor {
     AsmOperand pushStack(AsmOperand value, BytecodeContext& context);
     // returns a viable location for this size and alignment
     AsmOperand tempStack(uint8_t size, uint8_t alignment = 0);
+
+    AsmOperand getFreeRegister(Type::TypeEnum valueType, uint16_t size) const;
     // assigns new value to a variable at assigned location and disposes of all other instances of it in memory so that only the newest version exists
     // TODO: add support for pointers to ensure there is always a value at the address pointed to
     void assignVariable(AsmOperand variable, AsmOperand source, BytecodeContext& context, std::vector<AsmInstruction>& instructions);

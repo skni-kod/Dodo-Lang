@@ -38,6 +38,7 @@ namespace x86_64 {
 
         if (s == t) {
             if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) proc.getContentRef(t) = proc.getContent(contentToSet, context);
+            else if (s.op == Location::imm and t.op == Location::imm) return;
             else proc.getContentRef(t) = contentToSet;
 
             return;

@@ -226,6 +226,28 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, -1}, current.prefix, isGlobal));
                     code.op3(context.insertTemporary(type, typeMeta));
                     break;
+                case Operator::Cast: {
+                    code.type = Bytecode::Cast;
+                    auto& castType = values[current.right];
+                    // TODO: implicit type conversion?
+                    // TODO: rename cast to convert
+                    if (*castType.identifier != "auto") {
+                        if (not types.contains(*castType.identifier)) CodeGeneratorError("Casting to non-type!");
+                        if (&types[*castType.identifier] != type) CodeGeneratorError("Casting to invalid type!");
+                        if (castType.typeMeta.pointerLevel != typeMeta.pointerLevel or castType.typeMeta.isReference != typeMeta.isReference) CodeGeneratorError("Casting to invalid type modification!");
+                    }
+
+                    // result is of the cast type
+                    code.op3(context.insertTemporary(type, typeMeta));
+                    // get the type of the last member of the lvalue used
+                    bool mutability = typeMeta.isMutable;
+                    if (not type->isPrimitive) CodeGeneratorError("Cannot cast to non-primitive types!");
+                    GetTypes(context, values, type, typeMeta, current.left);
+                    typeMeta.isMutable = mutability;
+                    if (not type->isPrimitive) CodeGeneratorError("Cannot cast from non-primitive types!");
+                    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left, isGlobal));
+                }
+                    break;
                 case Operator::Dereference:
                     code.type = Bytecode::Dereference;
                     code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, +1}, current.prefix, isGlobal));

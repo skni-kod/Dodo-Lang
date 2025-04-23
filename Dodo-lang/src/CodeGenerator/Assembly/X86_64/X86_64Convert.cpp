@@ -116,7 +116,26 @@ namespace x86_64 {
                     // now let's assign the location or value to the variable
                     if (not skip) processor.assignVariable(sourceOp, valueOp, context, instructions);
                 }
+                    break;
 
+                case Bytecode::Cast: {
+                    auto sourceOp = AsmOperand(current.op1(), context);
+                    auto resultOp = AsmOperand(current.op3(), context);
+
+                    if (sourceOp.object(context, processor).lastUse <= index) {
+                        auto loc = processor.getLocation(sourceOp);
+                        AsmOperand targetLoc;
+                        if ((sourceOp.type == Type::floatingPoint or resultOp.type == Type::floatingPoint) and sourceOp.type != resultOp.op) targetLoc = processor.getFreeRegister(resultOp.type, resultOp.size);
+                        else targetLoc = loc;
+                        MoveInfo move = {sourceOp.copyTo(loc.op, loc.value), resultOp.copyTo(targetLoc.op, targetLoc.value)};
+                        x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp, nullptr);
+                    }
+                    else {
+                        auto loc = processor.getFreeRegister(resultOp.type, resultOp.size);
+                        MoveInfo move = {sourceOp, resultOp.copyTo(loc.op, loc.value)};
+                        x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp, nullptr);
+                    }
+                }
                     break;
                 case Bytecode::Add:
                     if (currentType != Type::floatingPoint) {
@@ -189,8 +208,8 @@ namespace x86_64 {
                             AsmInstructionInfo instruction = {
                             { // variants of the instruction
                                 AsmInstructionVariant(addss, Options::None,
-                                    AsmOpDefinition(Location::reg, 1, 8, true, true),
-                                    AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                    AsmOpDefinition(Location::reg, 4, 4, true, true),
+                                    AsmOpDefinition(Location::reg, 4, 4, true, false),
                                     { // allowed registers
                                         RegisterRange(XMM0, XMM31, true, true, false, false)
                                     },
@@ -200,8 +219,8 @@ namespace x86_64 {
                                         AsmInstructionResultInput(false, 1, {current.op3(), context})
                                 }),
                                 AsmInstructionVariant(addss, Options::None,
-                                    AsmOpDefinition(Location::reg, 1, 8, true, true),
-                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                    AsmOpDefinition(Location::reg, 4, 4, true, true),
+                                    AsmOpDefinition(Location::sta, 4, 4, true, false),
                                     { // allowed registers
                                         RegisterRange(XMM0, XMM31, true, false, false, false)
                                     },
@@ -218,8 +237,8 @@ namespace x86_64 {
                             AsmInstructionInfo instruction = {
                                 { // variants of the instruction
                                     AsmInstructionVariant(addsd, Options::None,
-                                        AsmOpDefinition(Location::reg, 1, 8, true, true),
-                                        AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                        AsmOpDefinition(Location::reg, 8, 8, true, true),
+                                        AsmOpDefinition(Location::reg, 8, 8, true, false),
                                         { // allowed registers
                                             RegisterRange(XMM0, XMM31, true, true, false, false)
                                         },
@@ -229,8 +248,8 @@ namespace x86_64 {
                                             AsmInstructionResultInput(false, 1, {current.op3(), context})
                                     }),
                                     AsmInstructionVariant(addsd, Options::None,
-                                        AsmOpDefinition(Location::reg, 1, 8, true, true),
-                                        AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                        AsmOpDefinition(Location::reg, 8, 8, true, true),
+                                        AsmOpDefinition(Location::sta, 8, 8, true, false),
                                         { // allowed registers
                                             RegisterRange(XMM0, XMM31, true, false, false, false)
                                         },

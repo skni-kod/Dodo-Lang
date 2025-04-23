@@ -195,6 +195,41 @@ AsmOperand Processor::tempStack(uint8_t size, uint8_t alignment) {
     return location;
 }
 
+AsmOperand Processor::getFreeRegister(Type::TypeEnum valueType, uint16_t size) const {
+    // TODO: add register cost levels
+    for (auto& n : registers) {
+        if (n.content.op != Location::None) continue;
+        bool valid;
+        switch (valueType) {
+            case Type::address:
+            case Type::unsignedInteger:
+                valid = n.canOperateOnUnsignedIntegers;
+                break;
+            case Type::signedInteger:
+                valid = n.canOperateOnSignedIntegers;
+                break;
+            case Type::floatingPoint:
+                valid = n.canOperateOnFloatingPointValues;
+                break;
+            default: valid = false;
+        }
+        switch (size) {
+            case 1: valid *= n.operandSize8; break;
+            case 2: valid *= n.operandSize16; break;
+            case 4: valid *= n.operandSize32; break;
+            case 8: valid *= n.operandSize64; break;
+            case 16: valid *= n.operandSize128; break;
+            case 32: valid *= n.operandSize256; break;
+            case 64: valid *= n.operandSize512; break;
+            default: valid = false;
+        }
+        if (valid) return AsmOperand(Location::reg, valueType, false, size, n.number);
+    }
+    CodeGeneratorError("Internal: could not find a valid register in first pass!");
+    return {};
+}
+
+
 Place::Place(Register* reg, const Location::Type where) : reg(reg), where(where) {}
 Place::Place(StackEntry* sta, const Location::Type where) : sta(sta), where(where){}
 

@@ -37,6 +37,8 @@ inline std::unordered_map keywordsAndOperators {
     std::pair<std::string, LexerToken> (".",                LexerToken(Token::Keyword,  static_cast <uint64_t> (Keyword::Dot), 0)),
     std::pair<std::string, LexerToken> ("::",               LexerToken(Token::Keyword,  static_cast <uint64_t> (Keyword::Member), 0)),
     std::pair<std::string, LexerToken> ("&",                LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Address), 0)),
+    std::pair<std::string, LexerToken> ("$",                LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Cast), 0)),
+    std::pair<std::string, LexerToken> ("cast",             LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Cast), 0)),
     std::pair<std::string, LexerToken> ("=",                LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Assign), 0)),
     std::pair<std::string, LexerToken> ("assign",           LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Assign), 0, true)),
     std::pair<std::string, LexerToken> ("+",                LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Add), 0)),

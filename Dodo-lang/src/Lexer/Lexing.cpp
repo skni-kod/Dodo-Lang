@@ -107,9 +107,7 @@ bool DoubleOperator(const uint32_t first, const uint32_t second) {
 enum State {
     normal, string, character, singleComment, longComment, hexNumber, octNumber, binNumber, number, oper
 };
-uint8_t lexerState = State::normal;
-bool doubleOperator = false;
-uint32_t doubleOperatorBracket = 0;
+
 
 LexerToken PushWrapper(const std::string& result, uint32_t characterNumber) {
     if (keywordsAndOperators.contains(result)) {
@@ -123,6 +121,16 @@ LexerToken PushWrapper(const std::string& result, uint32_t characterNumber) {
     }
     return {Token::Identifier, result, characterNumber};
 }
+
+// state variables
+uint8_t lexerState = State::normal;
+bool doubleOperator = false;
+uint32_t doubleOperatorBracket = 0;
+std::string result;
+bool isNegative = false;
+bool hasDot = false;
+bool hasFloatSign = false;
+uint8_t base = 0;
 
 LexerLine LexLine(std::string& line) {
     LexerLine output;
@@ -282,12 +290,6 @@ LexerLine LexLine(std::string& line) {
 
 
     // now a go through the characters without context to create something
-    std::string result;
-    bool isNegative = false;
-    bool hasDot = false;
-    bool hasFloatSign = false;
-    uint8_t base = 0;
-
     for (int64_t n = 0; n < characters.size(); n++) {
         auto& current = characters[n];
         switch (lexerState) {
@@ -338,25 +340,30 @@ LexerLine LexLine(std::string& line) {
                 }
 
                 result += current.toString();
-                if (n == characters.size() - 1) {
-                    output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
-                }
+                //if (n == characters.size() - 1) {
+                //    output.tokens.emplace_back(PushWrapper(result, n - result.size() + 1));
+                //}
                 break;
             case State::oper:
+                if (result == "/") {
+                    if (current.code == '/') {
+                        lexerState = State::singleComment;
+                        result.clear();
+                        continue;
+                    }
+                    if (current.code == '*') {
+                        lexerState = State::longComment;
+                        result.clear();
+                        continue;
+                    }
+                }
+
                 if (IsSpecialCharacter(current.code) and CanConstructFurther(result + current.toString())) {
                     result += current.toString();
                     if (n == characters.size() - 1) {
                         if (doubleOperator and (result == ";" or (result == ")" and doubleOperatorBracket == 0))) {
                             doubleOperator = false;
                             output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
-                        }
-                        if (result == "//") {
-                            lexerState = State::singleComment;
-                            continue;
-                        }
-                        if (result == "/*") {
-                            lexerState = State::longComment;
-                            continue;
                         }
                         if ((output.tokens.empty()
                                 or (not output.tokens.empty() and not output.tokens.front().MatchKeyword(Keyword::Operator)))
@@ -377,14 +384,6 @@ LexerLine LexLine(std::string& line) {
                     }
                 }
                 else if (not result.empty()) {
-                    if (result == "//") {
-                        lexerState = State::singleComment;
-                        continue;
-                    }
-                    if (result == "/*") {
-                        lexerState = State::longComment;
-                        continue;
-                    }
                     if (doubleOperator and (result == ";" or (result == ")" and doubleOperatorBracket == 0))) {
                         doubleOperator = false;
                         output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
@@ -438,7 +437,6 @@ LexerLine LexLine(std::string& line) {
                     output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketOpen), 0);
                 }
                 break;
-            // TODO: multiline strings
             case State::string:
                 result += std::string(current.whitespaceBefore, ' ');
                 if (current.code == '"' and not current.isEscaped) {

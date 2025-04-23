@@ -23,6 +23,7 @@ bool IsRightToLeftOrdered(const LexerToken* token) {
             case Operator::Assign:
             case Operator::Address:
             case Operator::Dereference:
+            case Operator::Cast:
                 return true;
             default:
                 break;
@@ -76,6 +77,24 @@ uint32_t FindFirstClosed(const Operator::Type groupType, const std::pair<uint32_
 // assumes there is at least one argument
 uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
     std::vector <LexerToken*>& tokens);
+
+ParserTreeValue ParseExpressionCast(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range, std::vector <LexerToken*>& tokens) {
+    auto [start, end] = range;
+    if (tokens[start]->type != Token::Identifier) ParserError("Expected a type identifier!");
+    ParserTreeValue out;
+    out.operation = ParserOperation::TypeIdentifier;
+    out.identifier = tokens[start]->text;
+    for (uint32_t n = start + 1; n < end; n++) {
+        if (tokens[n]->MatchOperator(Operator::Multiply, Operator::Dereference)) out.typeMeta.pointerLevel++;
+        else if (tokens[n]->MatchOperator(Operator::Address)) {
+            if (n != end - 1) ParserError("Reference operator must be the last!");
+            out.typeMeta.isReference = true;
+        }
+        else ParserError("Invalid type modifier!");
+    }
+    valueArray.push_back(out);
+    return out;
+}
 
 ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
     std::vector <LexerToken*>& tokens, ParserOperation::Type previousOperation = ParserOperation::None, const LexerToken* auxToken = nullptr) {
@@ -151,10 +170,14 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
 
         out.operation = ParserOperation::Operator;
         out.code = mostImportant->op;
+
+
+
         if (IsRightToLeftOrdered(mostImportant)) {
             valueArray.push_back(ParseExpressionStep(valueArray, {start, lastChosen}, tokens));
             out.left = valueArray.size() - 1;
-            valueArray.push_back(ParseExpressionStep(valueArray, {lastChosen + 1, end}, tokens));
+            if (out.code == Operator::Cast) valueArray.push_back(ParseExpressionCast(valueArray, {lastChosen + 1, end}, tokens));
+            else valueArray.push_back(ParseExpressionStep(valueArray, {lastChosen + 1, end}, tokens));
             out.right = valueArray.size() - 1;
         }
         else {
