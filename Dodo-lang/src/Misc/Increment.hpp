@@ -3,6 +3,6 @@
 
 #include <string>
 
-const std::string incrementedVersionValue =  "0.2.3 (type-rework assembly generator development), build: 1543 (2025-04-24)";
+const std::string incrementedVersionValue =  "0.2.3 (type-rework assembly generator development), build: 1638 (2025-04-24)";
 
 #endif

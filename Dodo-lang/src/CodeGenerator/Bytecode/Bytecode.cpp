@@ -236,8 +236,12 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
                 or type->primitiveType != Type::unsignedInteger or typeMeta.pointerLevel != 1)
                     CodeGeneratorError("String literals can only be assigned to 1 byte unsigned integer pointers!");
 
-            passedStrings.emplace_back(current.identifier);
-            return {Location::String, {passedStrings.size() - 1}};
+            // it seems that we need to find the string that was passed, which will be an issue and needs to be worked on
+            // TODO: improve string support
+            for (uint64_t n = 0; n < passedStrings.size(); n++) {
+                if (passedStrings[n] == current.identifier) return {Location::String, n};
+            }
+            CodeGeneratorError("Internal: could not find passed string!");
         case ParserOperation::Definition:
             code.type = Bytecode::Define;
             if (not types.contains(*current.identifier)) CodeGeneratorError("Type " + *current.identifier + " does not exist!");
@@ -314,6 +318,24 @@ void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, Ty
             if (current.next) GetTypes(context, values, type, typeMeta, current.next);
             return;
         case ParserOperation::Literal:
+            if (type == nullptr) {
+                // we need to choose a type for the literal
+                if (Options::addressSize == 8) {
+                    switch (current.literal->literalType) {
+                        case Type::address:
+                        case Type::unsignedInteger:
+                            type = &types["u64"];
+                            break;
+                        case Type::signedInteger:
+                            type = &types["i64"];
+                            break;
+                        case Type::floatingPoint:
+                            type = &types["f64"];
+                            break;
+                    }
+                }
+                else CodeGeneratorError("Internal: unimplemented address size literal!");
+            }
             return;
         case ParserOperation::String:
             type = &types["char"];

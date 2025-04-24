@@ -1,38 +1,14 @@
-/*
+import "Print.dodo";
+
 i32 Main() {
-    let mut test g = 5;
-    let u64 k = syscall(1, 2, r, "test");
-    return false;
-}
-
-i32 global(let i32 wow, let i32 other) {
-       return wow;
-}
-
-type test {
-    let i32 k = 10;
-    let mut i16 h = 5;
-
-    test& operator = (let mut test& o, let i16 val) {
-        //o.h = val;
-        //return o;
-    }
-    i32 something(let i32 wow) {
-       return wow;
-    }
-}
-
-
-let i32 r = 10;
-*/
-i32 Main() {
+    Println(12, "Hello world!");
     let f32 arg = 10;
-    let f32 fl = test(arg, arg);
+    let f32 fl = Test(arg, arg);
     let i32 y = fl cast auto;
     return y + 3;
 }
 
-f32 test(let f32 val, let f32 added) {
+f32 Test(let f32 val, let f32 added) {
     let f32 wow = 5;
     val += wow;
     let f32 t = added + val;

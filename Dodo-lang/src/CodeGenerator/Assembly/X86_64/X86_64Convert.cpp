@@ -139,16 +139,20 @@ namespace x86_64 {
                     break;
                 case Bytecode::Argument: {
                     // since there is an argument, there must be a call after it, so let's gather the arguments and the call
+                    uint64_t firstIndex = index;
                     std::vector<Bytecode*> arguments;
                     do arguments.push_back(&context.codes[index++]);
                     while (context.codes[index].type == Bytecode::Argument);
 
                     // now we have arguments gathered, so let's get the call itself
                     switch (context.codes[index].type) {
-                        case Bytecode::Syscall: CodeGeneratorError("Internal: syscalls not implemented!");
+                        case Bytecode::Syscall: {
+                            auto [args, off] = GetFunctionMethodArgumentLocations(arguments, context, processor);
+                            argumentPlaces = std::move(args);
+                            argumentOffset = off;
+                        }
                             break;
-                        case Bytecode::Method: CodeGeneratorError("Internal: methods not implemented!");
-                            break;
+                        case Bytecode::Method:
                         case Bytecode::Function: {
                                 auto [args, off] = GetFunctionMethodArgumentLocations(*context.codes[index].op1Value.function);
                                 argumentPlaces = std::move(args);
@@ -162,7 +166,8 @@ namespace x86_64 {
                     // first let's place the arguments in correct places
                     for (uint32_t n = 0; n < arguments.size(); n++) {
                         auto s = AsmOperand(arguments[n]->op3(), context);
-                        MoveInfo move = {processor.getLocation(s), argumentPlaces[n]};
+                        // TODO: add forbidden locations
+                        MoveInfo move = {processor.getLocation(s), argumentPlaces[n].moveAwayOrGetNewLocation(context, processor, instructions, firstIndex, nullptr)};
                         x86_64::AddConversionsToMove(move, context, processor, instructions, s, nullptr);
                     }
 
@@ -198,15 +203,19 @@ namespace x86_64 {
 
                     // now doing the call itself and setting return value
                     if (context.codes[index].type == Bytecode::Syscall) {
-
+                        instructions.emplace_back(mov,
+                        AsmOperand(Location::reg, Type::unsignedInteger, false, 8, RAX),
+                        AsmOperand(Location::Literal, Type::unsignedInteger, false, 8, context.codes[index].op1Value.ui)
+                            );
+                        instructions.emplace_back(syscall);
                     }
                     else {
                         instructions.emplace_back(call, AsmOperand(Location::Label, Type::none, true, AsmOperand::LabelType::function, context.codes[index].op1Value));
-                        auto result = AsmOperand(context.codes[index].op3(), context);
-                        if (result.op != Location::None) {
-                            if (result.type == Type::floatingPoint) processor.registers[XMM0].content = result;
-                            else processor.registers[RAX].content = result;
-                        }
+                    }
+                    auto result = AsmOperand(context.codes[index].op3(), context);
+                    if (result.op != Location::None) {
+                        if (result.type == Type::floatingPoint) processor.registers[XMM0].content = result;
+                        else processor.registers[RAX].content = result;
                     }
 
                 }

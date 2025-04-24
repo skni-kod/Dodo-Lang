@@ -39,6 +39,46 @@ bool IsSpecialCharacter(uint32_t code) {
     }
 }
 
+void ReEscapeCharacters(std::string* text) {
+    // ALWAYS also change the one below
+    for (uint64_t n = 0; n < text->size(); n++) {
+        switch ((*text)[n]) {
+            case '\a':
+                *text = text->substr(0, n) + "\\a" + text->substr(n + 1);
+                break;
+            case '\b':
+                *text = text->substr(0, n) + "\\b" + text->substr(n + 1);
+                break;
+            case '\t':
+                *text = text->substr(0, n) + "\\t" + text->substr(n + 1);
+                break;
+            case '\n':
+                *text = text->substr(0, n) + "\\n" + text->substr(n + 1);
+                break;
+            case '\v':
+                *text = text->substr(0, n) + "\\v" + text->substr(n + 1);
+                break;
+            case '\f':
+                *text = text->substr(0, n) + "\\f" + text->substr(n + 1);
+                break;
+            case '\r':
+                *text = text->substr(0, n) + "\\r" + text->substr(n + 1);
+                break;
+            case '\e':
+                *text = text->substr(0, n) + "\\e" + text->substr(n + 1);
+                break;
+            case '\0':
+                *text = text->substr(0, n) + "\\0" + text->substr(n + 1);
+                break;
+            case '\"':
+                *text = text->substr(0, n) + "\\\"" + text->substr(n + 1);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
 // doesn't seem scalable, can't I make something better?
 bool CanConstructFurther(const std::string& current) {
     switch (current.size()) {
@@ -446,6 +486,7 @@ LexerLine LexLine(std::string& line) {
                 }
                 else {
                     if (current.isEscaped) {
+                        // ALWAYS update above
                         switch (current.code) {
                             case 'a':
                                 result += '\a';

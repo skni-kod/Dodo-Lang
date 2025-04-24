@@ -35,5 +35,6 @@ The project is being developed as a SKNI "KOD" project.
   - all basic x86-64 instructions have been defined and are being implemented
   - can output instruction with operands that are defined
   - can convert types
-  - can do mostly correct x86-64 unix style calls
+  - can do mostly correct x86-64 unix style calls and syscalls
+  - can do printing
   - moving values and conversions between types largely done

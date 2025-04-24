@@ -16,6 +16,7 @@ namespace x86_64 {
     // and amount of space on stack required for arguments
     // stack arguments are returned in the form used to reference arguments and not pass them (from 16 up)!
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target);
+    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, BytecodeContext& context, Processor& processor);
     // the driver function for converting bytecode to assembly
     void ConvertBytecode(BytecodeContext& context, Processor& processor, ParserFunctionMethod* source, std::ofstream& out);
     // prints all instructions

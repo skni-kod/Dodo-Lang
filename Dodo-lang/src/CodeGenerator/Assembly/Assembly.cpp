@@ -264,6 +264,12 @@ AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context) {
         type = op.literalType;
         value = op.value;
     }
+    else if (op.location == Location::String) {
+        this->op = op.location;
+        size = 8;
+        type = Type::address;
+        value = op.value;
+    }
     else CodeGeneratorError("Unsupported operand type!");
 }
 
@@ -436,6 +442,7 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
     if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
     if (op == Location::reg) {
         auto& content = processor.registers[value.reg].content;
+        if (processor.registers[value.reg].content.op == Location::None) return *this;
         auto& obj = content.object(context, processor);
         if (obj.lastUse < index or obj.uses == 0) return *this;
         auto locations = content.getAllLocations(processor);
@@ -454,7 +461,7 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
 
         if (validPlaces == 0) {
             // there is no other place that will survive where this value is stored
-            auto move = MoveInfo(*this, processor.pushStack(content, context));
+            auto move = MoveInfo(content.copyTo(op, value.reg), processor.pushStack(content, context));
             obj.assignedOffset = move.target.value.offset;
             AddConversionsToMove(move, context, processor, instructions, content, forbiddenLocations);
         }
@@ -568,7 +575,7 @@ bool Register::canBeStored(const VariableObject& variable) const {
 void Processor::assignVariable(AsmOperand variable, AsmOperand source, BytecodeContext& context, std::vector<AsmInstruction>& instructions) {
     auto locations = variable.getAllLocations(*this);
     if (locations.empty()) pushStack(variable, context);
-    if (source.op == Location::imm) {
+    if (source.op == Location::imm or source.op == Location::String) {
         auto location = getLocationStackBias(variable);
         MoveInfo move = {source, location};
         for (auto& n : registers) if (n.content == variable) n.content = {};

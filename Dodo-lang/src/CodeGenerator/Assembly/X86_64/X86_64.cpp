@@ -78,6 +78,10 @@ namespace x86_64 {
                     if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
                     else CodeGeneratorError("Internal: Invalid address memory target!");
                 }
+                else if (s.op == Location::String) {
+                    if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
+                    else CodeGeneratorError("Internal: Invalid address string target!");
+                }
                 else CodeGeneratorError("Internal: invalid address source!");
             }
             else if (s.type != Type::floatingPoint and t.type == Type::unsignedInteger) {
@@ -214,6 +218,10 @@ namespace x86_64 {
                         // integers into normal registers
                         result.emplace_back(Location::reg, primitiveType, false, typeSize, integersPointers[intPointerCounter++]);
                         result.back().isArgumentMove = true;
+                        if (n.typeMeta().isReference or n.typeMeta().pointerLevel) {
+                            result.back().type = Type::address;
+                            result.back().size = 8;
+                        }
                     }
                     else {
                         // move the value onto the stack
@@ -258,4 +266,88 @@ namespace x86_64 {
         else CodeGeneratorError("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
         return {result, stackOffset};
     }
+
+    // for syscalls
+    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, BytecodeContext& context, Processor& processor) {
+        std::vector <AsmOperand> result;
+        int32_t stackOffset = 0;
+
+        // first off preparing the correct table of places
+        if (Options::targetSystem == "LINUX") {
+            std::array <uint8_t, 6> integersPointers = {RDI, RSI, RDX, RDX, R8, R9};
+            std::array <uint8_t, 8> floats = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
+            uint16_t intPointerCounter = 0, floatCounter = 0;
+
+            // static chain pointer is probably not going to be used since it's for parent function in lambdas and such
+
+            // TODO: add "eightbytes" for structures, mostly for syscalls/c calls
+            for (auto& n : target) {
+                // now we know the type and size
+                auto thing = AsmOperand(n->op3(), context);
+
+                bool isSimple = true;
+                VariableObject* obj = nullptr;
+                if (thing.op == Location::Variable) {
+                    obj = &thing.object(context, processor);
+                    if (not obj->type->isPrimitive and (not obj->meta.isReference and obj->meta.pointerLevel == 0)) isSimple = false;
+                }
+
+                if (isSimple) {
+                    // a primitive
+                    auto primitiveType = thing.type;
+                    auto typeSize = thing.size;
+                    if (floatCounter != 8 and primitiveType == Type::floatingPoint) {
+                        // floats into SSE/AVX registers
+                        result.emplace_back(Location::reg, Type::floatingPoint, false, typeSize, floats[floatCounter++]);
+                        result.back().isArgumentMove = true;
+                    }
+                    else if (intPointerCounter != 6 and primitiveType != Type::floatingPoint){
+                        // integers into normal registers
+                        result.emplace_back(Location::reg, primitiveType, false, typeSize, integersPointers[intPointerCounter++]);
+                        result.back().isArgumentMove = true;
+                    }
+                    else {
+                        // move the value onto the stack
+                        CodeGeneratorError("Internal: stack arguments not supported!");
+
+                        // ensure it's aligned properly and added
+                        if (stackOffset % thing.size) stackOffset = (stackOffset / thing.size + 2) * thing.size;
+                        else stackOffset += thing.size;
+
+                        OperandValue offset;
+                        offset.offset = stackOffset;
+                        result.emplace_back(Location::sta, primitiveType, false, typeSize, offset);
+                        result.back().isArgumentMove = true;
+                    }
+                }
+                else {
+                    // it's a complex type
+                    CodeGeneratorError("Internal: complex type arguments unimplemented!");
+                    CodeGeneratorError("Internal: stack arguments not supported!");
+                    if (stackOffset % 8) stackOffset = (stackOffset / 8 + 2) * 8;
+                    else stackOffset += 8;
+
+                    OperandValue offset;
+                    offset.offset = stackOffset;
+                    auto typeSize = obj->type->typeSize;
+                    result.emplace_back(Location::sta, Type::address, false, typeSize, offset);
+                    result.back().isArgumentMove = true;
+                }
+            }
+            if (stackOffset % 16) {
+                stackOffset = (stackOffset / 16 + 1) * 16;
+            }
+            for (auto& n : result) {
+                if (n.op == Location::sta) {
+                    n.value.offset = 16 + stackOffset - n.value.offset;
+                }
+            }
+        }
+        else if (Options::targetSystem == "WINDOWS") {
+            CodeGeneratorError("Microsoft x86-64 calling convention is not supported, linux's is though!");
+        }
+        else CodeGeneratorError("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
+        return {result, stackOffset};
+    }
+
 }

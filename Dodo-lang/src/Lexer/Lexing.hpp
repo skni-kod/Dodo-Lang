@@ -102,6 +102,7 @@ public:
 };
 
 void LexerError(const std::string& message);
+void ReEscapeCharacters(std::string* text);
 
 inline uint32_t currentCharacter = 0;
 inline uint64_t currentLine = 0;

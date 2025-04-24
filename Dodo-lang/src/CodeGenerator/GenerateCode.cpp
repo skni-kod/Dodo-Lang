@@ -71,14 +71,11 @@ void GenerateCode() {
             CodeGeneratorError("Invalid target system!");
         }
         out << ".section .data\n";
-        // global variables
-        //x86_64::AddGlobalVariables(out);
 
         out << "\n.section .text\n";
-        // global text declaration
-
+        // global text data
         for (uint64_t n = 0; n < passedStrings.size(); n++) {
-            out << "LS" << std::to_string(n) << ":\n" << std::string(Options::functionIndentation, ' ') << ".string " << passedStrings[n] << "\n\n";
+            out << "LS" << std::to_string(n) << ":\n" << std::string(Options::functionIndentation, ' ') << ".string \"" << *passedStrings[n] << "\"\n";
         }
 
         out << "\n.global _start\n";
@@ -157,62 +154,6 @@ void GenerateCode() {
         out << "\n";
         x86_64::PrintInstruction(label, out);
         x86_64::ConvertBytecode(context, proc, &n.second, out);
-    }
-
-    
-    /*
-    // Functions:
-    for (auto& current: parserFunctions.map) {
-        // cleaning up after possible previous thing
-        bytecodes.clear();
-        finalInstructions.clear();
-        lastFunctionName = &current.second.name;
-        generatorMemory.cleanX86_86();
-        if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
-            out << "\n"
-                << current.second.name << ":" << "\n";
-            PrintWithSpaces("pushq", out);
-            out << "%rbp\n";
-            PrintWithSpaces("movq", out);
-            out << "%rsp, %rbp\n";
-        }
-
-        // first off the instructions need to be changed into raw operations universal for platforms
-        //GenerateFunctionStepOne(current.second);
-
-        // general optimizations will take place here
-        if (Optimizations::optimizeBytecode) {
-            //OptimizeBytecode();
-        }
-
-        // next convert them into platform specific code
-        //GenerateFunctionStepTwo(current.second);
-        // platform specific optimizations will be done here
-
-        // at the end use the calculated stack offset and put the thing into code
-        //for (auto& finalInstruction: finalInstructions) {
-        //    finalInstruction.outputX86_64(out);
-        //}
-
-        // end function
-        if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
-            if (doAddLeave) {
-                PrintWithSpaces("leave", out);
-                out << "\n";
-            }
-            else {
-                PrintWithSpaces("popq", out);
-                out << "%rbp\n";
-            }
-            PrintWithSpaces("ret", out);
-            out << "\n";
-        }
-        current.second.instructions.clear();
-    }
-    */
-    // add end code here along with the runner code fragment
-    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
-
     }
 
     std::cout << "INFO L1: Assembly output generation complete!\n";

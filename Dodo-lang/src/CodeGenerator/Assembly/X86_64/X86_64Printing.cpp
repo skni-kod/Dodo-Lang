@@ -498,7 +498,7 @@ namespace x86_64 {
             out << "$" << std::to_string(op.value.u64);
             return;
         case Location::String:
-            CodeGeneratorError("Internal: unimplemented operand print!");
+            out << "$LS" << std::to_string(op.value.u64);
             return;
         case Location::Label:
             if (op.labelType == AsmOperand::function) {
