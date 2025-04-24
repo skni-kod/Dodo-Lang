@@ -21,8 +21,10 @@ struct AsmOperand {
     // type of value
     uint8_t type : 2 = Type::none;
     #endif
-    // if set to true then the address in the operand should be used instead of it
+    // if set to true, then the address in the operand should be used instead of it
     bool useAddress : 1 = false;
+    // if set to true, then it's an argument move that might need to have its stack location changed
+    bool isArgumentMove : 1 = false;
     // size for operation in bytes
     enum LabelType {
         none, function, jump, string
@@ -36,6 +38,7 @@ struct AsmOperand {
     OperandValue value = {};
     AsmOperand() = default;
     AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, uint8_t size, OperandValue value);
+    AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, LabelType label, OperandValue value);
     AsmOperand(int32_t stackOffset);
     AsmOperand(BytecodeOperand op, BytecodeContext& context);
     // overrides the location to something else while preserving the size and type of operand

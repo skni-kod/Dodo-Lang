@@ -125,7 +125,7 @@ namespace x86_64 {
                     if (sourceOp.object(context, processor).lastUse <= index) {
                         auto loc = processor.getLocation(sourceOp);
                         AsmOperand targetLoc;
-                        if ((sourceOp.type == Type::floatingPoint or resultOp.type == Type::floatingPoint) and sourceOp.type != resultOp.op) targetLoc = processor.getFreeRegister(resultOp.type, resultOp.size);
+                        if ((sourceOp.type == Type::floatingPoint or resultOp.type == Type::floatingPoint) and sourceOp.type != resultOp.type) targetLoc = processor.getFreeRegister(resultOp.type, resultOp.size);
                         else targetLoc = loc;
                         MoveInfo move = {sourceOp.copyTo(loc.op, loc.value), resultOp.copyTo(targetLoc.op, targetLoc.value)};
                         x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp, nullptr);
@@ -136,6 +136,81 @@ namespace x86_64 {
                         x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp, nullptr);
                     }
                 }
+                    break;
+                case Bytecode::Argument: {
+                    // since there is an argument, there must be a call after it, so let's gather the arguments and the call
+                    std::vector<Bytecode*> arguments;
+                    do arguments.push_back(&context.codes[index++]);
+                    while (context.codes[index].type == Bytecode::Argument);
+
+                    // now we have arguments gathered, so let's get the call itself
+                    switch (context.codes[index].type) {
+                        case Bytecode::Syscall: CodeGeneratorError("Internal: syscalls not implemented!");
+                            break;
+                        case Bytecode::Method: CodeGeneratorError("Internal: methods not implemented!");
+                            break;
+                        case Bytecode::Function: {
+                                auto [args, off] = GetFunctionMethodArgumentLocations(*context.codes[index].op1Value.function);
+                                argumentPlaces = std::move(args);
+                                argumentOffset = off;
+                            }
+                            break;
+                            default: CodeGeneratorError("Internal: somehow a non-callable has arguments!");
+                    }
+
+                    // now we have the argument places ready and can move then there
+                    // first let's place the arguments in correct places
+                    for (uint32_t n = 0; n < arguments.size(); n++) {
+                        auto s = AsmOperand(arguments[n]->op3(), context);
+                        MoveInfo move = {processor.getLocation(s), argumentPlaces[n]};
+                        x86_64::AddConversionsToMove(move, context, processor, instructions, s, nullptr);
+                    }
+
+                    // now that the arguments are in place, we need to move away the ones that would get overwritten
+                    // TODO: add caller and callee saved registers
+                    for (auto& n : processor.registers) {
+                        // only variables get preserved
+                        if (n.content.op != Location::Variable) {
+                            n.content = {};
+                            continue;
+                        }
+
+                        bool evacuate = true;
+                        for (auto& m : argumentPlaces) {
+                            if (m.op == Location::reg and m.value.reg == n.number) {
+                                evacuate = false;
+                                break;
+                            }
+                        }
+                        if (not evacuate) continue;
+
+                        // now we need to know if the thing there is even needed
+                        auto& obj = n.content.object(context, processor);
+                        if (obj.lastUse > index and obj.assignedOffset == 0) {
+                            // it exists if it has a stack location, then it's fine.
+                            // if it has none, then we need to move it from the register to the stack
+                            MoveInfo move = {n.content.copyTo(Location::reg, n.number), processor.pushStack(n.content, context)};
+                            x86_64::AddConversionsToMove(move, context, processor, instructions, n.content, nullptr);
+                        }
+
+                        n.content = {};
+                    }
+
+                    // now doing the call itself and setting return value
+                    if (context.codes[index].type == Bytecode::Syscall) {
+
+                    }
+                    else {
+                        instructions.emplace_back(call, AsmOperand(Location::Label, Type::none, true, AsmOperand::LabelType::function, context.codes[index].op1Value));
+                        auto result = AsmOperand(context.codes[index].op3(), context);
+                        if (result.op != Location::None) {
+                            if (result.type == Type::floatingPoint) processor.registers[XMM0].content = result;
+                            else processor.registers[RAX].content = result;
+                        }
+                    }
+
+                }
+
                     break;
                 case Bytecode::Add:
                     if (currentType != Type::floatingPoint) {

@@ -110,9 +110,9 @@ struct Bytecode {
         Save,
         //      syntax: value at op1 + op2 * type size => op3 / result
         Index,
-        //      syntax: function number at op1, first argument at op2 (optional) => op3 / result (optional)
+        //      syntax: function pointer at op1, first argument at op2 (optional) => op3 / result (optional)
         Function,
-        //      syntax: method number at op1, first argument at op2 (optional) => op3 / result (optional)
+        //      syntax: method pointer at op1, first argument at op2 (optional) => op3 / result (optional)
         Method,
         //      syntax: syscall number at op1, first argument at op2 (optional) => op3 / result (optional)
         Syscall,

@@ -22,7 +22,6 @@ The project is being developed as a SKNI "KOD" project.
 
 ## Current progress of rewriting:
 - lexer - virtually done:
-    - multiline strings need to be added
 - parser - virtually done
     - methods might need some work
 - bytecode generator - mostly done:
@@ -35,5 +34,6 @@ The project is being developed as a SKNI "KOD" project.
 - assembly generator - partially done
   - all basic x86-64 instructions have been defined and are being implemented
   - can output instruction with operands that are defined
-  - lacks checks that ensure later used values are not overwritten
+  - can convert types
+  - can do mostly correct x86-64 unix style calls
   - moving values and conversions between types largely done

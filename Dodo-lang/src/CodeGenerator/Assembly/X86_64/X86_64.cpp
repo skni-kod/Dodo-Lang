@@ -201,20 +201,23 @@ namespace x86_64 {
                 if (n.typeObject == nullptr) {
                     n.typeObject = &types[n.typeName()];
                 }
-                if (n.typeObject->isPrimitive and not n.typeMeta().isReference and not n.typeMeta().pointerLevel) {
+                if (n.typeObject->isPrimitive or n.typeMeta().isReference or n.typeMeta().pointerLevel) {
                     // a primitive
                     auto primitiveType = n.typeObject->primitiveType;
                     auto typeSize = n.typeObject->typeSize;
                     if (floatCounter != 8 and primitiveType == Type::floatingPoint) {
                         // floats into SSE/AVX registers
                         result.emplace_back(Location::reg, Type::floatingPoint, false, typeSize, floats[floatCounter++]);
+                        result.back().isArgumentMove = true;
                     }
                     else if (intPointerCounter != 6 and primitiveType != Type::floatingPoint){
                         // integers into normal registers
                         result.emplace_back(Location::reg, primitiveType, false, typeSize, integersPointers[intPointerCounter++]);
+                        result.back().isArgumentMove = true;
                     }
                     else {
                         // move the value onto the stack
+                        CodeGeneratorError("Internal: stack arguments not supported!");
 
                         // ensure it's aligned properly and added
                         if (stackOffset % n.typeObject->typeAlignment) stackOffset = (stackOffset / n.typeObject->typeAlignment + 2) * n.typeObject->typeAlignment;
@@ -223,10 +226,13 @@ namespace x86_64 {
                         OperandValue offset;
                         offset.offset = stackOffset;
                         result.emplace_back(Location::sta, primitiveType, false, typeSize, offset);
+                        result.back().isArgumentMove = true;
                     }
                 }
                 else {
-                    // it's an address
+                    // it's a complex type
+                    CodeGeneratorError("Internal: complex type arguments unimplemented!");
+                    CodeGeneratorError("Internal: stack arguments not supported!");
                     if (stackOffset % 8) stackOffset = (stackOffset / 8 + 2) * 8;
                     else stackOffset += 8;
 
@@ -234,6 +240,7 @@ namespace x86_64 {
                     offset.offset = stackOffset;
                     auto typeSize = n.typeObject->typeSize;
                     result.emplace_back(Location::sta, Type::address, false, typeSize, offset);
+                    result.back().isArgumentMove = true;
                 }
             }
             if (stackOffset % 16) {

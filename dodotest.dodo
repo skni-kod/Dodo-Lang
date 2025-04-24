@@ -26,15 +26,15 @@ type test {
 let i32 r = 10;
 */
 i32 Main() {
-    let f32 test = 10;
-    //test += test;
-    let i32 y = test cast auto;
+    let f32 arg = 10;
+    let f32 fl = test(arg, arg);
+    let i32 y = fl cast auto;
     return y + 3;
 }
 
-//f32 test(let f32 val, let f32 added) {
-//    let f32 wow = 5;
-//    val += wow;
-//    let f32 t = added + val;
-//    return t + wow;
-//}
+f32 test(let f32 val, let f32 added) {
+    let f32 wow = 5;
+    val += wow;
+    let f32 t = added + val;
+    return t + wow;
+}

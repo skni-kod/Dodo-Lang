@@ -236,6 +236,9 @@ Place::Place(StackEntry* sta, const Location::Type where) : sta(sta), where(wher
 AsmOperand::AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, uint8_t size, OperandValue value)
     : op(op), type(type), useAddress(useAddress), size(size), value(value) {}
 
+AsmOperand::AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, LabelType label, OperandValue value)
+    : op(op), type(type), useAddress(useAddress), labelType(label), value(value) {}
+
 AsmOperand::AsmOperand(const int32_t stackOffset) {
     op = Location::sta;
     value.offset = stackOffset;

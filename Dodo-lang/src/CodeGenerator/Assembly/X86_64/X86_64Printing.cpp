@@ -500,7 +500,7 @@ namespace x86_64 {
         case Location::String:
             CodeGeneratorError("Internal: unimplemented operand print!");
             return;
-            case Location::Label:
+        case Location::Label:
             if (op.labelType == AsmOperand::function) {
                 out << op.value.function->getFullName();
                 return;

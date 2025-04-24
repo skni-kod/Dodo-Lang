@@ -111,11 +111,11 @@ void GenerateCode() {
 
 
         x86_64::PrintInstruction(out, {x86_64::mov,
-            AsmOperand(Location::reg, {}, false, 8, x86_64::RDI),
-            AsmOperand(Location::reg, {}, false, 8, x86_64::RAX)});
+            AsmOperand(Location::reg, Type::none, false, 8, x86_64::RDI),
+            AsmOperand(Location::reg, Type::none, false, 8, x86_64::RAX)});
         
         x86_64::PrintInstruction(out, {x86_64::mov,
-            AsmOperand(Location::reg, {}, false, 8, x86_64::RAX),
+            AsmOperand(Location::reg, Type::none, false, 8, x86_64::RAX),
             AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 60)});
 
         x86_64::PrintInstruction(out, {x86_64::syscall});
