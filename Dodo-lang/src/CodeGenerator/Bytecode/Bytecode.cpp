@@ -430,9 +430,11 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
             {
                 Bytecode code;
                 code.type = Bytecode::Return;
-                code.opType = &types[*function.returnType.typeName];
-                code.opTypeMeta = function.returnType.type;
-                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, code.opTypeMeta));
+                if (function.returnType.typeName != nullptr) {
+                    code.opType = &types[*function.returnType.typeName];
+                    code.opTypeMeta = function.returnType.type;
+                    code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, code.opTypeMeta));
+                }
                 context.codes.push_back(code);
                 break;
             }

@@ -270,6 +270,9 @@ AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context) {
         type = Type::address;
         value = op.value;
     }
+    else if (op.location == Location::None) {
+        return;
+    }
     else CodeGeneratorError("Unsupported operand type!");
 }
 

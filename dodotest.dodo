@@ -8,6 +8,10 @@ i32 Main() {
     return y + 3;
 }
 
+void Void() {
+    return;
+}
+
 f32 Test(let f32 val, let f32 added) {
     let f32 wow = 5;
     val += wow;

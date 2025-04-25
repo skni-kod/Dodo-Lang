@@ -147,7 +147,8 @@ void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values
 
                 code.op1Location = Location::Call;
                 code.op1Value.function = &n.second;
-                code.result(context.insertTemporary(&types[*n.second.returnType.typeName], n.second.returnType.type));
+                if (n.second.returnType.typeName != nullptr)
+                    code.result(context.insertTemporary(&types[*n.second.returnType.typeName], n.second.returnType.type));
                 return;
             }
         }

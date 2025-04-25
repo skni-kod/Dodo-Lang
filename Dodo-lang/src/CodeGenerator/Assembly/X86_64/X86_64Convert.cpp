@@ -17,11 +17,11 @@ namespace x86_64 {
             auto& current = context.codes[index];
             uint16_t currentSize;
             Type::TypeEnum currentType;
-            if (current.opTypeMeta.isReference or current.opTypeMeta.pointerLevel or not current.opType->isPrimitive) {
+            if (current.opType != nullptr and (current.opTypeMeta.isReference or current.opTypeMeta.pointerLevel or not current.opType->isPrimitive)) {
                 currentSize = Options::addressSize;
                 currentType = Type::address;
             }
-            else {
+            else if (current.opType != nullptr) {
                 currentSize = current.opType->typeSize;
                 currentType = current.opType->primitiveType;
             }
@@ -67,33 +67,44 @@ namespace x86_64 {
                     break;
                 case Bytecode::Return: {
                     AsmInstructionInfo instruction;
-                    if (source->parentType == nullptr) source->parentType = &types[*source->returnType.typeName];
-                    if (not source->returnType.type.pointerLevel and not source->returnType.type.isReference and
-                    source->parentType->isPrimitive and source->parentType->primitiveType == Type::floatingPoint)
+                    if (source->returnType.typeName != nullptr) {
+                        if (source->parentType == nullptr) source->parentType = &types[*source->returnType.typeName];
+                        if (not source->returnType.type.pointerLevel and not source->returnType.type.isReference and
+                        source->parentType->isPrimitive and source->parentType->primitiveType == Type::floatingPoint)
+                            instruction = {{
+                                // variants of the instruction:
+                                AsmInstructionVariant(ret, Options::None,
+                                    // operands:
+                                    // non operand values that need to be put into places:
+                                    {
+                                        AsmInstructionResultInput(true, AsmOperand(current.op1(), context, Location::reg, XMM0), AsmOperand(current.op1(), context))
+                                })},
+                                // data for the operation itself: source 1, source 2, source 3, destination
+                                AsmOperand(current.op1(), context)
+                            };
+                        else instruction = {{
+                            // variants of the instruction:
+                            AsmInstructionVariant(ret, Options::None,
+                                // operands:
+                                // non operand values that need to be put into places:
+                                {
+                                    AsmInstructionResultInput(true, AsmOperand(current.op1(), context, Location::reg, RAX), AsmOperand(current.op1(), context))
+                            })},
+                            // data for the operation itself: source 1, source 2, source 3, destination
+                            AsmOperand(current.op1(), context)
+                        };
+                    }
+                    else {
                         instruction = {{
-                        // variants of the instruction:
-                        AsmInstructionVariant(ret, Options::None,
-                            // operands:
-                            // non operand values that need to be put into places:
-                            {
-                                AsmInstructionResultInput(true, AsmOperand(current.op1(), context, Location::reg, XMM0), AsmOperand(current.op1(), context))
-                        })},
-                        // data for the operation itself: source 1, source 2, source 3, destination
-                        AsmOperand(current.op1(), context)
-                    };
-                    else instruction = {{
-                        // variants of the instruction:
-                        AsmInstructionVariant(ret, Options::None,
-                            // operands:
-                            // non operand values that need to be put into places:
-                            {
-                                AsmInstructionResultInput(true, AsmOperand(current.op1(), context, Location::reg, RAX), AsmOperand(current.op1(), context))
-                        })},
-                        // data for the operation itself: source 1, source 2, source 3, destination
-                        AsmOperand(current.op1(), context)
-                    };
-
-
+                            // variants of the instruction:
+                            AsmInstructionVariant(ret, Options::None,
+                                // operands:
+                                // non-operand values that need to be put into places:
+                                {
+                            })},
+                            // data for the operation itself: source 1, source 2, source 3, destination
+                            };
+                    }
                     ExecuteInstruction(context, processor, instruction, instructions, index);
 
                     break;
@@ -212,11 +223,19 @@ namespace x86_64 {
                     else {
                         instructions.emplace_back(call, AsmOperand(Location::Label, Type::none, true, AsmOperand::LabelType::function, context.codes[index].op1Value));
                     }
+
+                    // removing saved values from argument registers
+                    for (auto& n : argumentPlaces) {
+                        if (n.op == Location::reg) processor.registers[n.value.reg].content = {};
+                    }
+
                     auto result = AsmOperand(context.codes[index].op3(), context);
                     if (result.op != Location::None) {
                         if (result.type == Type::floatingPoint) processor.registers[XMM0].content = result;
                         else processor.registers[RAX].content = result;
                     }
+
+
 
                 }
 
