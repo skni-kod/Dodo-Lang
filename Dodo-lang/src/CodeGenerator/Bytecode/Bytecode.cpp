@@ -341,6 +341,13 @@ void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, Ty
             type = &types["char"];
             typeMeta = {1, true, false};
             return;
+        case ParserOperation::Group:
+            GetTypes(context, values, type, typeMeta, current.value);
+            return;
+        case ParserOperation::Syscall:
+            type = &types["i64"];
+            typeMeta = {};
+            return;
         default:
             CodeGeneratorError("Invalid operation in type negotiation!");
     }

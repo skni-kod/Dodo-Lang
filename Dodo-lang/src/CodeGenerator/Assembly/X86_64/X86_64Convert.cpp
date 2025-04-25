@@ -42,7 +42,7 @@ namespace x86_64 {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: " << n.offset << ": ";
                         n.content.print(std::cout, context, processor);
-                        std::cout << "\n";
+                        std::cout << " (value size: " << n.content.object(context, processor).type->typeSize << ")\n";
                     }
                 }
             }
@@ -62,8 +62,7 @@ namespace x86_64 {
 
                         processor.getContentRef(argumentPlaces[current.op3Value.ui]) = AsmOperand(current.op1(), context);
                     }
-                    // TODO: are local variable definitions even needed?
-                    //else processor.pushStack(current.op1(), context);
+                    else processor.pushStack(current.op1(), context);
                     break;
                 case Bytecode::Return: {
                     AsmInstructionInfo instruction;
@@ -127,8 +126,70 @@ namespace x86_64 {
                     // now let's assign the location or value to the variable
                     if (not skip) processor.assignVariable(sourceOp, valueOp, context, instructions);
                 }
-                    break;
+                case Bytecode::AssignAt: {
+                    auto sourceOp = AsmOperand(current.op1(), context);
+                    auto valueOp = AsmOperand(current.op2(), context);
+                    auto resultOp = AsmOperand(current.op3(), context);
 
+                    bool skip = true;
+                    bool assignResult = false;
+
+                    assignResult = resultOp.object(context, processor).lastUse > index;
+
+                    if (valueOp.op == Location::Variable) {
+                        if (assignResult and sourceOp.object(context, processor).lastUse > index) {
+                            // assigning result but the value is here
+                            CodeGeneratorError("Internal: assign at result not implemented!");
+                        }
+                        else if (assignResult) {
+                            CodeGeneratorError("Internal: assign at result not implemented!");
+                        }
+                        valueOp = processor.getLocation(valueOp);
+                    }
+
+                    sourceOp = processor.getLocation(sourceOp);
+
+                    // now we need to generate a move from the value to the address in source
+                    if (sourceOp.op == Location::reg) {
+                        sourceOp.op = Location::off;
+                        sourceOp.value.regOff.regNumber = sourceOp.value.reg;
+                        sourceOp.value.regOff.offset = 0;
+                        sourceOp.type = Type::address;
+                        sourceOp.size = 0;
+                    }
+                    else if (sourceOp.op != Location::off) CodeGeneratorError("Internal: non-register address!");
+
+                    MoveInfo move = {valueOp, sourceOp};
+                    x86_64::AddConversionsToMove(move ,context, processor, instructions, {}, nullptr);
+                }
+                    break;
+                case Bytecode::Address: {
+                    // TODO: add move to stack
+                    auto sourceOp = AsmOperand(current.op1(), context);
+
+                    if (sourceOp.op == Location::Variable) sourceOp = processor.getLocationStackBias(sourceOp);
+
+                    if (sourceOp.op != Location::sta) CodeGeneratorError("Internal: non-stack pointer places not supported!");
+                    AsmOperand reg = processor.getFreeRegister(Type::address, 8);
+
+                    AsmInstructionInfo instruction = {
+                            { // variants of the instruction
+                                AsmInstructionVariant(lea, Options::None,
+                                    AsmOpDefinition(Location::reg, 8, 8, false, true),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true,  2, sourceOp),
+                                        AsmInstructionResultInput(false,  reg, AsmOperand(Location::op, {}, false, 8, 1)),
+                                        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                })
+                            }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                }
+                    break;
                 case Bytecode::Cast: {
                     auto sourceOp = AsmOperand(current.op1(), context);
                     auto resultOp = AsmOperand(current.op3(), context);
@@ -234,8 +295,75 @@ namespace x86_64 {
                         if (result.type == Type::floatingPoint) processor.registers[XMM0].content = result;
                         else processor.registers[RAX].content = result;
                     }
+                }
+                    break;
 
+                case Bytecode::Member: {
+                    auto sourceOp = AsmOperand(current.op1(), context);
+                    int32_t offset = current.op2Value.i32;
+                    auto resultOp = AsmOperand(current.op3(), context);
 
+                    if (sourceOp.op == Location::Variable) sourceOp = processor.getLocation(sourceOp);
+
+                    // let's get a free register for the pointer for lea
+                    AsmOperand reg = processor.getFreeRegister(Type::address, 8);
+
+                    // if it's a register
+                    // TODO: add more checks
+                    if (sourceOp.op == Location::reg) {
+                        //if (not sourceOp.useAddress) CodeGeneratorError("Using register address not marked as used!");
+                        sourceOp.op = Location::off;
+                        sourceOp.value.regOff.regNumber = sourceOp.value.reg;
+                        sourceOp.value.regOff.offset = offset;
+                        sourceOp.type = Type::address;
+                        sourceOp.size = 0;
+                    }
+                    // in case of a stack address, change it to be the correct one
+                    else if (sourceOp.op == Location::sta) {
+                        sourceOp.value.offset += offset;
+                    }
+
+                    // now the actual leaq
+                     AsmInstructionInfo instruction = {
+                            { // variants of the instruction
+                                AsmInstructionVariant(lea, Options::None,
+                                    AsmOpDefinition(Location::reg, 8, 8, false, true),
+                                    AsmOpDefinition(Location::off, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, true, false, false),
+                                        RegisterRange(R8, R15, true, true, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true,  2, sourceOp),
+                                        AsmInstructionResultInput(false,  reg, AsmOperand(Location::op, {}, false, 8, 1)),
+                                        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                }),
+                                AsmInstructionVariant(lea, Options::None,
+                                    AsmOpDefinition(Location::reg, 8, 8, false, true),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true,  2, sourceOp),
+                                        AsmInstructionResultInput(false,  reg, AsmOperand(Location::op, {}, false, 8, 1)),
+                                        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                }),
+                                AsmInstructionVariant(lea, Options::None,
+                                    AsmOpDefinition(Location::reg, 8, 8, false, true),
+                                    AsmOpDefinition(Location::mem, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true,  2, sourceOp),
+                                        AsmInstructionResultInput(false,  reg, AsmOperand(Location::op, {}, false, 8, 1)),
+                                        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                })
+                            }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
 
                 }
 
@@ -525,7 +653,7 @@ namespace x86_64 {
                 if (n.content.op != Location::None) {
                     std::cout << "INFO L3: " << n.offset << ": ";
                     n.content.print(std::cout, context, processor);
-                    std::cout << "\n";
+                    std::cout << " (value size: " << n.content.object(context, processor).type->typeSize << ")\n";
                 }
             }
         }

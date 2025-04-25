@@ -193,30 +193,52 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                 }
                 else CodeGeneratorError("Internal: unimplemented stack to somewhere move!");
             }
-            else if (source.op == Location::reg) {
-                if (def.opType == Location::reg) {
+            else if (source.op == Location::reg or source.op == Location::off) {
+                if (def.opType == source.op) {
                     // registers are a more complex thing
                     if (IsRegisterAllowed(selected.allowedRegisters, target.value.ui, source.value.reg))
                         target = op = source;
                     else CodeGeneratorError("Internal: unimplemented register to valid register move!");
                 }
                 else CodeGeneratorError("Internal: unimplemented register to somewhere move!");
+                if (source.op == Location::off) {
+                    moves.erase(moves.begin() + k);
+                    k--;
+                    op.size = Options::addressSize;
+                }
             }
             else CodeGeneratorError("Internal: unimplemented operand source case move!");
-
         }
     }
 
     // also checking for output operands here
     for (auto& n : results) {
+        auto& source = n.source;
+        auto& target = n.target;
         if (n.target.op == Location::op) {
-            // TODO: add the case where operand in only an output
-            n.target = ops[n.target.value.ui - 1];
+
+            // debug
+            AsmOpDefinition& def = GetOpDefinition(selected, target.value.ui);
+            AsmOperand& op = ops[target.value.ui - 1];
+            if (op.op == Location::None) CodeGeneratorError("Internal: empty operand for move!");
+
+            n.target = ops[target.value.ui - 1];
+        }
+        else if (source.op == Location::op) {
+            AsmOpDefinition& def = GetOpDefinition(selected, source.value.ui);
+            if (def.isOutput and not def.isInput) {
+                // it's only an output so it need to be included in operands
+                AsmOperand& op = ops[source.value.ui - 1];
+                op = target;
+            }
+            else CodeGeneratorError("Internal: invalid instruction target!");
+        }
+        else {
+            CodeGeneratorError("Internal: unhandled output!");
         }
     }
 
     // now checking for things that might need to be moved in the locations
-    // TODO: think this through
     for (auto& n : moves) {
         if (n.source == n.target) continue;
         auto content = processor.getContent(n.target, context);

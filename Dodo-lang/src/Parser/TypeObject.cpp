@@ -77,9 +77,18 @@ bool TypeMeta::operator==(const TypeMeta& other) const {
 std::string ParserFunctionMethod::getFullName() const {
     std::string name;
     if (returnType.typeName != nullptr) name = *returnType.typeName;
+    else name = "void";
     name += "$";
     name += (returnType.type.isMutable ? "m" : "") + std::string(returnType.type.pointerLevel, 'p') + (returnType.type.isReference ? "r" : "");
-    name += "." + *this->name;
+    if (this->name == nullptr) {
+        // operator overload
+        // TODO: change this to verbose instead of number
+        name += "..operator_" + std::to_string(static_cast <uint64_t>(this->overloaded));
+    }
+    else {
+        // normal function
+        name += "." + *this->name;
+    }
     for (auto& n : parameters) {
         name += "." + n.typeName() + "$";
         name += (n.typeMeta().isMutable ? "m" : "") + std::string(n.typeMeta().pointerLevel, 'p') + (n.typeMeta().isReference ? "r" : "");

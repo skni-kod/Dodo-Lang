@@ -3,7 +3,6 @@
 // ┃ Last revision: 25.04.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-// TODO: change these void once they actually work
 void Print(let u64 length, let char* message) {
     syscall(1, 0, message, length);
     return;

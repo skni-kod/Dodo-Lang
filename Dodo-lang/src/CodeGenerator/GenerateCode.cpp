@@ -134,6 +134,9 @@ void GenerateCode() {
             }
             CalculateLifetimes(context);
             proc.clear();
+            auto label = AsmInstruction(x86_64::label, AsmOperand(&m));
+            out << "\n";
+            x86_64::PrintInstruction(label, out);
             x86_64::ConvertBytecode(context, proc, &m, out);
         }
     }

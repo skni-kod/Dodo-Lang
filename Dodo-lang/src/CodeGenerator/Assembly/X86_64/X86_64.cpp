@@ -39,6 +39,7 @@ namespace x86_64 {
         if (s == t) {
             if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) proc.getContentRef(t) = proc.getContent(contentToSet, context);
             else if (s.op == Location::imm and t.op == Location::imm) return;
+            else if (t.op == Location::off) return;
             else proc.getContentRef(t) = contentToSet;
 
             return;
@@ -57,7 +58,7 @@ namespace x86_64 {
                 // addresses can be only moved if not used, so that's simple
                 // TODO: make this possible for things like printing addresses
                 if (t.type != Type::address) CodeGeneratorError("Internal: address to non address move!");
-                if (s.size != 8 or t.size != 8) CodeGeneratorError("Internal: wrong address operand size!");
+                if ((s.size != 8 and not (s.op == Location::imm and ((s.size = 8)))) or t.size != 8) CodeGeneratorError("Internal: wrong address operand size!");
                 if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: invalid register for address storage!");
 
                 // now actually moving it
@@ -83,6 +84,11 @@ namespace x86_64 {
                     else CodeGeneratorError("Internal: Invalid address string target!");
                 }
                 else CodeGeneratorError("Internal: invalid address source!");
+            }
+            else if (t.type == Type::address) {
+                if (s.op == Location::imm) moves.emplace_back(mov, s.copyTo(t.op, t.value), s);
+                else if (s.op == Location::reg) moves.emplace_back(mov, s.copyTo(t.op, t.value), s);
+                else CodeGeneratorError("Internal: unimplemented value to address move!");
             }
             else if (s.type != Type::floatingPoint and t.type == Type::unsignedInteger) {
                 // in case of unsigned target we treat the integer source as an unsigned too

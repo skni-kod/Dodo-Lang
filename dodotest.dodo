@@ -1,20 +1,31 @@
+import "Time.dodo";
 import "Print.dodo";
 
 i32 Main() {
-    Println(12, "Hello world!");
-    let f32 arg = 10;
-    let f32 fl = Test(arg, arg);
-    let i32 y = fl cast auto;
-    return y + 3;
-}
-
-void Void() {
-    return;
-}
-
-f32 Test(let f32 val, let f32 added) {
-    let f32 wow = 5;
-    val += wow;
-    let f32 t = added + val;
-    return t + wow;
+    let mut Timespec time = 0;
+    time.ns = 200000000;
+    Print(1, "H");
+    Sleep(&time, 0);
+    Print(1, "e");
+    Sleep(&time, 0);
+    Print(1, "l");
+    Sleep(&time, 0);
+    Print(1, "l");
+    Sleep(&time, 0);
+    Print(1, "o");
+    Sleep(&time, 0);
+    Print(1, " ");
+    Sleep(&time, 0);
+    Print(1, "W");
+    Sleep(&time, 0);
+    Print(1, "o");
+    Sleep(&time, 0);
+    Print(1, "r");
+    Sleep(&time, 0);
+    Print(1, "l");
+    Sleep(&time, 0);
+    Print(1, "d");
+    Sleep(&time, 0);
+    Println(1, "!");
+    return 32;
 }

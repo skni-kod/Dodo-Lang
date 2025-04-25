@@ -27,9 +27,15 @@ Place Processor::get(AsmOperand& op) {
     return {};
 }
 
+AsmOperand emptyContent = {};
+
 AsmOperand& Processor::getContentRef(AsmOperand& op) {
     if (op.op == Location::reg) {
         return registers[op.value.ui].content;
+    }
+    if (op.op == Location::off) {
+        emptyContent = {};
+        return emptyContent;
     }
     if (op.op == Location::sta) {
         // finding stuff on the stack is way harder
@@ -39,12 +45,15 @@ AsmOperand& Processor::getContentRef(AsmOperand& op) {
         CodeGeneratorError("Internal: invalid processor location for reference!");
     }
     CodeGeneratorError("Internal: invalid processor location 3!");
-    return registers[0].content;
+    return emptyContent;
 }
 
 AsmOperand Processor::getContent(AsmOperand& op, BytecodeContext& context) {
     if (op.op == Location::reg) {
         return registers[op.value.ui].content;
+    }
+    if (op.op == Location::off) {
+        return {};
     }
     if (op.op == Location::sta) {
         // finding stuff on the stack is way harder

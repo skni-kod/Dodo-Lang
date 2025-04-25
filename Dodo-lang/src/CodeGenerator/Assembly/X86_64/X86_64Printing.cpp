@@ -489,6 +489,7 @@ namespace x86_64 {
             default:
                 CodeGeneratorError("Internal: unhandled register in printing!");
         }
+        CodeGeneratorError("Internal: invalid register size in printing!");
         return out;
     }
 
@@ -522,8 +523,11 @@ namespace x86_64 {
         case Location::Stack:
             out << std::to_string(op.value.offset) << "(%rbp)";
             return;
-        case Location::Offset :
-            CodeGeneratorError("Internal: unimplemented operand print!");
+            case Location::Offset :
+            if (op.value.regOff.offset != 0) out << std::to_string(op.value.regOff.offset);
+                out << "(%";
+                PrintRegisterName(op.value.regOff.regNumber, op.size, out);
+                out << ")";
             return;
         default:
             CodeGeneratorError("Internal: unhandled operand in printing!");
@@ -632,69 +636,69 @@ namespace x86_64 {
         case InstructionCode::int3:
             return "";
         case InstructionCode::ja:
-            return "";
+            return "ja";
         case InstructionCode::jae:
-            return "";
+            return "jae";
         case InstructionCode::jb:
-            return "";
+            return "jb";
         case InstructionCode::jbe:
-            return "";
+            return "jbe";
         case InstructionCode::jc:
-            return "";
+            return "jc";
         case InstructionCode::je:
-            return "";
+            return "je";
         case InstructionCode::jz:
-            return "";
+            return "jz";
         case InstructionCode::jg:
-            return "";
+            return "jg";
         case InstructionCode::jge:
-            return "";
+            return "jge";
         case InstructionCode::jl:
-            return "";
+            return "jl";
         case InstructionCode::jle:
-            return "";
+            return "jle";
         case InstructionCode::jna:
-            return "";
+            return "jna";
         case InstructionCode::jnae:
-            return "";
+            return "jnae";
         case InstructionCode::jnb:
-            return "";
+            return "jnb";
         case InstructionCode::jnbe:
-            return "";
+            return "jnbe";
         case InstructionCode::jnc:
-            return "";
+            return "jnc";
         case InstructionCode::jne:
-            return "";
+            return "jne";
         case InstructionCode::jng:
-            return "";
+            return "jng";
         case InstructionCode::jnge:
-            return "";
+            return "jnge";
         case InstructionCode::jnl:
-            return "";
+            return "jnl";
         case InstructionCode::jnle:
-            return "";
+            return "jnle";
         case InstructionCode::jno:
-            return "";
+            return "jno";
         case InstructionCode::jnp:
-            return "";
+            return "jnp";
         case InstructionCode::jns:
-            return "";
+            return "jns";
         case InstructionCode::jnz:
-            return "";
+            return "jnz";
         case InstructionCode::jo:
-            return "";
+            return "jo";
         case InstructionCode::jp:
-            return "";
+            return "jp";
         case InstructionCode::jpe:
-            return "";
+            return "jpe";
         case InstructionCode::jpo:
-            return "";
+            return "jpo";
         case InstructionCode::js:
-            return "";
+            return "js";
         case InstructionCode::jmp:
-            return "";
+            return "jmp";
         case InstructionCode::lea:
-            return "";
+            return "lea" + GASPrefix(ins.op1);
         case InstructionCode::maxsd:
             return "";
         case InstructionCode::vmaxsd:
@@ -744,11 +748,11 @@ namespace x86_64 {
         case InstructionCode::sub:
             return "sub" + GASPrefix(ins.op1);
         case InstructionCode::subsd:
-            return "";
+            return "subsd";
         case InstructionCode::vsubsd:
             return "";
         case InstructionCode::subss:
-            return "";
+            return "subss";
         case InstructionCode::vsubss:
             return "";
         case InstructionCode::syscall:

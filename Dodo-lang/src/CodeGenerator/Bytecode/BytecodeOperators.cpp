@@ -167,14 +167,13 @@ bool AssignOverloadedOperatorIfPossible(BytecodeContext& context, std::vector<Pa
         // TODO: also a check for multiple overloads of given type could be added here
         if (type->methods[n].overloaded != Operator::None
             and type->methods[n].overloaded == node.operatorType
-            and *type->methods[n].returnType.typeName == *type->methods[n].returnType.typeName
             and type->methods[n].returnType.type.pointerLevel == typeMeta.pointerLevel) {
 
             anyFound = true;
 
             // now we have a correct overload
             if (not DoArgumentTypesMatch(context, values, type->methods[n],node, isGlobal, false, 2)) continue;
-            if (not type->methods[n].returnType.typeName->empty()) code.op3(context.insertTemporary(type, typeMeta));
+            if (type->methods[n].returnType.typeName != nullptr and not type->methods[n].returnType.typeName->empty()) code.op3(context.insertTemporary(type, typeMeta));
             code.type = Bytecode::Method;
             code.op1Location = Location::Call;
             code.op1Value.function = &type->methods[n];
@@ -217,8 +216,8 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
 
     // default operations for primitive and complex types
     // lots of repeated code
+    auto current = values[index];
     if (type->isPrimitive) {
-        auto current = values[index];
         if (current.operation == ParserOperation::Operator or current.operation == ParserOperation::SingleOperator or current.operation == ParserOperation::Group) {
             switch (current.operatorType) {
                 case Operator::Address:
@@ -485,7 +484,7 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right, isGlobal));
                     if (typeMeta.isReference) {
                         code.type = Bytecode::AssignAt;
-                        code.op3(code.op2());
+                        code.op3(context.insertTemporary(type, typeMeta));
                     }
                     else {
                         code.type = Bytecode::AssignTo;
@@ -533,7 +532,14 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
         else CodeGeneratorError("Invalid operator type for default implementation!");
     }
     else {
-        CodeGeneratorError("Complex type default operations not implemented!");
+        if ((current.operation == ParserOperation::Operator or current.operation == ParserOperation::SingleOperator or current.operation == ParserOperation::Group) and current.operatorType == Operator::Address) {
+            code.type = Bytecode::Address;
+            if (not typeMeta.pointerLevel) CodeGeneratorError("Cannot assign an address into a non-pointer!");
+            code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, -1}, current.prefix, isGlobal));
+            code.op3(context.insertTemporary(type, typeMeta));
+        }
+        else CodeGeneratorError("Complex type default operations not implemented!");
+
     }
 
     context.codes.push_back(code);

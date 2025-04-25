@@ -1,0 +1,20 @@
+// ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+// ┃ This file contains functions for manipulating time.                                       ┃
+// ┃ Last revision: 25.04.2025                                                                 ┃
+// ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+type Timespec {
+    let mut u64 s;
+    let mut u64 ns;
+
+    // TODO: change this
+    void operator=(let mut Timespec& spec, let u64 seconds) {
+        spec.s = seconds;
+        spec.ns = 0;
+        return;
+    }
+}
+
+i32 Sleep(let mut Timespec* duration, let mut Timespec* remaining) {
+    return (syscall(35, duration, remaining)) cast i32;
+}

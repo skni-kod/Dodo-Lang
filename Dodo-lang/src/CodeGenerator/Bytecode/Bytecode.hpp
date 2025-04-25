@@ -40,6 +40,11 @@ struct VariableLocation {
     uint64_t number : 48 = 0;
 };
 
+struct RegisterOffset {
+    uint16_t regNumber = 0;
+    int32_t offset = 0;
+};
+
 union OperandValue {
     uint64_t ui = 0;
     uint64_t u64;
@@ -60,6 +65,7 @@ union OperandValue {
     uint64_t reg;
     ParserFunctionMethod* function;
     VariableLocation variable;
+    RegisterOffset regOff;
     OperandValue() = default;
     OperandValue(uint64_t val);
     OperandValue(VariableLocation val);
