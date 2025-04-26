@@ -50,7 +50,7 @@ struct AsmOperand {
     bool isAtAssignedPlace(BytecodeContext& context, Processor& processor);
     // moves the value away if it doesn't need to be there and if it doesn't exist elsewhere and returns the same value or
     // if this is the assigned place then it moves it elsewhere and returns the new place
-    AsmOperand moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations = nullptr);
+    AsmOperand moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations = nullptr, bool stackOnly = false);
     std::vector<AsmOperand> getAllLocations(Processor& processor);
 
     bool operator==(const AsmOperand& target) const;

@@ -132,7 +132,7 @@ struct Bytecode {
         Else,
         //      syntax: op1
         ElseIf,
-        //      syntax: (empty) - begins loop statement for jump label
+        //      syntax: (empty) - marks a loop starting to allow for lifetime extension
         LoopLabel,
         //      syntax: op1 (number)
         Label,

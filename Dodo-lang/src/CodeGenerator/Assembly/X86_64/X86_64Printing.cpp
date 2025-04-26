@@ -827,6 +827,8 @@ namespace x86_64 {
             return "setpo";
         case InstructionCode::sets:
             return "sets";
+        case InstructionCode::leave:
+            return "leave";
         case InstructionCode::label:
             return "";
             default:
@@ -915,15 +917,18 @@ namespace x86_64 {
         if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
             // stack stuff
             if (maxOffset & 16 != 0) maxOffset = (maxOffset / 16 - 1) * 16;
+            PrintInstruction(out, AsmInstruction(push,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
+            PrintInstruction(out, AsmInstruction(mov,  AsmOperand(Location::reg, Type::address, false, 8, RBP), AsmOperand(Location::reg, Type::address, false, 8, RSP)));
             if (maxOffset != 0) {
-                PrintInstruction(out, AsmInstruction(push,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
-                PrintInstruction(out, AsmInstruction(mov,  AsmOperand(Location::reg, Type::address, false, 8, RBP), AsmOperand(Location::reg, Type::address, false, 8, RSP)));
-                PrintInstruction(out, AsmInstruction(sub,  AsmOperand(Location::reg, Type::address, false, 8, RBP), AsmOperand(Location::imm, Type::address, false, 8, -maxOffset)));
+                PrintInstruction(out, AsmInstruction(sub,  AsmOperand(Location::reg, Type::address, false, 8, RSP), AsmOperand(Location::imm, Type::address, false, 8, -maxOffset)));
             }
 
             for (auto& n : instructions) {
-                if (n.code == ret and maxOffset != 0) {
-                    PrintInstruction(out, AsmInstruction(pop,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
+                if (n.code == ret) {
+                    if (maxOffset != 0) {
+                        PrintInstruction(out, AsmInstruction(leave));
+                    }
+                    else PrintInstruction(out, AsmInstruction(pop,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
                 }
                 PrintInstruction(n, out);
             }

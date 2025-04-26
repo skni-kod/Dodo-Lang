@@ -536,6 +536,9 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                     code.type = Bytecode::Label;
                     code.op1({Location::Literal, ++labelCounter});
                     context.codes.push_back(code);
+                    code.type = Bytecode::LoopLabel;
+                    code.op1({});
+                    context.codes.push_back(code);
                 }
                 wasLastConditional = true;
                 Bytecode code;
@@ -816,7 +819,7 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
 VariableObject& BytecodeContext::getVariableObject(const std::string* identifier) {
     // first let's go through local variables from top and back
     for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
-        for (int64_t m = localVariables[n].size() - 1; m >= 0 and localVariables[n].size() != 0; m--) {
+        for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[n].size() != 0; m--) {
             auto& current = localVariables[activeLevels[n]][m];
             if (current.identifier == identifier or *current.identifier == *identifier) {
                 return current;

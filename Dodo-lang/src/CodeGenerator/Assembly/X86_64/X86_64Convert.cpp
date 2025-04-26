@@ -62,7 +62,10 @@ namespace x86_64 {
 
                         processor.getContentRef(argumentPlaces[current.op3Value.ui]) = AsmOperand(current.op1(), context);
                     }
-                    else processor.pushStack(current.op1(), context);
+                    else {
+                        processor.pushStack(current.op1(), context);
+                        processor.stack.back().content.object(context, processor).assignedOffset = processor.stack.back().offset;
+                    }
                     break;
                 case Bytecode::Return: {
                     AsmInstructionInfo instruction;
@@ -177,13 +180,39 @@ namespace x86_64 {
                 case Bytecode::If: {
                     // an if statement
                     auto condition = AsmOperand(current.op1(), context);
-                    if (condition.op == Location::Variable) condition = processor.getLocation(condition);
-                    auto falseLabel = AsmOperand(Location::Label, Type::none, false, AsmOperand::jump, current.op2Value);
+                    if (condition.op == Location::imm) {
+                        bool skip;
+                        if (condition.type != Type::floatingPoint) {
+                            if (condition.size == 4) skip = condition.value.f32 == 0;
+                            else skip = condition.value.f64 == 0;
+                        }
+                        else {
+                            if (condition.size == 1) skip = condition.value.u8 == 0;
+                            else if (condition.size == 2) skip = condition.value.u16 == 0;
+                            else if (condition.size == 4) skip = condition.value.u32 == 0;
+                            else skip = condition.value.u64 == 0;
+                        }
 
-                    // now since it's unoptimized, we just need to check if the condition is 0 and then jump to the false condition label
-                    // TODO: add non-explicit condition
-                    instructions.emplace_back(cmp, condition, AsmOperand(Location::Literal, Type::unsignedInteger, false, 1, 0));
-                    instructions.emplace_back(je, falseLabel);
+                        // it's a literal, so i it's 0 then we skip over and if not, then we continue
+                        if (skip) {
+                            // let's go and skip everything until we get the end of scope
+                            uint32_t scopes = 0;
+                            while (not (context.codes[++index].type == Bytecode::EndScope and scopes == 1)) {
+                                if (context.codes[index].type == Bytecode::BeginScope) scopes++;
+                                else if (context.codes[index].type == Bytecode::EndScope) scopes--;
+                            }
+                        }
+                    }
+                    else {
+                        if (condition.op == Location::Variable) condition = processor.getLocation(condition);
+                        auto falseLabel = AsmOperand(Location::Label, Type::none, false, AsmOperand::jump, current.op2Value);
+
+                        // now since it's unoptimized, we just need to check if the condition is 0 and then jump to the false condition label
+                        // TODO: add non-explicit condition
+                        instructions.emplace_back(cmp, condition, AsmOperand(Location::Literal, Type::unsignedInteger, false, 1, 0));
+                        instructions.emplace_back(je, falseLabel);
+                    }
+
                 }
                     break;
                 case Bytecode::Greater:
@@ -210,6 +239,26 @@ namespace x86_64 {
                                 { // allowed registers
                                     RegisterRange(RAX, RDI, true, false, false, false),
                                     RegisterRange(R8, R15, true, false, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(cmp, Options::None,
+                                AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                { // allowed registers
+                                    RegisterRange(RAX, RDI, true, false, false, false),
+                                    RegisterRange(R8, R15, true, false, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(cmp, Options::None,
+                                AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                AsmOpDefinition(Location::imm, 1, 8, true, false),
+                                { // allowed registers
                                 },
                                 { // inputs and outputs
                                     AsmInstructionResultInput(true,  1, left),
@@ -293,10 +342,13 @@ namespace x86_64 {
                     }
                     else {
                         auto loc = processor.getFreeRegister(resultOp.type, resultOp.size);
-                        MoveInfo move = {sourceOp, resultOp.copyTo(loc.op, loc.value)};
+                        auto sloc = processor.getLocation(sourceOp);
+                        MoveInfo move = {sloc, resultOp.copyTo(loc.op, loc.value)};
                         x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp, nullptr);
                     }
                 }
+                    break;
+                case Bytecode::LoopLabel:
                     break;
                 case Bytecode::Argument: {
                     // since there is an argument, there must be a call after it, so let's gather the arguments and the call
@@ -328,7 +380,7 @@ namespace x86_64 {
                     for (uint32_t n = 0; n < arguments.size(); n++) {
                         auto s = AsmOperand(arguments[n]->op3(), context);
                         // TODO: add forbidden locations
-                        MoveInfo move = {processor.getLocation(s), argumentPlaces[n].moveAwayOrGetNewLocation(context, processor, instructions, firstIndex, nullptr)};
+                        MoveInfo move = {processor.getLocation(s), argumentPlaces[n].moveAwayOrGetNewLocation(context, processor, instructions, firstIndex, nullptr, true)};
                         x86_64::AddConversionsToMove(move, context, processor, instructions, s, nullptr);
                     }
 
@@ -352,11 +404,12 @@ namespace x86_64 {
 
                         // now we need to know if the thing there is even needed
                         auto& obj = n.content.object(context, processor);
-                        if (obj.lastUse > index and obj.assignedOffset == 0) {
+                        if (obj.lastUse > index and processor.getLocationStackBias(n.content).op != Location::sta) {
                             // it exists if it has a stack location, then it's fine.
                             // if it has none, then we need to move it from the register to the stack
-                            MoveInfo move = {n.content.copyTo(Location::reg, n.number), processor.pushStack(n.content, context)};
-                            x86_64::AddConversionsToMove(move, context, processor, instructions, n.content, nullptr);
+                            n.content.copyTo(Location::reg, n.number).moveAwayOrGetNewLocation(context, processor, instructions, index, nullptr, true);
+                            //MoveInfo move = {n.content.copyTo(Location::reg, n.number), processor.pushStack(n.content, context)};
+                            //x86_64::AddConversionsToMove(move, context, processor, instructions, n.content, nullptr);
                         }
 
                         n.content = {};

@@ -450,31 +450,33 @@ bool AsmOperand::isAtAssignedPlace(BytecodeContext& context, Processor& processo
     return true;
 }
 
-AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations) {
+AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations, bool stackOnly) {
     if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
     if (op == Location::reg) {
         auto& content = processor.registers[value.reg].content;
         if (processor.registers[value.reg].content.op == Location::None) return *this;
         auto& obj = content.object(context, processor);
-        if (obj.lastUse < index or obj.uses == 0) return *this;
+        if (obj.lastUse < index) return *this;
         auto locations = content.getAllLocations(processor);
         uint16_t validPlaces = 0;
-        if (forbiddenLocations == nullptr) validPlaces = locations.size() - 1;
-        else {
-            for (auto& n : locations) {
-                if (n == *this) continue;
-                bool isValid = true;
-                for (auto& m : *forbiddenLocations) {
-                    if (m == n) {isValid = false; break;}
-                }
-                validPlaces += isValid;
-            }
+        for (auto& n : locations) {
+            if (n == *this) continue;
+            bool isValid = true;
+            if (forbiddenLocations != nullptr)
+                for (auto& m : *forbiddenLocations) if (m == n) {isValid = false; break;}
+            if (stackOnly) validPlaces += n.op == Location::sta;
+            else validPlaces += isValid and n != *this;
         }
+        if (validPlaces > 0) validPlaces--;
 
         if (validPlaces == 0) {
             // there is no other place that will survive where this value is stored
-            auto move = MoveInfo(content.copyTo(op, value.reg), processor.pushStack(content, context));
-            obj.assignedOffset = move.target.value.offset;
+            auto move = MoveInfo(content.copyTo(op, value.reg), {});
+            if (obj.assignedOffset != 0) move.target = content.copyTo(Location::sta, obj.assignedOffset);
+            else {
+                move.target = processor.pushStack(content, context);
+                obj.assignedOffset = move.target.value.offset;
+            }
             AddConversionsToMove(move, context, processor, instructions, content, forbiddenLocations);
         }
 
@@ -482,6 +484,7 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
     else if (op == Location::sta) {
         auto& content = processor.getContentRefAtOffset(value.offset);
         auto& obj = content.object(context, processor);
+
         CodeGeneratorError("Internal: moves away to stack are unimplemented!");
     }
     return *this;
@@ -586,7 +589,7 @@ bool Register::canBeStored(const VariableObject& variable) const {
 
 void Processor::assignVariable(AsmOperand variable, AsmOperand source, BytecodeContext& context, std::vector<AsmInstruction>& instructions) {
     auto locations = variable.getAllLocations(*this);
-    if (locations.empty()) pushStack(variable, context);
+    //if (locations.empty()) pushStack(variable, context);
     if (source.op == Location::imm or source.op == Location::String) {
         auto location = getLocationStackBias(variable);
         MoveInfo move = {source, location};
@@ -600,7 +603,7 @@ void Processor::assignVariable(AsmOperand variable, AsmOperand source, BytecodeC
             auto content = getContent(source, context);
             auto& obj = content.object(context, *this);
             if (obj.lastUse <= index) location = source;
-            else  location = source.moveAwayOrGetNewLocation(context, *this, instructions, index, nullptr);
+            else location = source.moveAwayOrGetNewLocation(context, *this, instructions, index, nullptr);
         }
         else location = source;
         MoveInfo move = {source, location};

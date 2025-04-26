@@ -519,6 +519,8 @@ namespace x86_64 {
         setpe, // set byte if comparison result parity even
         setpo, // set byte if comparison result parity odd
         sets, // set byte if comparison result sign
+        // High level procedure exit
+        leave,
 
         // non-codes which will be used for other stuff
         label
