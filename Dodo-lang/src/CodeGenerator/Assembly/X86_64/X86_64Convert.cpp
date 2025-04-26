@@ -126,6 +126,7 @@ namespace x86_64 {
                     // now let's assign the location or value to the variable
                     if (not skip) processor.assignVariable(sourceOp, valueOp, context, instructions);
                 }
+                    break;
                 case Bytecode::AssignAt: {
                     auto sourceOp = AsmOperand(current.op1(), context);
                     auto valueOp = AsmOperand(current.op2(), context);
@@ -161,6 +162,94 @@ namespace x86_64 {
 
                     MoveInfo move = {valueOp, sourceOp};
                     x86_64::AddConversionsToMove(move ,context, processor, instructions, {}, nullptr);
+                }
+                    break;
+                case Bytecode::Jump:
+                    instructions.emplace_back(jmp, AsmOperand(Location::Label, Type::none, false, AsmOperand::jump, current.op1Value));
+                    break;
+                case Bytecode::Label:
+                    instructions.emplace_back(label, AsmOperand(Location::Label, Type::none, false, AsmOperand::jump, current.op1Value));
+                    break;
+                case Bytecode::BeginScope:
+                case Bytecode::EndScope:
+                    // TODO: add memory saving and restoration here
+                    break;
+                case Bytecode::If: {
+                    // an if statement
+                    auto condition = AsmOperand(current.op1(), context);
+                    if (condition.op == Location::Variable) condition = processor.getLocation(condition);
+                    auto falseLabel = AsmOperand(Location::Label, Type::none, false, AsmOperand::jump, current.op2Value);
+
+                    // now since it's unoptimized, we just need to check if the condition is 0 and then jump to the false condition label
+                    // TODO: add non-explicit condition
+                    instructions.emplace_back(cmp, condition, AsmOperand(Location::Literal, Type::unsignedInteger, false, 1, 0));
+                    instructions.emplace_back(je, falseLabel);
+                }
+                    break;
+                case Bytecode::Greater:
+                case Bytecode::GreaterEqual:
+                case Bytecode::Lesser:
+                case Bytecode::LesserEqual:
+                case Bytecode::Equals:
+                case Bytecode::NotEqual:
+                    {
+                    // we need to generate a cmp between the operands
+                    auto left = AsmOperand(current.op1(), context);
+                    auto right = AsmOperand(current.op2(), context);
+                    auto result = AsmOperand(current.op3(), context);
+
+                    if (left.type != right.type) CodeGeneratorError("Internal: incompatible type comparison!");
+                    if (left.type == Type::floatingPoint) CodeGeneratorError("Internal: no floating point comparisons yet!");
+
+                    // for now this will be the unoptimized version that returns a 0 or 1
+                    AsmInstructionInfo instruction = {
+                        { // variants of the instruction
+                            AsmInstructionVariant(cmp, Options::None,
+                                AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                AsmOpDefinition(Location::imm, 1, 8, true, false),
+                                { // allowed registers
+                                    RegisterRange(RAX, RDI, true, false, false, false),
+                                    RegisterRange(R8, R15, true, false, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            })
+                        }};
+                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    processor.registers[RFLAGS].content = {};
+
+                    // now we have the comparison done, so let's move its value into a register or memory location
+                    // TODO: add an option to use memory if no free register found
+                    AsmOperand reg = processor.getFreeRegister(Type::unsignedInteger, 1);
+                    // now we need to do a conditional set
+                    switch (current.type) {
+                        case Bytecode::Greater:
+                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setg, reg);
+                            else instructions.emplace_back(seta, reg);
+                            break;
+                        case Bytecode::Lesser:
+                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setl, reg);
+                            else instructions.emplace_back(setb, reg);
+                            break;
+                        case Bytecode::GreaterEqual:
+                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setge, reg);
+                            else instructions.emplace_back(setae, reg);
+                            break;
+                        case Bytecode::LesserEqual:
+                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setle, reg);
+                            else instructions.emplace_back(setbe, reg);
+                            break;
+                        case Bytecode::Equals:
+                            instructions.emplace_back(sete, reg);
+                            break;
+                        case Bytecode::NotEqual:
+                            instructions.emplace_back(setne, reg);
+                            break;
+                            default:
+                            CodeGeneratorError("Internal: forgot to add setcc for condition!");
+                    }
+                    processor.registers[reg.value.reg].content = result;
                 }
                     break;
                 case Bytecode::Address: {
@@ -386,7 +475,7 @@ namespace x86_64 {
                                 }),
                                 AsmInstructionVariant(add, Options::None,
                                     AsmOpDefinition(Location::reg, 1, 8, true, true),
-                                    AsmOpDefinition(Location::mem, 1, 8, true, false),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
                                     { // allowed registers
                                         RegisterRange(RAX, RDI, true, false, false, false),
                                         RegisterRange(R8, R15, true, false, false, false)
@@ -409,7 +498,7 @@ namespace x86_64 {
                                         AsmInstructionResultInput(false, 1, {current.op3(), context})
                                 }),
                                 AsmInstructionVariant(add, Options::None,
-                                    AsmOpDefinition(Location::mem, 1, 8, true, true),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, true),
                                     AsmOpDefinition(Location::reg, 1, 8, true, false),
                                     { // allowed registers
                                         RegisterRange(RAX, RDI, false, true, false, false),
@@ -421,7 +510,7 @@ namespace x86_64 {
                                         AsmInstructionResultInput(false, 1, {current.op3(), context})
                                 }),
                                 AsmInstructionVariant(add, Options::None,
-                                    AsmOpDefinition(Location::mem, 1, 8, true, true),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, true),
                                     AsmOpDefinition(Location::imm, 1, 8, true, false),
                                     { // allowed registers
                                     },
@@ -512,7 +601,7 @@ namespace x86_64 {
                                 }),
                                 AsmInstructionVariant(sub, Options::None,
                                     AsmOpDefinition(Location::reg, 1, 8, true, true),
-                                    AsmOpDefinition(Location::mem, 1, 8, true, false),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
                                     { // allowed registers
                                         RegisterRange(RAX, RDI, true, false, false, false),
                                         RegisterRange(R8, R15, true, false, false, false)
@@ -535,7 +624,7 @@ namespace x86_64 {
                                         AsmInstructionResultInput(false, 1, {current.op3(), context})
                                 }),
                                 AsmInstructionVariant(sub, Options::None,
-                                    AsmOpDefinition(Location::mem, 1, 8, true, true),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, true),
                                     AsmOpDefinition(Location::reg, 1, 8, true, false),
                                     { // allowed registers
                                         RegisterRange(RAX, RDI, false, true, false, false),
@@ -547,7 +636,7 @@ namespace x86_64 {
                                         AsmInstructionResultInput(false, 1, {current.op3(), context})
                                 }),
                                 AsmInstructionVariant(sub, Options::None,
-                                    AsmOpDefinition(Location::mem, 1, 8, true, true),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, true),
                                     AsmOpDefinition(Location::imm, 1, 8, true, false),
                                     { // allowed registers
                                     },

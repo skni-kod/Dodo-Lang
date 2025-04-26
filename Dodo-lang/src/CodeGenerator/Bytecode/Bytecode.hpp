@@ -87,7 +87,6 @@ struct BytecodeOperand {
     OperandValue value;
     BytecodeOperand() = default;
     BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
-    BytecodeOperand(Location::Type type, uint8_t operandSize, OperandValue value);
 };
 
 // represents a single bytecode instruction
@@ -127,7 +126,7 @@ struct Bytecode {
         //      syntax: value to return at op1
         Return,
         // conditional and control flow statements
-        //      syntax: op1
+        //      syntax: op1 (condition), op2 (false jump label)
         If,
         //      syntax: (empty)
         Else,
@@ -135,13 +134,17 @@ struct Bytecode {
         ElseIf,
         //      syntax: (empty) - begins loop statement for jump label
         LoopLabel,
+        //      syntax: op1 (number)
+        Label,
+        //      syntax: op1 (number)
+        Jump,
         //      syntax: op1 (initial statement)
         ForInitial,
         //      syntax: op1 (continue condition)
         ForCondition,
         //      syntax: op1 (continue statement)
         ForStatement,
-        //      syntax: op1
+        //      syntax: op1 (condition), op2 (false jump label)
         While,
         //      syntax: (empty)
         Do,

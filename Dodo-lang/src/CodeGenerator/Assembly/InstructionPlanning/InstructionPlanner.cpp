@@ -272,7 +272,11 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     std::vector <std::vector <AsmInstruction>> actualMoves;
 
     for (auto& n : moves) {
-        AddConversionsToMove(n, context, processor, instructions, n.source, nullptr);
+        auto content = n.source;
+        if (content.op != Location::Variable and content.op != Location::String and content.op != Location::imm)
+            content = processor.getContent(content, context);
+
+        AddConversionsToMove(n, context, processor, instructions, content, nullptr);
     }
 
     // adding the instruction itself

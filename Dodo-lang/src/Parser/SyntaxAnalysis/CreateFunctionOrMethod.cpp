@@ -37,6 +37,10 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
     uint32_t braceLevel = 0;
     while (not (current = generator())->MatchOperator(Operator::BraceClose) or braceLevel != 0) {
         output.instructions.emplace_back(ParseInstruction(generator, current, &braceLevel));
+        if (output.instructions.back().type == Instruction::Else) {
+            output.instructions.emplace_back(Instruction::BeginScope);
+            braceLevel++;
+        }
     }
 
     if (identifier != nullptr and identifier->type == Token::Identifier) output.name = identifier->string;

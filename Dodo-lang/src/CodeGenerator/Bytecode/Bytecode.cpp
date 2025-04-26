@@ -1,9 +1,13 @@
+#include <iostream>
+#include <stack>
+
 #include <GenerateCode.hpp>
 
 #include "BytecodeInternal.hpp"
-#include <iostream>
 #include <Lexing.hpp>
 #include <Parser.hpp>
+
+#include "X86_64Enums.hpp"
 
 // checks literal types, matches then with sizes and issues errors and warnings
 void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta) {
@@ -372,8 +376,17 @@ void PopScope(BytecodeContext& context) {
 // used for methods
 std::string ThisDummy = "this";
 
+struct ConditionalInfo {
+    Instruction::Type type = Instruction::None;
+    uint64_t loopConditionLabel = 0;
+    uint64_t afterLabel = 0;
+    uint64_t falseLabel = 0;
+};
+uint64_t labelCounter = 0;
+
 BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
 
+    std::stack<ConditionalInfo> conditions;
     BytecodeContext context;
     context.codes.reserve(function.instructions.size() + function.parameters.size() + function.isMethod);
 
@@ -403,6 +416,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
 
     bool wasLastConditional = false;
     bool wasPushAdded = false;
+    ConditionalInfo currentCondition;
 
     for (auto& n : function.instructions) {
         if (wasLastConditional and n.type != Instruction::BeginScope) CodeGeneratorError("Conditional statement without scope begin right after!");
@@ -449,52 +463,96 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 if (not wasPushAdded) PushScope(context);
                 wasPushAdded = false;
                 wasLastConditional = false;
+                conditions.push(currentCondition);
+                currentCondition = {};
                 break;
             case Instruction::EndScope:
+                if (conditions.top().type == Instruction::If) {
+                    if (&function.instructions.back() != &n) {
+                        if ((&n + 1)->type == Instruction::Else or (&n + 1)->type == Instruction::ElseIf) {
+                            currentCondition.afterLabel = ++labelCounter;
+                            Bytecode code;
+                            code.type = Bytecode::Jump;
+                            code.op1({Location::Literal, labelCounter});
+                            context.codes.push_back(code);
+                        }
+                    }
+                }
+                if (conditions.top().type == Instruction::ElseIf) {
+                    if (&function.instructions.back() != &n) {
+                        if ((&n + 1)->type == Instruction::Else or (&n + 1)->type == Instruction::ElseIf) {
+                            currentCondition.afterLabel = conditions.top().afterLabel;
+                            conditions.top().afterLabel = 0;
+                            Bytecode code;
+                            code.type = Bytecode::Jump;
+                            code.op1({Location::Literal, currentCondition.afterLabel});
+                            context.codes.push_back(code);
+                        }
+                    }
+                }
+                if (conditions.top().loopConditionLabel) {
+                    Bytecode code;
+                    code.type = Bytecode::Jump;
+                    code.op1({Location::Literal, conditions.top().loopConditionLabel});
+                    context.codes.push_back(code);
+                }
                 PopScope(context);
+                if (conditions.top().afterLabel) {
+                    Bytecode code;
+                    code.type = Bytecode::Label;
+                    code.op1({Location::Literal, conditions.top().afterLabel});
+                    context.codes.push_back(code);
+                }
+                if (conditions.top().falseLabel and conditions.top().falseLabel != conditions.top().afterLabel) {
+                    Bytecode code;
+                    code.type = Bytecode::Label;
+                    code.op1({Location::Literal, conditions.top().falseLabel});
+                    context.codes.push_back(code);
+                }
+                conditions.pop();
                 break;
             case Instruction::If:
+            case Instruction::ElseIf:
             {
                 wasLastConditional = true;
                 Bytecode code;
                 code.type = Bytecode::If;
                 code.opType = &types["bool"];
                 code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
-                context.codes.push_back(code);
-            }
-            break;
-            case Instruction::ElseIf:
-            {
-                wasLastConditional = true;
-                Bytecode code;
-                code.type = Bytecode::ElseIf;
-                code.opType = &types["bool"];
-                code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
+                code.op2({Location::Literal, ++labelCounter});
+                currentCondition.type = n.type;
+                if (not currentCondition.afterLabel) currentCondition.afterLabel = code.op2Value.ui;
+                currentCondition.falseLabel = code.op2Value.ui;
                 context.codes.push_back(code);
             }
             break;
             case Instruction::Else:
-            {
                 wasLastConditional = true;
-                Bytecode code;
-                code.type = Bytecode::Else;
-                context.codes.push_back(code);
-            }
             break;
             case Instruction::While:
             {
-                // TODO: what about do while loop?
+                {
+                    Bytecode code;
+                    code.type = Bytecode::Label;
+                    code.op1({Location::Literal, ++labelCounter});
+                    context.codes.push_back(code);
+                }
                 wasLastConditional = true;
-                context.addLoopLabel();
                 Bytecode code;
-                code.type = Bytecode::While;
+                //code.type = Bytecode::While;
+                code.type = Bytecode::If;
                 code.opType = &types["bool"];
                 code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
+                currentCondition.type = n.type;
+                currentCondition.loopConditionLabel = labelCounter;
+                code.op2({Location::Literal, ++labelCounter});
+                currentCondition.falseLabel = code.op2Value.ui;
                 context.codes.push_back(code);
             }
             break;
             case Instruction::Do:
             {
+                CodeGeneratorError("Internal: do while loop unimplemented!");
                 wasLastConditional = true;
                 context.addLoopLabel();
                 Bytecode code;
@@ -527,6 +585,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 CodeGeneratorError("Case not implemented!");
             case Instruction::For:
             {
+                CodeGeneratorError("Internal: for loop unimplemented!");
                 wasLastConditional = true;
                 wasPushAdded = true;
 

@@ -487,6 +487,38 @@ namespace x86_64 {
         // reg/mem ^= imm
         // reg ^= reg/mem
         op_xor,
+        // Set byte if condition is met
+        // reg8/mem8
+        seta, // set byte if comparison result above unsigned
+        setae, // set byte if comparison result above or equal unsigned
+        setb, // set byte if comparison result below unsigned
+        setbe, // set byte if comparison result below or equal unsigned
+        setc, // set byte if comparison result carry
+        sete, // set byte if comparison result equal
+        setz, // set byte if comparison result zero flag
+        setg, // set byte if comparison result greater signed
+        setge, // set byte if comparison result greater or equal signed
+        setl, // set byte if comparison result lesser signed
+        setle, // set byte if comparison result lesser or equal signed
+        setna, // set byte if comparison result not above unsigned
+        setnae, // set byte if comparison result not above or equal unsigned
+        setnb, // set byte if comparison result not below unsigned
+        setnbe, // set byte if comparison result not below or equal unsigned
+        setnc, // set byte if comparison result not carry
+        setne, // set byte if comparison result not equal
+        setng, // set byte if comparison result not greater signed
+        setnge, // set byte if comparison result not greater or equal singed
+        setnl, // set byte if comparison result not lesser singed
+        setnle, // set byte if comparison result not lesser or equal singed
+        setno, // set byte if comparison result not overflow
+        setnp, // set byte if comparison result not parity
+        setns, // set byte if comparison result not sign
+        setnz, // set byte if comparison result not zero
+        seto, // set byte if comparison result overflow
+        setp, // set byte if comparison result parity
+        setpe, // set byte if comparison result parity even
+        setpo, // set byte if comparison result parity odd
+        sets, // set byte if comparison result sign
 
         // non-codes which will be used for other stuff
         label

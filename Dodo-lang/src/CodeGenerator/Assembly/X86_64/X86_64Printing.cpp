@@ -506,6 +506,10 @@ namespace x86_64 {
                 out << op.value.function->getFullName();
                 return;
             }
+            if (op.labelType == AsmOperand::jump) {
+                out << "LC" << std::to_string(op.value.ui);
+                return;
+            }
             CodeGeneratorError("Internal: unimplemented operand print!");
             return;
         case Location::Call:
@@ -572,7 +576,7 @@ namespace x86_64 {
         case InstructionCode::call:
             return "call";
         case InstructionCode::cmp:
-            return "" ;
+            return "cmp" + GASPrefix(ins.op1);
         case InstructionCode::comiss:
             return "";
         case InstructionCode::vcomiss:
@@ -763,6 +767,66 @@ namespace x86_64 {
             return "push" + GASPrefix(ins.op1);
         case InstructionCode::op_xor:
             return "";
+        case InstructionCode::seta:
+            return "seta";
+        case InstructionCode::setae:
+            return "setae";
+        case InstructionCode::setb:
+            return "setb";
+        case InstructionCode::setbe:
+            return "setbe";
+        case InstructionCode::setc:
+            return "setc";
+        case InstructionCode::sete:
+            return "sete";
+        case InstructionCode::setz:
+            return "setz";
+        case InstructionCode::setg:
+            return "setg";
+        case InstructionCode::setge:
+            return "setge";
+        case InstructionCode::setl:
+            return "setl";
+        case InstructionCode::setle:
+            return "setle";
+        case InstructionCode::setna:
+            return "setna";
+        case InstructionCode::setnae:
+            return "setnae";
+        case InstructionCode::setnb:
+            return "setnb";
+        case InstructionCode::setnbe:
+            return "setnbe";
+        case InstructionCode::setnc:
+            return "setnc";
+        case InstructionCode::setne:
+            return "setne";
+        case InstructionCode::setng:
+            return "setng";
+        case InstructionCode::setnge:
+            return "setnge";
+        case InstructionCode::setnl:
+            return "setnl";
+        case InstructionCode::setnle:
+            return "setnle";
+        case InstructionCode::setno:
+            return "setno";
+        case InstructionCode::setnp:
+            return "setnp";
+        case InstructionCode::setns:
+            return "setns";
+        case InstructionCode::setnz:
+            return "setnz";
+        case InstructionCode::seto:
+            return "seto";
+        case InstructionCode::setp:
+            return "setp";
+        case InstructionCode::setpe:
+            return "setpe";
+        case InstructionCode::setpo:
+            return "setpo";
+        case InstructionCode::sets:
+            return "sets";
         case InstructionCode::label:
             return "";
             default:

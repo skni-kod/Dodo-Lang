@@ -722,6 +722,8 @@ LexerLine LexLine(std::string& line) {
                         base = 16;
                         result.pop_back();
                         break;
+                        case '_':
+                        break;
                         default:
                             LexerError("Invalid character in number!");
                     }

@@ -54,7 +54,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
             out << "return value of " << code.op1();
             break;
         case Bytecode::If:
-            out << "if with condition " << code.op1();
+            out << "if with condition " << code.op1() << " and jump in case of false to label LC" << code.op2Value.ui;
             break;
         case Bytecode::Else:
             out << "else";
@@ -194,6 +194,12 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::Cast:
             out << "cast " << code.op1() << " to type " << code.opType->typeName << std::string(code.opTypeMeta.pointerLevel, '*') << std::string(code.opTypeMeta.isReference, '&') << " and store the result in " << code.op3();
             break;
+        case Bytecode::Label:
+          out << "add jump label: LC" << code.op1Value.ui;
+          break;
+        case Bytecode::Jump:
+          out << "jump to label: LC" << code.op1Value.ui;
+          break;
         default:
             CodeGeneratorError("Unhandled bytecode instruction in printing!");
     }

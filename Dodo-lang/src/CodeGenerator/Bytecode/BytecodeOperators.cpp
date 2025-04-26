@@ -198,7 +198,7 @@ BytecodeOperand HandleCondition(BytecodeContext& context, std::vector<ParserTree
 
     code.op1(GenerateExpressionBytecode(context, values, code.opType, code.opTypeMeta.noReference(), values[index].left,  isGlobal));
     code.op2(GenerateExpressionBytecode(context, values, code.opType, code.opTypeMeta.noReference(), values[index].right, isGlobal));
-    code.op3(context.insertTemporary(code.opType, code.opTypeMeta.noReference()));
+    code.op3(context.insertTemporary(&types["bool"], {}));
     context.codes.push_back(code);
     return code.op3();
 }

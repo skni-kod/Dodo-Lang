@@ -82,7 +82,7 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
                 }
                 return std::move(output);
             }
-            if (not current->MatchOperator(Operator::BracketOpen)) {
+            if (not current->MatchOperator(Operator::BraceOpen)) {
                 ParserError("Expected an opening bracket!");
             }
             output.type = Instruction::Else;
