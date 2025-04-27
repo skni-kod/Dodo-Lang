@@ -1,25 +1,20 @@
 #ifndef DODO_LANG_ANALYSIS_INTERNAL_HPP
 #define DODO_LANG_ANALYSIS_INTERNAL_HPP
 
-#include "../../LexicalToken.hpp"
-#include "../Generator.tpp"
-#include "../ParserVariables.hpp"
+#include "Generator.tpp"
 
-void CreateType(Generator<const LexicalToken*>& generator);
+void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken);
 
-void CreateFunction(Generator<const LexicalToken*>& generator, const std::string& returnTypeName);
+ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator, const ParserValueTypeObject& type, LexerToken* identifier, bool isMethod = false, uint32_t operatorType = 0);
+ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, LexerToken* first, uint32_t* braceCounter);
 
-std::pair<std::string, ParserVariable> CreateVariable(Generator<const LexicalToken*>& generator, const std::string& firstToken, bool isGlobal);
+std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToken*>& generator, LexerToken* first);
 
-FunctionInstruction CreateInstruction(Generator<const LexicalToken*>& generator, const LexicalToken* firstToken);
-
-ParserValue ParseMath(const std::vector<const LexicalToken*>& tokens);
-
-ParserValue ParseMath(Generator<const LexicalToken*>& generator);
-
-// use this one when doing stuff like a += 5 ---> a = a + 5
-ParserValue
-ParseMath(Generator<const LexicalToken*>& generator, std::vector<const LexicalToken*> front, bool addBraces = true,
-          uint64_t bracketLevel = 0);
+// parses an expression, be it lvalue, rvalue or condition
+// stops when it encounters a ';', '=' or some type of bracket beyond those opened in it
+// returns a pointer to token it stopped on
+LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <ParserTreeValue>& valueArray, std::vector <LexerToken*> tokens);
+void CheckGlobalVariables();
+bool IsLValue(std::vector <ParserTreeValue>& valueArray, uint32_t start);
 
 #endif //DODO_LANG_ANALYSIS_INTERNAL_HPP

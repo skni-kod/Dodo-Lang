@@ -1,22 +1,20 @@
 #include "Parser.hpp"
+
+#include <AnalysisInternal.hpp>
+#include <iostream>
+
 #include "Generator.tpp"
-#include "ParserVariables.hpp"
 #include "SyntaxAnalysis/SyntaxAnalysis.hpp"
 #include "GenerateCode.hpp"
+#include "Lexing.hpp"
+#include "Options.hpp"
 
-
-uint64_t currentLine = 0;
-const std::string* currentFile = nullptr;
-
-const std::string* GetCurrentFile() {
-    return currentFile;
-}
 
 uint64_t GetCurrentLine() {
     return currentLine;
 }
 
-const char* __ParserException::what() {
+const char* ParserException::what() {
     return "Parser has encountered unexpected input";
 }
 
@@ -28,71 +26,67 @@ void ParserError(const std::string& message) {
         std::cout << "ERROR! " << *currentFile << " at line : " << currentLine + 1 << " : " << message << "\n";
     }
     if (not doneParsing) {
-        throw __ParserException();
+        throw ParserException();
     }
-    else {
-        throw __CodeGeneratorException();
-    }
+    throw __CodeGeneratorException();
+
 }
 
-Generator<const LexicalToken*> TokenRunGenerator(const std::vector<ProgramPage>& tokens) {
-    currentLine = 0;
-    currentFile = nullptr;
-    for (const auto& file: tokens) {
-        currentFile = &file.file_name;
-        for (const auto& line: file.page) {
-            currentLine = line.line_number;
-            for (const auto& token: line.line) {
-                lastToken = &token;
+Generator<LexerToken*> LexerTokenGenerator(std::vector<LexerFile>& lexed) {
+    for (auto& file: lexed) {
+        currentFile = &file.path;
+        for (auto& line: file.lines) {
+            currentLine = line.lineNumber;
+            for (auto& token: line.tokens) {
+                //lastToken = &token;
                 co_yield &token;
             }
         }
     }
 }
 
-void RunParsing(const std::vector<ProgramPage>& tokens) {
 
-    // Step 1: syntax analysis and creating initial structures
+//void RunParsing(const std::vector<ProgramPage>& tokens) {
+void RunParsing(std::vector<LexerFile>& lexed) {
+
+    // Step 1: creating unprocessed structures
     {
-        auto generator = TokenRunGenerator(tokens);
+        auto generator = LexerTokenGenerator(lexed);
         if (RunSyntaxAnalysis(generator)) {
             ParserError("Syntax analysis errors occurred!");
         }
     }
 
-    // Step 2: checking basic types (might not be required)
+    // Step 2: processing type sizes, alignments and names
+    CalculateTypeSizes();
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished type parsing with " << parserTypes.size() << " type definition(s)\n";
-        std::cout << "INFO L2: Found " << globalVariables.size() << " global variable(s)\n";
-    }
-
-    UpdateGlobalVariables();
-
-    // Step 3: checking complex types
-
-    // ...
-
-    // Step 4: preparing function arguments and checking if main exists
-    PrepareFunctionArguments();
-    if (not parserFunctions.isKey("Main")) {
-        ParserError("No main function found!");
-    }
-
-    if (Options::informationLevel > Options::InformationLevel::minimal) {
-        std::cout << "INFO L2: Finished function parsing with " << parserFunctions.size()
-                  << " function definition(s)\n";
-    }
-}
-
-bool IsNumeric(const LexicalToken* token) {
-    if (token->literalValue == literalType::numeric or
-        token->literalValue == literalType::character or
-        token->literalValue == literalType::float_type or
-        token->literalValue == literalType::hex_type or
-        token->literalValue == literalType::binary_type or
-        token->literalValue == literalType::octal_type) {
-        return true;
+        std::cout << "INFO L2: Finished type parsing with: " << types.size() << " type definition(s)\n";
+        if (Options::informationLevel > Options::InformationLevel::general) {
+            std::cout << "INFO L3: Defined types:\n";
+            for (const auto& n : types) {
+                std::cout << n.second;
+            }
         }
-    return false;
+    }
+
+    // Step 3: processing global variables
+    CheckGlobalVariables();
+
+    if (Options::informationLevel > Options::InformationLevel::minimal) {
+        std::cout << "INFO L2: Finished global variable checks with: " << globalVariables.size() << " instance(s)\n";
+        if (Options::informationLevel > Options::InformationLevel::general and not globalVariables.empty()) {
+            std::cout << "INFO L3: Global variables:\n";
+            for (const auto& n : globalVariables) {
+                std::cout << n.second;
+            }
+        }
+    }
+
+    // Step 4: adding parent type pointers to methods
+    for (auto& n : types) {
+        for (auto& m : n.second.methods) {
+            m.parentType = &n.second;
+        }
+    }
 }

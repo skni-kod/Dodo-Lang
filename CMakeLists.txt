@@ -3,60 +3,36 @@ project(Dodo_Lang)
 
 set(CMAKE_CXX_STANDARD 23)
 
-include_directories(Dodo-lang/src)
-include_directories(Dodo-lang/src/CodeGenerator)
-include_directories(Dodo-lang/src/Parser)
-include_directories(Dodo-lang/src/Parser/CreateTree)
-include_directories(Dodo-lang/src/Parser/SyntaxAnalysis)
+file (GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "Dodo-lang/src/*.cpp")
+file (GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "Dodo-lang/src/*.hpp")
 
-add_executable(Dodo_Lang
-        Dodo-lang/src/Parser/Generator.tpp
-        Dodo-lang/src/Parser/MapWrapper.tpp
-        Dodo-lang/src/Parser/Parser.cpp
-        Dodo-lang/src/Parser/Parser.hpp
-        Dodo-lang/src/Parser/ParserVariables.cpp
-        Dodo-lang/src/Parser/ParserVariables.hpp
-        Dodo-lang/src/Options.hpp
-        Dodo-lang/src/lexical_analysis.cpp
-        Dodo-lang/src/LexicalAnalysis.hpp
-        Dodo-lang/src/LexicalToken.cpp
-        Dodo-lang/src/LexicalToken.hpp
-        Dodo-lang/src/main.cpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/SyntaxAnalysis.hpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/AnalysisRunner.cpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/AnalysisInternal.hpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/CreateType.cpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/CreateFunction.cpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/CreateInstruction.cpp
-        Dodo-lang/src/CodeGenerator/GenerateCode.hpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/MathParser.cpp
-        Dodo-lang/src/CodeGenerator/GenerateCode.cpp
-        Dodo-lang/src/CodeGenerator/GenerateCodeInternal.hpp
-        Dodo-lang/src/CodeGenerator/Assembly/MemoryStructure.hpp
-        Dodo-lang/src/CodeGenerator/Assembly/MemoryStructure.cpp
-        Dodo-lang/src/CodeGenerator/Bytecode/FunctionStepOne.cpp
-        Dodo-lang/src/CodeGenerator/Bytecode/Bytecode.hpp
-        Dodo-lang/src/CodeGenerator/Bytecode/Bytecode.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/FunctionStepTwo.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64Assembly.hpp
-        Dodo-lang/src/CodeGenerator/Assembly/X86_64/X86_64Assembly.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/LinearAnalysis.hpp
-        Dodo-lang/src/CodeGenerator/Assembly/LinearAnalysis.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/TheGenerator.hpp
-        Dodo-lang/src/CodeGenerator/Assembly/TheGeneratorConstructors.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/TheGenerator.cpp
-        Dodo-lang/src/CodeGenerator/Bytecode/BytecodeOptimizations.cpp
-        Dodo-lang/src/CodeGenerator/Assembly/FunctionCallStuff.cpp
-        Dodo-lang/src/Parser/CheckFunctions.cpp
-        Dodo-lang/src/Parser/SyntaxAnalysis/CreateVariable.cpp
-)
+set (INCLUDE_DIRS "")
+foreach (_headerFile ${HEADERS})
+    get_filename_component(_dir ${_headerFile} PATH)
+    list (APPEND INCLUDE_DIRS ${_dir})
+endforeach()
+list (REMOVE_DUPLICATES INCLUDE_DIRS)
 
-# uncomment when project works well
-#if(MSVC)
-#    target_compile_options(Dodo_Lang PRIVATE /W4 /WX)
-#else()
-#    target_compile_options(Dodo_Lang PRIVATE -Wall -Wextra -Wpedantic -Werror)
-#endif()
+include_directories(${INCLUDE_DIRS})
+
+add_executable(Dodo_Lang ${SOURCES})
+
+add_custom_command(
+        OUTPUT Dodo-lang/src/Misc/Increment.hpp
+        PRE_BUILD
+        COMMAND ./increment.sh
+        COMMAND echo running
+        DEPENDS BuildNumberCache.txt
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+add_custom_target(IncrementBuildNumber ALL DEPENDS Dodo-lang/src/Misc/Increment.hpp)
+
+add_dependencies(Dodo_Lang IncrementBuildNumber)
 
 # run this in build folder to create the executable and get the return value
 # as out.s -o out.o && ld out.o -o out && ./out || echo $?
+
+# example compilation cli arguments
+# dodoc dodotest.dodo -o dodotest -l3 -import=../
+# to create a stdlib link when in cmake dir
+# sudo ln -s <PATH>/Dodo-lang/Stdlib/ /usr/include/DodoLang

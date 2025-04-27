@@ -1,135 +1,112 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <string>
-#include "LexicalAnalysis.hpp"
-#include <memory>
+
+#include "Misc/Increment.hpp"
+#include "Cli/Cli.hpp"
 #include "Parser/Parser.hpp"
 #include "CodeGenerator/GenerateCode.hpp"
+#include "Lexer/Lexing.hpp"
 
-// to fix any simple issues without delving into the lexer itself
-void FixLexerOutput(std::vector<ProgramPage>& tokens) {
-    for (auto& m: tokens) {
-        for (auto& m2: m.page) {
-            for (auto& n: m2.line) {
-                if (n.value == ",") {
-                    n.type = LexicalToken::Type::comma;
-                }
-                else if (n.value == ";") {
-                    n.type = LexicalToken::Type::expressionEnd;
-                }
-                else if (n.value == "{") {
-                    n.type = LexicalToken::Type::blockBegin;
-                }
-                else if (n.value == "}") {
-                    n.type = LexicalToken::Type::blockEnd;
-                }
-                else if (n.type == LexicalToken::Type::literal and n.value.size() > 1 and n.value.front() == '\"' and n.value.back() == '\"') {
-                    // it's a string, since the lexer ands the line after it an expression end needs to be added
-                    if (&n == &m2.line.back()) {
-                        m2.add_token(LexicalToken::Type::expressionEnd, ";");
-                    }
-                    else {
-                        // add a comma after this
-                        for (uint64_t k = 0; k < m2.line.size(); k++) {
-                            if (&m2.line[k] == &n) {
-                                m2.line.insert(m2.line.begin() + k + 1, {LexicalToken::Type::comma, ","});
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 int main(int argc, char* argv[]) {
-    //Compiling process:
-    /*
-    1. Read program file
 
-    2. Lexical analysis
+    std::cout <<
+            "𝐃𝐨𝐝𝐨𝐋𝐚𝐧𝐠 𝐜𝐨𝐦𝐩𝐢𝐥𝐞𝐫\n"
+            "Version: " << incrementedVersionValue << "\n"
+#if defined(__linux__) or defined(__gnu_linux__)
+            "Platform: Linux "
+#else
+            "Platform: Not linux "
+#endif
+#if defined(__x86_64__)
+            "x86-64 "
+#elif defined(i386) or defined(__i386__) or defined(__i386) or defined(_M_IX86)
+            "x86-32 "
+#else
+            "unknown architecture "
+#endif
+#if defined(_MSC_VER)
+            "MSVC\n";
+#elif defined(__GNUC__)
+            "Gcc\n";
+#elif defined(__clang__)
+            "Clang\n";
+#elif defined(__MINGW32) or defined(__MINGW64__)
+            "MinGW\n";
+#endif
 
-    3. Parsing + syntax error detecting
 
-    4. Transpiling to target assembly
-
-    5. Creating executable
-    */
-
-
-    //in future change to name from argv
-    const std::string file_name = "dodotest.dodo";
-
-    //opening file
-    std::fstream plik;
-    plik.open(file_name, std::fstream::in);
-
-    //passing file to lexer and starting lexical analise
-    std::unique_ptr<list_of_tokens> lt(list_of_tokens::get_instance());
-
-    //display original file:
-    //* - the switch to turn on/off below code
-    std::string line;
-    int licznik = 1;
-
-    while (getline(plik, line)) {
-        std::cout << licznik << ". " << line << std::endl;
-        licznik++;
+    if (ApplyCommandLineArguments(argc, argv) == false) {
+        std::cout << "Command line argument parsing failed. Compilation aborted!\n";
+        return 1;
     }
 
-    plik.clear();
-    //*/
 
-    std::cout << "\n\n\n" << std::endl;
-    std::cout << "lexing..." << std::endl;
+    if (Options::helpOption) {
 
-    //do lexical analize.
-    std::cout << "LINKER ERRORS: " << std::endl;
-    lt->lexical_analize(file_name);
-    std::cout << "\n\n\n" << std::endl;
+            std::cout <<
+            "By Szymon Jabłoński, started by Michał Kosiorski, developed as a SKNI \"KOD\" project at Rzeszów University of Technology;\n"
+            "\n"
+            "Usage:\n"
+            "dodoc <file names> <options>\n"
+            "🀱🀲🀺🁂🁊🁒🁚🁡🁠🁘🁐🁈🁀🀸🀱\n"
+            "Options:\n"
+            "All flags can be written in lowercase or uppercase;\n"
+            "\n"
+            "-o                - sets executable name, pass name as next argument;\n"
+            "-h, -help         - displays this screen;\n"
+            "-r                - release - enables all optimizations (by default only some are enabled);\n"
+            "-d                - debug - disabled all optimizations;\n"
+            "-l{1-3}           - sets information level, with 1 being the lowest and 3 being 𝐯𝐞𝐫𝐲 verbose;\n"
+            "-target=          - sets target system, default is \"LINUX\";\n"
+            "-platform=        - sets target platform, default is \"x86_64\";\n"
+            "-stdlibdirectory= - sets standard library directory, default is \"/usr/include/DodoLang\" for linux and none for others;\n"
+            "-import=          - adds a directory to file source search list;\n"
+            "-extensions=      - sets extension level supported by target, for x86-64 values are: x86-64_v1 (default), x86-64_v2, x86-64_v3, x86-64_v4;\n"
+            "🀱🀲🀺🁂🁊🁒🁚🁡🁠🁘🁐🁈🁀🀸🀱\n"
+            "Architecture versions are defined per the 2020 x86-64_v1-v4 standard agreed upon by Intel, AMD, RedHat and SUSE:\n"
+            "- x86-64_v1 - the baseline, SSE and SSE2 are used extensively for floating point operations;\n"
+            "- x86-64_v2 - as of now this target changes little, it introduces SSE3, SSE4_1 and SSE4_2, instructions provided by which are not used;\n"
+            "- x86-64_v3 - provides AVX and AVX2, their instructions can be used to improve floating point performance;\n"
+            "- x86-64_v4 - introduces AVX512, not used as of now due to lesser support and less use cases.\n"
+            ;
+        return 0;
+    }
 
+    // new lexing here
+    std::vector<LexerFile> lexed;
+    try {
+        lexed = std::move(RunLexer());
+    }
+    catch (LexerException& e) {
+        std::cout << "Lexing has failed. Compilation aborted!\n";
+        return 1;
+    }
 
-    //below is for checking if the lexing procces was correct
-    std::cout << "LEXER OUTPUT: " << std::endl;
-    FixLexerOutput(lt->f_token_list);
-    lt->list_of_tokens_print();
-
-
-    //LEXER HOW TO USE
-    //lt->f_token_list;// - list divided into files, lines and tokens f_token_list[0][0][0] - first file, first line inside this file, first token inside line
-    //lt->token_list;// - all lexical info divided into lines and tokens
-    //lt->f_size; //numer of files that was used
-    //lt->singleSize; //number of lines inside token_list
-    //lt->f_token_list[0].p_size; // - number of lines inside first file
-    //lt->f_token_list[0][0].l_size; //-number of tokens inside first line in first file
-
-    plik.close();
-
-
+    // TODO: macro system here
 
     std::cout << "INFO L1: Lexing done!\nINFO L1: Parsing:\n";
     try {
-        RunParsing(lt->f_token_list);
+        RunParsing(lexed);
     }
-    catch (__ParserException& e) {
-        std::cout << "Parsing has failed. compilation aborted!\n";
+    catch (ParserException& e) {
+        std::cout << "Parsing has failed. Compilation aborted!\n";
         return 1;
     }
-    std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating assembly code:\n";
+    std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating code:\n";
 
 
     try {
         GenerateCode();
     }
     catch (__CodeGeneratorException& e) {
-        std::cout << "Code generation has failed. compilation aborted!\n";
+        std::cout << "Code generation has failed. Compilation aborted!\n";
         return 1;
     }
 
-    std::system("as -o build/out.o build/out.s");
-    std::system("ld build/out.o -o build/out");
+    //std::system("as -o build/out.o build/out.s");
+    //std::system("ld build/out.o -o build/out");
 
     return 0;
 }

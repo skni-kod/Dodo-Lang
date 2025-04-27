@@ -1,0 +1,16 @@
+// ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+// ┃ This file contains printing functions for standard types.                                 ┃
+// ┃ Last revision: 25.04.2025                                                                 ┃
+// ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+void Print(let u64 length, let char* message) {
+    syscall(1, 0, message, length);
+    return;
+}
+
+void Println(let u64 length, let char* message) {
+    syscall(1, 0, message, length);
+    syscall(1, 0, "\n", 1);
+    return;
+}
+

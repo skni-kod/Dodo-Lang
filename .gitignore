@@ -13,7 +13,7 @@
 *.la
 *.a
 
-# Visual Studio Files
+# Visual Studio files
 .vs/
 Debug
 Release
@@ -23,11 +23,18 @@ Release
 ipch
 *sdf
 
-# dodo-lang specific
+# CMake files
 cmake-build-debug/
+cmake-build-debug-event-trace/
 cmake-build-release/
+cmake-build-release-event-trace/
+
+# Clion / other Jetbrains IDE's files
 .idea/
 *.user
 *.filters
 *.vcxproj
 *.sln
+
+# residual build files
+/build
