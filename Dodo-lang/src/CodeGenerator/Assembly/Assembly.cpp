@@ -1,6 +1,7 @@
 #include "Assembly.hpp"
 
 #include <GenerateCode.hpp>
+#include <iostream>
 #include <Parser.hpp>
 #include <utility>
 
@@ -42,7 +43,22 @@ AsmOperand& Processor::getContentRef(AsmOperand& op) {
         for (auto& n : stack) {
             if (n.offset == op.value.offset) return n.content;
         }
-        CodeGeneratorError("Internal: invalid processor location for reference!");
+        // if it is here, then we need to create the stack location again, and that will be a pain
+        // first let's find the index for the thing
+        uint32_t index;
+        if (stack.empty()) index = 0;
+        else if (stack.front().offset < op.value.offset) index = 0;
+        else if (stack.back().offset > op.value.offset) index = stack.size() - 1;
+        else for (index = 0; index < stack.size() - 1; index++) {
+            if (stack[index].offset > op.value.offset and stack[index + 1].offset < op.value.offset) break;
+        }
+        // now we have the index and just need to check if it fits here
+        std::cout << "Warning: using unchecked register location for now!\n";
+        // TODO: add the check
+
+        stack.emplace(stack.begin() + index, StackEntry({}, op.value.offset, op.size));
+        return stack[index].content;
+        //CodeGeneratorError("Internal: invalid processor location for reference!");
     }
     CodeGeneratorError("Internal: invalid processor location 3!");
     return emptyContent;
@@ -69,13 +85,13 @@ AsmOperand Processor::getContent(AsmOperand& op, BytecodeContext& context) {
 
 AsmOperand Processor::getContentAtOffset(int32_t offset) {
     for (const auto& n : stack) if (n.offset == offset) return n.content;
-    if (stack.empty()) CodeGeneratorError("Internal: cannot get content in stack!");
     return {};
 }
 
 AsmOperand& Processor::getContentRefAtOffset(int32_t offset) {
     for (auto& n : stack) if (n.offset == offset) return n.content;
-    if (stack.empty()) CodeGeneratorError("Internal: cannot get content in stack!");
+    // in that case it does not exist
+    CodeGeneratorError("Internal: cannot get content in stack!");
     return stack[0].content;
 }
 
@@ -189,6 +205,15 @@ AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context) {
     }
     CodeGeneratorError("Internal: unsupported stack push!");
     return {};
+}
+
+AsmOperand Processor::pushStackTemp(uint32_t size, uint32_t alignment) {
+    int32_t offset;
+    if (stack.empty()) offset = size;
+    else offset = -stack.back().offset + size;
+    if (offset % alignment) offset = (offset / alignment + 1) * alignment;
+    stack.emplace_back(AsmOperand(), -offset, size);
+    return -offset;
 }
 
 AsmOperand Processor::tempStack(uint8_t size, uint8_t alignment) {
@@ -482,9 +507,9 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
 
     }
     else if (op == Location::sta) {
-        auto& content = processor.getContentRefAtOffset(value.offset);
+        auto content = processor.getContentAtOffset(value.offset);
+        if (content.op != Location::Variable) return *this;
         auto& obj = content.object(context, processor);
-
         CodeGeneratorError("Internal: moves away to stack are unimplemented!");
     }
     return *this;
@@ -627,4 +652,61 @@ void Processor::cleanUnusedVariables(BytecodeContext& context, uint32_t index) {
             if (obj.lastUse <= index) n.content = {};
         }
     }
+}
+
+std::vector<MemorySnapshotEntry> Processor::createSnapshot(BytecodeContext& context) {
+    std::vector<MemorySnapshotEntry> output;
+    for (auto& n : registers) {
+        if (n.content.op == Location::Variable)
+            if (n.content.object(context, *this).lastUse > index)
+                output.emplace_back(n.content.copyTo(Location::reg, n.number), n.content);
+    }
+    for (auto& n : stack) {
+        if (n.content.op == Location::Variable)
+            if (n.content.object(context, *this).lastUse > index)
+                output.emplace_back(n.content.copyTo(Location::sta, n.offset), n.content);
+    }
+    return std::move(output);
+}
+
+void Processor::restoreSnapshot(std::vector<MemorySnapshotEntry>& snapshot, std::vector <AsmInstruction>& instructions, BytecodeContext& context) {
+    // registers and stack are always in order
+    // first let's move things
+    for (auto& n : snapshot) {
+        if (n.where.op == Location::reg) {
+            if (registers[n.where.value.reg].content != n.what) {
+                MoveInfo move = {getLocation(n.what), n.where.moveAwayOrGetNewLocation(context, *this, instructions, index, nullptr)};
+                // TODO: add registers to set as forbidden
+                AddConversionsToMove(move ,context, *this, instructions, n.what, nullptr);
+            }
+        }
+        else {
+            if (getContent(n.where, context) != n.what) {
+                MoveInfo move = {getLocation(n.what), n.where.moveAwayOrGetNewLocation(context, *this, instructions, index, nullptr)};
+                // TODO: add registers to set as forbidden
+                AddConversionsToMove(move ,context, *this, instructions, n.what, nullptr);
+            }
+        }
+    }
+
+    // now removing any residual stuff
+    uint32_t registerIndex = 0;
+    uint32_t stackIndex = 0;
+    for (auto& n : snapshot) {
+        if (n.where.op == Location::reg) {
+            for (uint32_t k = registerIndex; k < n.where.value.reg; k++) registers[k].content = {};
+            registerIndex = n.where.value.reg + 1;
+        }
+        else {
+            // goes through all stack entries and removes unused ones until it reaches the one that exists
+            for (; stack[stackIndex].offset != n.where.value.offset; stack.erase(stack.begin() + stackIndex)) {}
+            stackIndex++;
+        }
+    }
+
+    // removes any data after the indexes
+    if (not registerIndex) for (auto& n: registers) n.content = {};
+    else for (; registerIndex < registers.size(); registerIndex++) registers[registerIndex].content = {};
+    if (not stackIndex) stack.clear();
+    else if (stackIndex != stack.size()) stack.erase(stack.begin() + stackIndex, stack.end());
 }

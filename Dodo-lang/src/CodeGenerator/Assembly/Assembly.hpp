@@ -1,7 +1,7 @@
 #ifndef ASSEMBLY_HPP
 #define ASSEMBLY_HPP
 
-#include <X86_64Enums.hpp>
+#include <stack>
 
 #include "Bytecode.hpp"
 #include "X86_64Enums.hpp"
@@ -54,6 +54,10 @@ struct AsmOperand {
     std::vector<AsmOperand> getAllLocations(Processor& processor);
 
     bool operator==(const AsmOperand& target) const;
+};
+
+struct MemorySnapshotEntry {
+    AsmOperand where, what;
 };
 
 // represents a register in cpu
@@ -155,6 +159,8 @@ struct Processor {
     // pushes variable at the back of the stack
     AsmOperand pushStack(BytecodeOperand value, BytecodeContext& context);
     AsmOperand pushStack(AsmOperand value, BytecodeContext& context);
+    // returns a stack location for a temporary operation, does not set a value
+    AsmOperand pushStackTemp(uint32_t size, uint32_t alignment);
     // returns a viable location for this size and alignment
     AsmOperand tempStack(uint8_t size, uint8_t alignment = 0);
 
@@ -164,6 +170,8 @@ struct Processor {
     void assignVariable(AsmOperand variable, AsmOperand source, BytecodeContext& context, std::vector<AsmInstruction>& instructions);
     // call AFTER the actions as it removes everything not used beyond this index
     void cleanUnusedVariables(BytecodeContext& context, uint32_t index);
+    std::vector<MemorySnapshotEntry> createSnapshot(BytecodeContext& context);
+    void restoreSnapshot(std::vector<MemorySnapshotEntry>& snapshot, std::vector <AsmInstruction>& instructions, BytecodeContext& context);
 };
 
 
@@ -260,6 +268,8 @@ struct AsmInstructionInfo {
 struct MoveInfo {
     AsmOperand source, target;
 };
+
+inline std::stack <std::vector <MemorySnapshotEntry>> memorySnapshots;
 
 // functions
 

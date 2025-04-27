@@ -9,7 +9,7 @@
 ## About Dodo Lang:
 It's yet another statically typed language, though it has/will have some features I hope will make it unique enough. There are compound and simple types, but there is no separation between them, as such primitive types can have all the features of objects (with the C++ struct/class approach mind you, not as in object in C#/Java).
 
-#### [Documentation can be found here (Outdated)](./Dodo-lang/documentation/Index.md)
+#### [Documentation TBA]
 
 The project is being developed as a SKNI "KOD" project.
 
@@ -36,5 +36,5 @@ The project is being developed as a SKNI "KOD" project.
   - can output instruction with operands that are defined
   - can convert types
   - can do mostly correct x86-64 unix style calls and syscalls
-  - can do printing
+  - can do loops and conditional statements with memory state preservation
   - moving values and conversions between types largely done

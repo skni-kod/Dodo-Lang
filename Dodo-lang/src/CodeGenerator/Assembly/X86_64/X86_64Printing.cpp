@@ -578,11 +578,11 @@ namespace x86_64 {
         case InstructionCode::cmp:
             return "cmp" + GASPrefix(ins.op1);
         case InstructionCode::comiss:
-            return "";
+            return "comiss";
         case InstructionCode::vcomiss:
             return "";
         case InstructionCode::comisd:
-            return "";
+            return "comisd";
         case InstructionCode::vcomisd:
             return "";
         case InstructionCode::cvtsd2si:

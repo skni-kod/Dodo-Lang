@@ -42,7 +42,8 @@ namespace x86_64 {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: " << n.offset << ": ";
                         n.content.print(std::cout, context, processor);
-                        std::cout << " (value size: " << n.content.object(context, processor).type->typeSize << ")\n";
+                        if (n.content.op == Location::Variable) std::cout << " (value size: " << n.content.object(context, processor).type->typeSize << ")\n";
+                        else std::cout << "\n";
                     }
                 }
             }
@@ -174,8 +175,11 @@ namespace x86_64 {
                     instructions.emplace_back(label, AsmOperand(Location::Label, Type::none, false, AsmOperand::jump, current.op1Value));
                     break;
                 case Bytecode::BeginScope:
+                    memorySnapshots.emplace(std::move(processor.createSnapshot(context)));
+                    break;
                 case Bytecode::EndScope:
-                    // TODO: add memory saving and restoration here
+                    processor.restoreSnapshot(memorySnapshots.top(), instructions, context);
+                    memorySnapshots.pop();
                     break;
                 case Bytecode::If: {
                     // an if statement
@@ -228,10 +232,107 @@ namespace x86_64 {
                     auto result = AsmOperand(current.op3(), context);
 
                     if (left.type != right.type) CodeGeneratorError("Internal: incompatible type comparison!");
-                    if (left.type == Type::floatingPoint) CodeGeneratorError("Internal: no floating point comparisons yet!");
-
-                    // for now this will be the unoptimized version that returns a 0 or 1
-                    AsmInstructionInfo instruction = {
+                    if (left.type == Type::floatingPoint and left.size == 4) {
+                        // for now this will be the unoptimized version that returns a 0 or 1
+                        AsmInstructionInfo instruction = {
+                        { // variants of the instruction
+                            AsmInstructionVariant(comiss, Options::None,
+                                AsmOpDefinition(Location::reg, 4, 4, true, false),
+                                AsmOpDefinition(Location::sta, 4, 4, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, false, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(comiss, Options::None,
+                                AsmOpDefinition(Location::reg, 4, 4, true, false),
+                                AsmOpDefinition(Location::off, 4, 4, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, false, false, false),
+                                    RegisterRange(RAX, RDI, false, true, false, false),
+                                    RegisterRange(R8, R15, false, true, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(comiss, Options::None,
+                                AsmOpDefinition(Location::reg, 4, 4, true, false),
+                                AsmOpDefinition(Location::mem, 4, 4, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, false, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(comiss, Options::None,
+                                AsmOpDefinition(Location::reg, 4, 4, true, false),
+                                AsmOpDefinition(Location::reg, 4, 4, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, true, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            })
+                        }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                    }
+                    else if (left.type == Type::floatingPoint and left.size == 8) {
+                        // for now this will be the unoptimized version that returns a 0 or 1
+                        AsmInstructionInfo instruction = {
+                        { // variants of the instruction
+                            AsmInstructionVariant(comisd, Options::None,
+                                AsmOpDefinition(Location::reg, 8, 8, true, false),
+                                AsmOpDefinition(Location::sta, 8, 8, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, false, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(comisd, Options::None,
+                                AsmOpDefinition(Location::reg, 8, 8, true, false),
+                                AsmOpDefinition(Location::off, 8, 8, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, false, false, false),
+                                    RegisterRange(RAX, RDI, false, true, false, false),
+                                    RegisterRange(R8, R15, false, true, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(comisd, Options::None,
+                                AsmOpDefinition(Location::reg, 8, 8, true, false),
+                                AsmOpDefinition(Location::mem, 8, 8, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, false, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            }),
+                            AsmInstructionVariant(comisd, Options::None,
+                                AsmOpDefinition(Location::reg, 8, 8, true, false),
+                                AsmOpDefinition(Location::reg, 8, 8, true, false),
+                                { // allowed registers
+                                    RegisterRange(XMM0, XMM31, true, true, false, false)
+                                },
+                                { // inputs and outputs
+                                    AsmInstructionResultInput(true,  1, left),
+                                    AsmInstructionResultInput(true,  2, right)
+                            })
+                        }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                    }
+                    else {
+                        // for now this will be the unoptimized version that returns a 0 or 1
+                        AsmInstructionInfo instruction = {
                         { // variants of the instruction
                             AsmInstructionVariant(cmp, Options::None,
                                 AsmOpDefinition(Location::reg, 1, 8, true, false),
@@ -265,8 +366,9 @@ namespace x86_64 {
                                     AsmInstructionResultInput(true,  2, right)
                             })
                         }};
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
-                    processor.registers[RFLAGS].content = {};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                    }
+                    processor.registers[EFLAGS].content = {};
 
                     // now we have the comparison done, so let's move its value into a register or memory location
                     // TODO: add an option to use memory if no free register found
@@ -274,19 +376,19 @@ namespace x86_64 {
                     // now we need to do a conditional set
                     switch (current.type) {
                         case Bytecode::Greater:
-                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setg, reg);
+                            if (left.type == Type::signedInteger) instructions.emplace_back(setg, reg);
                             else instructions.emplace_back(seta, reg);
                             break;
                         case Bytecode::Lesser:
-                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setl, reg);
+                            if (left.type == Type::signedInteger) instructions.emplace_back(setl, reg);
                             else instructions.emplace_back(setb, reg);
                             break;
                         case Bytecode::GreaterEqual:
-                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setge, reg);
+                            if (left.type == Type::signedInteger) instructions.emplace_back(setge, reg);
                             else instructions.emplace_back(setae, reg);
                             break;
                         case Bytecode::LesserEqual:
-                            if (left.type == Type::signedInteger or left.type == Type::floatingPoint) instructions.emplace_back(setle, reg);
+                            if (left.type == Type::signedInteger) instructions.emplace_back(setle, reg);
                             else instructions.emplace_back(setbe, reg);
                             break;
                         case Bytecode::Equals:
@@ -350,12 +452,14 @@ namespace x86_64 {
                     break;
                 case Bytecode::LoopLabel:
                     break;
+                case Bytecode::Syscall:
+                case Bytecode::Function:
+                case Bytecode::Method:
                 case Bytecode::Argument: {
                     // since there is an argument, there must be a call after it, so let's gather the arguments and the call
                     uint64_t firstIndex = index;
                     std::vector<Bytecode*> arguments;
-                    do arguments.push_back(&context.codes[index++]);
-                    while (context.codes[index].type == Bytecode::Argument);
+                    while (context.codes[index].type == Bytecode::Argument) arguments.push_back(&context.codes[index++]);
 
                     // now we have arguments gathered, so let's get the call itself
                     switch (context.codes[index].type) {
@@ -795,7 +899,8 @@ namespace x86_64 {
                 if (n.content.op != Location::None) {
                     std::cout << "INFO L3: " << n.offset << ": ";
                     n.content.print(std::cout, context, processor);
-                    std::cout << " (value size: " << n.content.object(context, processor).type->typeSize << ")\n";
+                    if (n.content.op == Location::Variable) std::cout << " (value size: " << n.content.object(context, processor).type->typeSize << ")\n";
+                    else std::cout << "\n";
                 }
             }
         }

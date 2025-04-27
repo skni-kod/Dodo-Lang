@@ -89,8 +89,8 @@ void GenerateCode() {
             std::cout << "INFO L2: Finished global variable bytecode generation with " << context.codes.size() << " instructions";
             if (Options::informationLevel >= Options::InformationLevel::full) {
                 std::cout << ":\n";
-                for (auto& n : context.codes) {
-                    std::cout << "INFO L3: " << n;
+                for (uint64_t k = 0; k < context.codes.size(); k++) {
+                    std::cout << "INFO L3: (" << k << ") " << context.codes[k];
                 }
             }
             else {
@@ -128,8 +128,8 @@ void GenerateCode() {
             if (Options::informationLevel >= 2) {
                 // TODO: add waaaay more printing functions
                 std::cout << "INFO L3: Bytecodes for method <something>(...):\n";
-                for (auto& k : context.codes) {
-                    std::cout << "INFO L3: " << k;
+                for (uint64_t k = 0; k < context.codes.size(); k++) {
+                    std::cout << "INFO L3: (" << k << ") " << context.codes[k];
                 }
             }
             CalculateLifetimes(context);
@@ -147,8 +147,8 @@ void GenerateCode() {
         if (Options::informationLevel >= 2) {
             // TODO: add waaaay more printing functions
             std::cout << "INFO L3: Bytecodes for function " << *n.second.name << "(...):\n";
-            for (auto& k : context.codes) {
-                std::cout << "INFO L3: " << k;
+            for (uint64_t k = 0; k < context.codes.size(); k++) {
+                std::cout << "INFO L3: (" << k << ") " << context.codes[k];
             }
         }
         CalculateLifetimes(context);

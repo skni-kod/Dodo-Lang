@@ -46,7 +46,7 @@ namespace x86_64 {
         ES = 20, // 16 bit - Extra Segment, for string operations
         FS = 21, // 16 bit - general purpose Segment
         GS = 22, // 16 bit - general purpose Segment
-        RFLAGS = 23, // 64 bit - Register FLAGS
+        EFLAGS = 23, // 64 bit - Register FLAGS
 
         // registers like the control ones should not be needed, right?
         // registers introduced later, mixed with each other due to extensions over time
@@ -332,12 +332,12 @@ namespace x86_64 {
         int1,
         // Call to Interrupt Procedure 3
         int3,
-        // Jump if condition is met
+        // Jump if the condition is met
         // offset
-        ja, // jump if above unsigned
-        jae, // jump if above or equal unsigned
-        jb, // jump if below unsigned
-        jbe, // jump if below or equal unsigned
+        ja, // jump if above
+        jae, // jump if above or equal
+        jb, // jump if below
+        jbe, // jump if below or equal
         jc, // jump if carry
         je, // jump if equal
         jz, // jump if zero flag
@@ -345,10 +345,10 @@ namespace x86_64 {
         jge, // jump if greater or equal signed
         jl, // jump if lesser signed
         jle, // jump if lesser or equal signed
-        jna, // jump if not above unsigned
-        jnae, // jump if not above or equal unsigned
-        jnb, // jump if not below unsigned
-        jnbe, // jump if not below or equal unsigned
+        jna, // jump if not above
+        jnae, // jump if not above or equal
+        jnb, // jump if not below
+        jnbe, // jump if not below or equal
         jnc, // jump if not carry
         jne, // jump if not equal
         jng, // jump if not greater signed
@@ -489,10 +489,10 @@ namespace x86_64 {
         op_xor,
         // Set byte if condition is met
         // reg8/mem8
-        seta, // set byte if comparison result above unsigned
-        setae, // set byte if comparison result above or equal unsigned
-        setb, // set byte if comparison result below unsigned
-        setbe, // set byte if comparison result below or equal unsigned
+        seta, // set byte if comparison result above
+        setae, // set byte if comparison result above or equal
+        setb, // set byte if comparison result below
+        setbe, // set byte if comparison result below or equal
         setc, // set byte if comparison result carry
         sete, // set byte if comparison result equal
         setz, // set byte if comparison result zero flag
@@ -500,10 +500,10 @@ namespace x86_64 {
         setge, // set byte if comparison result greater or equal signed
         setl, // set byte if comparison result lesser signed
         setle, // set byte if comparison result lesser or equal signed
-        setna, // set byte if comparison result not above unsigned
-        setnae, // set byte if comparison result not above or equal unsigned
-        setnb, // set byte if comparison result not below unsigned
-        setnbe, // set byte if comparison result not below or equal unsigned
+        setna, // set byte if comparison result not above
+        setnae, // set byte if comparison result not above or equal
+        setnb, // set byte if comparison result not below
+        setnbe, // set byte if comparison result not below or equal
         setnc, // set byte if comparison result not carry
         setne, // set byte if comparison result not equal
         setng, // set byte if comparison result not greater signed

@@ -386,7 +386,7 @@ uint64_t labelCounter = 0;
 
 BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
 
-    std::stack<ConditionalInfo> conditions;
+    std::vector<ConditionalInfo> conditions;
     BytecodeContext context;
     context.codes.reserve(function.instructions.size() + function.parameters.size() + function.isMethod);
 
@@ -463,11 +463,12 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 if (not wasPushAdded) PushScope(context);
                 wasPushAdded = false;
                 wasLastConditional = false;
-                conditions.push(currentCondition);
+                conditions.push_back(currentCondition);
                 currentCondition = {};
                 break;
             case Instruction::EndScope:
-                if (conditions.top().type == Instruction::If) {
+                PopScope(context);
+                if (conditions.back().type == Instruction::If) {
                     if (&function.instructions.back() != &n) {
                         if ((&n + 1)->type == Instruction::Else or (&n + 1)->type == Instruction::ElseIf) {
                             currentCondition.afterLabel = ++labelCounter;
@@ -478,11 +479,11 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                         }
                     }
                 }
-                if (conditions.top().type == Instruction::ElseIf) {
+                if (conditions.back().type == Instruction::ElseIf) {
                     if (&function.instructions.back() != &n) {
                         if ((&n + 1)->type == Instruction::Else or (&n + 1)->type == Instruction::ElseIf) {
-                            currentCondition.afterLabel = conditions.top().afterLabel;
-                            conditions.top().afterLabel = 0;
+                            currentCondition.afterLabel = conditions.back().afterLabel;
+                            conditions.back().afterLabel = 0;
                             Bytecode code;
                             code.type = Bytecode::Jump;
                             code.op1({Location::Literal, currentCondition.afterLabel});
@@ -490,26 +491,25 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                         }
                     }
                 }
-                if (conditions.top().loopConditionLabel) {
+                if (conditions.back().loopConditionLabel) {
                     Bytecode code;
                     code.type = Bytecode::Jump;
-                    code.op1({Location::Literal, conditions.top().loopConditionLabel});
+                    code.op1({Location::Literal, conditions.back().loopConditionLabel});
                     context.codes.push_back(code);
                 }
-                PopScope(context);
-                if (conditions.top().afterLabel) {
+                if (conditions.back().afterLabel) {
                     Bytecode code;
                     code.type = Bytecode::Label;
-                    code.op1({Location::Literal, conditions.top().afterLabel});
+                    code.op1({Location::Literal, conditions.back().afterLabel});
                     context.codes.push_back(code);
                 }
-                if (conditions.top().falseLabel and conditions.top().falseLabel != conditions.top().afterLabel) {
+                if (conditions.back().falseLabel and conditions.back().falseLabel != conditions.back().afterLabel) {
                     Bytecode code;
                     code.type = Bytecode::Label;
-                    code.op1({Location::Literal, conditions.top().falseLabel});
+                    code.op1({Location::Literal, conditions.back().falseLabel});
                     context.codes.push_back(code);
                 }
-                conditions.pop();
+                conditions.pop_back();
                 break;
             case Instruction::If:
             case Instruction::ElseIf:
@@ -567,18 +567,21 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
             {
                 // break jumps 2 scope ends away
                 // TODO: maybe a break with amount of scopes to break, could be useful
-                if (context.activeLevels.size() < 3) CodeGeneratorError("Cannot use break without a scope to break!");
+                if (conditions.size() < 2) CodeGeneratorError("Cannot use break without a scope to break!");
+                if (not conditions[conditions.size() - 2].falseLabel) CodeGeneratorError("Invalid expression to break!");
                 Bytecode code;
-                code.type = Bytecode::Break;
+                code.type = Bytecode::Jump;
+                code.op1({Location::Literal, conditions[conditions.size() - 2].falseLabel});
                 context.codes.push_back(code);
             }
             break;
             case Instruction::Continue:
             {
-                // TODO: how to make this condition?
-                if (context.activeLevels.size() < 3) CodeGeneratorError("Cannot use continue without a scope to continue!");
+                if (conditions.size() < 2) CodeGeneratorError("Cannot use break without a scope to break!");
+                if (not conditions[conditions.size() - 2].loopConditionLabel) CodeGeneratorError("Invalid expression to break!");
                 Bytecode code;
-                code.type = Bytecode::Continue;
+                code.type = Bytecode::Jump;
+                code.op1({Location::Literal, conditions[conditions.size() - 2].loopConditionLabel});
                 context.codes.push_back(code);
             }
             break;

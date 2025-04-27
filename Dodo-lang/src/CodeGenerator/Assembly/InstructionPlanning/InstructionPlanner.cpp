@@ -173,8 +173,17 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
             // now that we have references we can nicely check where this operand should be
             if (source.op == Location::imm) {
                 if (def.opType == Location::imm) {
-                    // if we just need to put an immediate as op1 then it's simple
+                    // if we just need to put an immediate as op1, then it's straightforward
                     target = op = source;
+                }
+                else if (def.opType == Location::sta) {
+                    // TODO: what about size?
+                    target = op = source.copyTo(Location::sta, processor.pushStackTemp(def.sizeMax, def.sizeMax).value.offset);
+                }
+                else if (def.opType == Location::reg) {
+                    // TODO: what about size?
+                    // TODO: forbidden registers
+                    target = op = source.copyTo(Location::reg, GetFreeRegister(selected.allowedRegisters, target.value.ui, processor, nullptr).value.reg);
                 }
                 else CodeGeneratorError("Internal: unimplemented immediate to somewhere move!");
             }
@@ -186,10 +195,7 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                 else if (def.opType == Location::reg) {
                     // in that case we need to move it into a correct register first
                     auto where = GetFreeRegister(selected.allowedRegisters, target.value.ui, processor, nullptr);
-                    target = target.copyTo(Location::reg, where.value.ui);
-                    op = target;
-                    moves.emplace_back(source, target);
-
+                    op = target = target.copyTo(Location::reg, where.value.ui);
                 }
                 else CodeGeneratorError("Internal: unimplemented stack to somewhere move!");
             }
