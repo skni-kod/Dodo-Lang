@@ -1,7 +1,7 @@
 #!/bin/bash
 oldnum=`cut -d ',' -f2 BuildNumberCache.txt`
 newnum=`expr $oldnum + 1`
-version="0.2.3 (type-rework assembly generator development)"
+version="0.3 (rewrite demo)"
 echo "$newnum" > BuildNumberCache.txt
 echo "#ifndef INCREMENTED_VALUE" > Dodo-lang/src/Misc/Increment.hpp
 echo "#define INCREMENTED_VALUE" >> Dodo-lang/src/Misc/Increment.hpp

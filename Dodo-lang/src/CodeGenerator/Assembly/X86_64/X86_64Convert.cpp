@@ -42,7 +42,7 @@ namespace x86_64 {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: " << n.offset << ": ";
                         n.content.print(std::cout, context, processor);
-                        if (n.content.op == Location::Variable) std::cout << " (value size: " << n.content.object(context, processor).type->typeSize << ")\n";
+                        if (n.content.op == Location::Variable) std::cout << " (value size: " << n.content.size * 1 << ")\n";
                         else std::cout << "\n";
                     }
                 }
@@ -136,7 +136,6 @@ namespace x86_64 {
                     auto valueOp = AsmOperand(current.op2(), context);
                     auto resultOp = AsmOperand(current.op3(), context);
 
-                    bool skip = true;
                     bool assignResult = false;
 
                     assignResult = resultOp.object(context, processor).lastUse > index;
@@ -160,7 +159,7 @@ namespace x86_64 {
                         sourceOp.value.regOff.regNumber = sourceOp.value.reg;
                         sourceOp.value.regOff.offset = 0;
                         sourceOp.type = Type::address;
-                        sourceOp.size = 0;
+                        sourceOp.size = Options::addressSize;
                     }
                     else if (sourceOp.op != Location::off) CodeGeneratorError("Internal: non-register address!");
 
@@ -430,6 +429,42 @@ namespace x86_64 {
                         ExecuteInstruction(context, processor, instruction, instructions, index);
                 }
                     break;
+            case Bytecode::ToReference: {
+                auto sourceOp = AsmOperand(current.op1(), context);
+                auto resultOp = AsmOperand(current.op3(), context);
+
+
+
+                if (sourceOp.op == Location::Variable) {
+
+                    // checking if the source is used later
+                    auto obj = context.getVariableObject(current.op1());
+                    sourceOp = processor.getLocation(sourceOp);
+                    if (obj.lastUse > index) {
+                        AsmOperand reg = processor.getFreeRegister(Type::address, 8);
+                        MoveInfo move{sourceOp, reg};
+                        x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
+                    }
+                    else {
+                        // should work?
+                        processor.getContentRef(sourceOp) = resultOp;
+                    }
+                }
+
+            }
+                break;
+            case Bytecode::Dereference: {
+                auto sourceOp = AsmOperand(current.op1(), context);
+                auto resultOp = AsmOperand(current.op3(), context);
+
+
+
+                AsmOperand reg = processor.getFreeRegister(Type::address, 8);
+                CodeGeneratorError("Dereferences not implemented!");
+
+
+            }
+                break;
                 case Bytecode::Cast: {
                     auto sourceOp = AsmOperand(current.op1(), context);
                     auto resultOp = AsmOperand(current.op3(), context);

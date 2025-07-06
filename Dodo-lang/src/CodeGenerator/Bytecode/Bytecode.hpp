@@ -109,6 +109,8 @@ struct Bytecode {
         // gets value from address
         //      syntax: value at op1 => op3 / result
         Dereference,
+        //      syntax: value at op1 => op3 / result
+        ToReference,
         //      syntax: op1 (source), op2 (offset) => op3 / result
         Member,
         //      syntax: op1 => op3 / result

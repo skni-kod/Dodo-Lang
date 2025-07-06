@@ -1,9 +1,6 @@
 i32 Main() {
-    let f32 f = 0;
-    while (true) {
-        f += 1;
-        // to see the value since asm visualizer does not show xmm contents
-        let i32 val = f cast auto;
-    }
-    return 1;
+    let mut i32 val = 0;
+    let mut i32* ptr = &val;
+    *ptr = 1;
+    return val;
 }

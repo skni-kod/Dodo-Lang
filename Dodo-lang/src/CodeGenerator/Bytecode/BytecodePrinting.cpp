@@ -26,6 +26,10 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::Dereference:
             out << "load value at address in " << code.op1() << " to " << code.result();
             break;
+        case Bytecode::ToReference:
+            out << "convert the pointer in " << code.op1() << " to a reference in " << code.result();
+            break;
+
         case Bytecode::Member:
             out << "take " << code.op1() << " and offset it by " << code.op2Value.offset << " for member access, storing result in " << code.result();
             break;

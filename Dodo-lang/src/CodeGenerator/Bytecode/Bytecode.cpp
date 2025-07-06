@@ -150,11 +150,11 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
     // first off let's do a switch to know what is going on
     auto& current = values[index];
 
-    if (typeMeta.isReference) {
-        // in that case if it's an argument the address needs to be extracted
-        // if it's used anywhere else it needs to be handled as a pointer without being seen as one
-        // it's going to be annoying
-    }
+    //if (typeMeta.isReference) {
+    //    // in that case if it's an argument the address needs to be extracted
+    //    // if it's used anywhere else it needs to be handled as a pointer without being seen as one
+    //    // it's going to be annoying
+    //}
 
     Bytecode code;
     code.opType = type;
@@ -186,7 +186,6 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
                 // a normal function
                 code.type = Bytecode::Function;
                 BytecodeCall(context, values, type, typeMeta, code, current, isGlobal);
-
             }
             context.codes.push_back(code);
             return code.result();
@@ -300,8 +299,14 @@ void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, Ty
     auto& current = values[index];
     switch (current.operation) {
         case ParserOperation::Operator:
-        case ParserOperation::SingleOperator:
             GetTypes(context, values, type, typeMeta, current.left);
+            return;
+        case ParserOperation::SingleOperator:
+            GetTypes(context, values, type, typeMeta, current.right);
+            if (current.operatorType == Operator::Dereference)
+                typeMeta = {typeMeta, -1};
+            else if (current.operatorType == Operator::Address)
+                ParserError("Cannot do an lvalue on address for now!");
             return;
         case ParserOperation::Definition: {
             type = &types[*current.identifier];
@@ -418,7 +423,14 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
     bool wasPushAdded = false;
     ConditionalInfo currentCondition;
 
+    if (Options::informationLevel == Options::InformationLevel::full)
+        std::cout << "INFO L3: Generating function with code: " << function.getFullName() << " with following instructions:\n";
+
+    auto nextToPrint = context.codes.size();
     for (auto& n : function.instructions) {
+        if (Options::informationLevel == Options::InformationLevel::full)
+            for (; nextToPrint < context.codes.size(); nextToPrint++)
+                std::cout << "INFO L3: " << context.codes[nextToPrint];
         if (wasLastConditional and n.type != Instruction::BeginScope) CodeGeneratorError("Conditional statement without scope begin right after!");
         switch (n.type) {
             case Instruction::Expression:
@@ -428,7 +440,9 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                         break;
                     case ParserOperation::Operator:
                     {
-                        if (not n.valueArray[0].left or n.valueArray[n.valueArray[0].left].operation != ParserOperation::Variable) CodeGeneratorError("Invalid expression!");
+                        if (n.valueArray[0].left == 0
+                            or (n.valueArray[n.valueArray[0].left].operation != ParserOperation::Variable
+                                and n.valueArray[n.valueArray[0].left].operation != ParserOperation::SingleOperator)) CodeGeneratorError("Invalid expression!");
 
                         TypeObject* type;
                         TypeMeta typeMeta;

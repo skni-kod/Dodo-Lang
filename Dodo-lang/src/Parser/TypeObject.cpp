@@ -51,9 +51,22 @@ std::string& ParserMemberVariableParameter::typeName() const {
 TypeMeta::TypeMeta(const uint8_t pointerLevel, const bool isMutable, const bool isReference) : pointerLevel(pointerLevel), isMutable(isMutable), isReference(isReference) {}
 
 TypeMeta::TypeMeta(const TypeMeta& old, const int8_t amountToChange) {
+    if (amountToChange == -1 and not old.isReference) {
+        pointerLevel = old.pointerLevel + amountToChange;
+        isMutable = old.isMutable;
+        isReference = true;
+        return;
+    }
+    if (amountToChange == 1 and old.isReference) {
+        pointerLevel = old.pointerLevel + amountToChange;
+        isMutable = old.isMutable;
+        isReference = false;
+        return;
+    }
     if (amountToChange < 0 and old.pointerLevel < -amountToChange) CodeGeneratorError("Cannot get put address into a non pointer!");
     pointerLevel = old.pointerLevel + amountToChange;
     isMutable = old.isMutable;
+    isReference = old.isReference;
 }
 
 TypeMeta TypeMeta::noReference() const {

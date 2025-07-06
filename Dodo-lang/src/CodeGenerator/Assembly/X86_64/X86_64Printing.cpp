@@ -516,10 +516,12 @@ namespace x86_64 {
             CodeGeneratorError("Internal: unimplemented operand print!");
             return;
         case Location::Register :
-            if (op.useAddress) out << "(";
+            if (op.useAddress)
+                out << "(";
             out << "%";
             PrintRegisterName(op.value.u64, op.size, out);
-            if (op.useAddress) out << ")";
+            if (op.useAddress)
+                out << ")";
             return;
         case Location::Memory:
             CodeGeneratorError("Internal: unimplemented operand print!");
@@ -530,7 +532,7 @@ namespace x86_64 {
             case Location::Offset :
             if (op.value.regOff.offset != 0) out << std::to_string(op.value.regOff.offset);
                 out << "(%";
-                PrintRegisterName(op.value.regOff.regNumber, op.size, out);
+                PrintRegisterName(op.value.regOff.regNumber, Options::addressSize, out);
                 out << ")";
             return;
         default:

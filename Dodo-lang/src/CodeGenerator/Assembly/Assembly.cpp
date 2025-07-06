@@ -385,18 +385,22 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
         }
             break;
         case Location::Literal:
-            out << "Literal:";
+            out << "Literal: ";
             switch (type) {
                 case Type::address:
                     switch (Options::addressSize) {
                         case 1:
                             out << "fixed address: " << value.u8;
+                            break;
                         case 2:
                             out << "fixed address: " << value.u16;
+                            break;
                         case 4:
                             out << "fixed address: " << value.u32;
+                            break;
                         case 8:
                             out << "fixed address: " << value.u64;
+                            break;
                         default:
                             break;
                     }
@@ -404,10 +408,13 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                     switch (size) {
                         case 2:
                             CodeGeneratorError("16 bit floats not supported in printing!");
+                            break;
                         case 4:
                             out << "floating point literal: " << value.f32;
+                            break;
                         case 8:
                             out << "floating point literal: " << value.f64;
+                            break;
                         default:
                             break;
                     }
@@ -416,12 +423,16 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                     switch (size) {
                         case 1:
                             out << "signed integer literal: " << value.i8;
+                            break;
                         case 2:
                             out << "signed integer literal: " << value.i16;
+                            break;
                         case 4:
                             out << "signed integer literal: " << value.i32;
+                            break;
                         case 8:
                             out << "signed integer literal: " << value.i64;
+                            break;
                         default:
                             break;
                     }
@@ -439,6 +450,7 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                         default:
                             break;
                     }
+                    break;
             }
             break;
         case Location::String:

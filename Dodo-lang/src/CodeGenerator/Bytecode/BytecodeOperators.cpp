@@ -109,7 +109,7 @@ void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values
 
     if (isMethod) {
         for (auto& n : type->methods) {
-            if (n.name != nullptr and *n.name != "" and *n.name == *node.identifier) {
+            if (n.name != nullptr and !n.name->empty() and *n.name == *node.identifier) {
                 // TODO: what about return type?
                 //if (&types[*n.returnType.typeName] != type) continue;
                 //if (n.returnType.type.pointerLevel != typeMeta.pointerLevel) continue;
@@ -136,7 +136,7 @@ void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values
     else {
         // TODO: add overloads for global functions
         for (auto& n : functions) {
-            if (n.second.name != nullptr and *n.second.name != "" and *n.second.name == *node.identifier) {
+            if (n.second.name != nullptr and !n.second.name->empty() and *n.second.name == *node.identifier) {
                 // TODO: what about return type?
                 //if (&types[*n.returnType.typeName] != type) continue;
                 //if (n.returnType.type.pointerLevel != typeMeta.pointerLevel) continue;
@@ -222,8 +222,9 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
             switch (current.operatorType) {
                 case Operator::Address:
                     code.type = Bytecode::Address;
-                    if (typeMeta.pointerLevel) CodeGeneratorError("Cannot assign an address into a non-pointer!");
-                    code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, -1}, current.prefix, isGlobal));
+                    if (typeMeta.pointerLevel == 0) CodeGeneratorError("Cannot assign an address into a non-pointer!");
+                    // TODO: taking addresses from referenences?
+                    code.op1(GenerateExpressionBytecode(context, values, type, TypeMeta(typeMeta, -1).noReference(), current.prefix, isGlobal));
                     code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Cast: {
@@ -249,8 +250,11 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                 }
                     break;
                 case Operator::Dereference:
-                    code.type = Bytecode::Dereference;
-                    code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, +1}, current.prefix, isGlobal));
+                    if (typeMeta.isReference)
+                        code.type = Bytecode::ToReference;
+                    else code.type = Bytecode::Dereference;
+                    // TODO: add the case for when the target is a reference already or something
+                    code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, 1}, current.prefix, isGlobal));
                     code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 case Operator::Not:

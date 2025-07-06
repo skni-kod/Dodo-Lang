@@ -46,7 +46,7 @@ namespace x86_64 {
         ES = 20, // 16 bit - Extra Segment, for string operations
         FS = 21, // 16 bit - general purpose Segment
         GS = 22, // 16 bit - general purpose Segment
-        EFLAGS = 23, // 64 bit - Register FLAGS
+        RFLAGS = 23, EFLAGS = 23, // 64 bit - Register FLAGS
 
         // registers like the control ones should not be needed, right?
         // registers introduced later, mixed with each other due to extensions over time

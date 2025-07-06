@@ -223,6 +223,7 @@ struct TypeObject {
 
 inline std::unordered_map<std::string, TypeObject> types;
 inline std::unordered_map <std::string, ParserFunctionMethod> functions;
+//inline std::unordered_map <std::string, std::vector<ParserFunctionMethod>> functions;
 inline std::unordered_map <std::string, ParserMemberVariableParameter> globalVariables;
 
 std::ostream& operator<<(std::ostream& out, const ParserMemberVariableParameter& variable);
