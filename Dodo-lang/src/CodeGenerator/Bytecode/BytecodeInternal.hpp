@@ -14,5 +14,6 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
 void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod = false, BytecodeOperand caller = {}) ;
 
 void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index);
+void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, ParserTreeValue& current);
 
 #endif //BYTECODE_INTERNAL_HPP

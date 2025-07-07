@@ -301,7 +301,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
             out << "call: ";
             if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
             if (op.value.function->isOperator) return PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
-            return out << *op.value.function->name;
+            return out << op.value.function->getFullName();
         case Location::Argument:
             return out << "argument number: " << op.value.ui;
         default:

@@ -1,6 +1,19 @@
+i32 Fun(let i16 a, let u32 b) {
+    return 5;
+}
+
+i32 Fun(let i32 a, let i32* b) {
+    return a;
+}
+
 i32 Main() {
-    let mut i32 val = 0;
-    let mut i32* ptr = &val;
-    *ptr = 1;
-    return val;
+    let i32 val = 5;
+    let test var = val;
+    return Fun(val, &val);
+}
+
+primitive SIGNED_INTEGER <4> type test  {
+    i32 operator=(let test a, let i32 b) {
+        return b;
+    }
 }

@@ -295,8 +295,8 @@ BytecodeContext GenerateGlobalVariablesBytecode() {
     return std::move(context);
 }
 
-void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
-    auto& current = values[index];
+void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, ParserTreeValue& current) {
+
     switch (current.operation) {
         case ParserOperation::Operator:
             GetTypes(context, values, type, typeMeta, current.left);
@@ -306,7 +306,7 @@ void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, Ty
             if (current.operatorType == Operator::Dereference)
                 typeMeta = {typeMeta, -1};
             else if (current.operatorType == Operator::Address)
-                ParserError("Cannot do an lvalue on address for now!");
+                typeMeta = {typeMeta, +1};
             return;
         case ParserOperation::Definition: {
             type = &types[*current.identifier];
@@ -361,6 +361,10 @@ void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, Ty
             CodeGeneratorError("Invalid operation in type negotiation!");
     }
     // TODO: add indexes
+}
+
+void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
+    GetTypes(context, values, type, typeMeta, values[index]);
 }
 
 void PushScope(BytecodeContext& context) {
