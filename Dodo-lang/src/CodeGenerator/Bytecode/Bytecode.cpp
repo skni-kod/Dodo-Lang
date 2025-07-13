@@ -163,7 +163,7 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
         case ParserOperation::Operator:
         case ParserOperation::SingleOperator:
         case ParserOperation::Group:
-            return InsertOperatorExpression(context, values, type, typeMeta, index, isGlobal);
+            return InsertOperatorExpression(context, values, type, typeMeta, index, isGlobal, passedOperand);
         case ParserOperation::Member:
             // TODO: add method support here
             if (typeMeta.pointerLevel or not typeMeta.isReference) CodeGeneratorError("Cannot use non-reference or pointer types for members!");
@@ -205,30 +205,32 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
 
         case ParserOperation::Variable: {
             // TODO: rewrite this mess if it acts up so that it accepts only the type that is needed
+            // TODO: is this dereference thing even needed?
+            // TODO: and yeah I must rewrite this, it's heavily incompatible with the way of doing things now
             if (isGlobal and not current.isBeingDefined) CodeGeneratorError("Cannot initialize global variables with other variables!");
-            bool dereferenceBack = false;
+            //bool dereferenceBack = false;
             VariableObject var = context.getVariableObject(current.identifier);
             if (not current.isBeingDefined and current.next == 0 and (type != var.type or typeMeta.pointerLevel != var.meta.pointerLevel)) CodeGeneratorError("Variable type mismatch!");
             // if a value is needed but a reference is needed for access it needs to be dereferenced back
-            if (current.next and not typeMeta.isReference) dereferenceBack = true;
+            //if (current.next and not typeMeta.isReference) dereferenceBack = true;
             type = var.type;
-            if (typeMeta.isReference != var.meta.isReference) var.meta.isReference = typeMeta.isReference;
+            //if (typeMeta.isReference != var.meta.isReference) var.meta.isReference = typeMeta.isReference;
             typeMeta = var.meta;
             if (current.next) {
                 if (not typeMeta.isReference) {
                     // getting the reference since it isn't one
-                    typeMeta.isReference = true;
+                    //typeMeta.isReference = true;
                     code.op1(context.getVariable(current.identifier, type, typeMeta));
 
                     auto val = GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, code.op1());
                     context.isGeneratingReference = false;
 
-                    if (dereferenceBack) val = Dereference(context, val, type, typeMeta);
+                    //if (dereferenceBack) val = Dereference(context, val, type, typeMeta);
                     return val;
                 }
                 auto val = GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, context.getVariable(current.identifier, type, typeMeta));
                 context.isGeneratingReference = false;
-                if (dereferenceBack) val = Dereference(context, val, type, typeMeta);
+                //if (dereferenceBack) val = Dereference(context, val, type, typeMeta);
                 return val;
             }
             return context.getVariable(current.identifier, type, typeMeta);

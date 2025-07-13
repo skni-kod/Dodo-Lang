@@ -83,7 +83,9 @@ bool DoesFunctionMatchAndAddCall(std::vector<TypeMetaPair>& arguments, BytecodeC
 
     code.op1Location = Location::Call;
     code.op1Value.function = &overload;
-    code.result(context.insertTemporary(&types[*overload.returnType.typeName], overload.returnType.type));
+
+    if (overload.returnType.typeName != nullptr)
+        code.result(context.insertTemporary(&types[*overload.returnType.typeName], overload.returnType.type));
 
     for (auto& n : argumentCodes) {
         context.codes.push_back(n);
@@ -209,7 +211,7 @@ BytecodeOperand HandleCondition(BytecodeContext& context, std::vector<ParserTree
     return code.op3();
 }
 
-BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal) {
+BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, BytecodeOperand passedOperand) {
     // first of all let's see if the type has the operator redefined
     Bytecode code;
     code.opType = type;
@@ -527,13 +529,12 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                 case Operator::Brace:
                     CodeGeneratorError("Brace operator not implemented!");
                 case Operator::Index:
-                    code.type = Bytecode::Index;
-                    if (not current.next) {
-                        // TODO: what about the variable information in index?
-                        code.op2(GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal));
-                        code.op3(context.insertTemporary(type, typeMeta));
-                    }
-                    else CodeGeneratorError("Next values for grouping not implemented!");
+                    code.type = Bytecode::GetIndexValue;
+                    code.op1(passedOperand);
+                    code.op2(GenerateExpressionBytecode(context, values, type, TypeMeta(), current.value, isGlobal));
+                    if (typeMeta.pointerLevel == 0) CodeGeneratorError("Internal: cannot index in a value!");
+                    typeMeta.pointerLevel--;
+                    code.op3(context.insertTemporary(type, typeMeta));
                     break;
                 default:
                     CodeGeneratorError("Invalid operator for default implementation!");

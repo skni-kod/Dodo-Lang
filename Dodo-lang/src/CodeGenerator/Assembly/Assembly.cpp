@@ -390,16 +390,16 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                 case Type::address:
                     switch (Options::addressSize) {
                         case 1:
-                            out << "fixed address: " << value.u8;
+                            out << "fixed address: " << value.u8 << " ";
                             break;
                         case 2:
-                            out << "fixed address: " << value.u16;
+                            out << "fixed address: " << value.u16 << " ";
                             break;
                         case 4:
-                            out << "fixed address: " << value.u32;
+                            out << "fixed address: " << value.u32 << " ";
                             break;
                         case 8:
-                            out << "fixed address: " << value.u64;
+                            out << "fixed address: " << value.u64 << " ";
                             break;
                         default:
                             break;
@@ -410,10 +410,10 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                             CodeGeneratorError("16 bit floats not supported in printing!");
                             break;
                         case 4:
-                            out << "floating point literal: " << value.f32;
+                            out << "floating point literal: " << value.f32 << " ";
                             break;
                         case 8:
-                            out << "floating point literal: " << value.f64;
+                            out << "floating point literal: " << value.f64 << " ";
                             break;
                         default:
                             break;
@@ -422,16 +422,16 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                 case Type::signedInteger:
                     switch (size) {
                         case 1:
-                            out << "signed integer literal: " << value.i8;
+                            out << "signed integer literal: " << value.i8 << " ";
                             break;
                         case 2:
-                            out << "signed integer literal: " << value.i16;
+                            out << "signed integer literal: " << value.i16 << " ";
                             break;
                         case 4:
-                            out << "signed integer literal: " << value.i32;
+                            out << "signed integer literal: " << value.i32 << " ";
                             break;
                         case 8:
-                            out << "signed integer literal: " << value.i64;
+                            out << "signed integer literal: " << value.i64 << " ";
                             break;
                         default:
                             break;
@@ -440,13 +440,13 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                 case Type::unsignedInteger:
                     switch (size) {
                         case 1:
-                            out << "unsigned integer literal: " << static_cast <uint64_t>(value.u8);
+                            out << "unsigned integer literal: " << static_cast <uint64_t>(value.u8) << " ";
                         case 2:
-                            out << "unsigned integer literal: " << value.u16;
+                            out << "unsigned integer literal: " << value.u16 << " ";
                         case 4:
-                            out << "unsigned integer literal: " << value.u32;
+                            out << "unsigned integer literal: " << value.u32 << " ";
                         case 8:
-                            out << "unsigned integer literal: " << value.u64;
+                            out << "unsigned integer literal: " << value.u64 << " ";
                         default:
                             break;
                     }
@@ -454,7 +454,7 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
             }
             break;
         case Location::String:
-            out << "String: " << *passedStrings[value.string];
+            out << "String: " << *passedStrings[value.string] << " ";
             break;
         case Location::Label:
             out << "";
@@ -469,10 +469,10 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
             out << "";
             break;
         case Location::Stack:
-            out << "Stack: " << std::to_string(value.offset);
+            out << "Stack: " << std::to_string(value.offset) << " ";
         break;
         case Location::Register:
-            out << "Register: " << std::to_string(value.reg);
+            out << "Register: " << std::to_string(value.reg) << " ";
         break;
         default:
             CodeGeneratorError("Internal: unhandled operand print case!");

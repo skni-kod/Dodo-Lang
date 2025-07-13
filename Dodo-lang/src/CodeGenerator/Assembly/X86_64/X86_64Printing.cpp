@@ -529,10 +529,21 @@ namespace x86_64 {
         case Location::Stack:
             out << std::to_string(op.value.offset) << "(%rbp)";
             return;
-            case Location::Offset :
-            if (op.value.regOff.offset != 0) out << std::to_string(op.value.regOff.offset);
+        case Location::Offset:
+            if (not op.value.regOff.isPrefixLabel) {
+                if (op.value.regOff.offset != 0) out << std::to_string(op.value.regOff.offset);
+            }
+            else CodeGeneratorError("Label register offsets not supported!");
+            if (op.value.regOff.addressRegister != NO_REGISTER_IN_OFFSET) {
                 out << "(%";
-                PrintRegisterName(op.value.regOff.regNumber, Options::addressSize, out);
+                PrintRegisterName(op.value.regOff.addressRegister, Options::addressSize, out);
+            }
+            else out << "(";
+            if (op.value.regOff.indexRegister != NO_REGISTER_IN_OFFSET) {
+                out << ", %";
+                PrintRegisterName(op.value.regOff.indexRegister, Options::addressSize, out);
+            }
+            if (op.value.regOff.indexScale != 0) out << ", " << std::to_string(op.value.regOff.indexScale);
                 out << ")";
             return;
         default:
@@ -722,11 +733,11 @@ namespace x86_64 {
         case InstructionCode::vminss:
             return "";
         case InstructionCode::movsx:
-            return "";
+            return "movs" + GASPrefix(ins.op2)  + GASPrefix(ins.op1);
         case InstructionCode::movsxd:
             return "";
         case InstructionCode::movzx:
-            return "";
+            return "movz" + GASPrefix(ins.op2)  + GASPrefix(ins.op1);
         case InstructionCode::mul:
             return "";
         case InstructionCode::mulsd:

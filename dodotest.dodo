@@ -1,19 +1,16 @@
-i32 Fun(let i16 a, let u32 b) {
-    return 5;
-}
-
-i32 Fun(let i32 a, let i32* b) {
-    return a;
-}
+import "Print.dodo";
 
 i32 Main() {
-    let i32 val = 5;
-    let test var = val;
-    return Fun(val, &val);
-}
 
-primitive SIGNED_INTEGER <4> type test  {
-    i32 operator=(let test a, let i32 b) {
-        return b;
+    let mut char* wow = "Hello World!";
+    let mut char a = 0;
+
+    while (a < 12) {
+        let char c = wow[a];
+        Print(1, &c);
+        a = a + 1;
     }
+    Println(0, wow);
+
+    return 0;
 }

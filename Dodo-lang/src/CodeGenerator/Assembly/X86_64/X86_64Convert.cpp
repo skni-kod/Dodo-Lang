@@ -156,7 +156,7 @@ namespace x86_64 {
                     // now we need to generate a move from the value to the address in source
                     if (sourceOp.op == Location::reg) {
                         sourceOp.op = Location::off;
-                        sourceOp.value.regOff.regNumber = sourceOp.value.reg;
+                        sourceOp.value.regOff.addressRegister = sourceOp.value.reg;
                         sourceOp.value.regOff.offset = 0;
                         sourceOp.type = Type::address;
                         sourceOp.size = Options::addressSize;
@@ -405,10 +405,19 @@ namespace x86_64 {
                 case Bytecode::Address: {
                     // TODO: add move to stack
                     auto sourceOp = AsmOperand(current.op1(), context);
+                    auto sourceLocation = sourceOp;
 
-                    if (sourceOp.op == Location::Variable) sourceOp = processor.getLocationStackBias(sourceOp);
+                    if (sourceLocation.op == Location::Variable) sourceLocation = processor.getLocationStackBias(sourceLocation);
 
-                    if (sourceOp.op != Location::sta) CodeGeneratorError("Internal: non-stack pointer places not supported!");
+                    if (sourceLocation.op != Location::sta) {
+                        // TODO: make this a function
+                        auto temp = processor.pushStack(sourceOp, context);
+                        auto move = MoveInfo(sourceLocation, temp);
+                        x86_64::AddConversionsToMove(move, context, processor, instructions, sourceOp);
+                        sourceLocation = temp;
+                    }
+
+                        //CodeGeneratorError("Internal: non-stack pointer places not supported!");
                     AsmOperand reg = processor.getFreeRegister(Type::address, 8);
 
                     AsmInstructionInfo instruction = {
@@ -421,7 +430,7 @@ namespace x86_64 {
                                         RegisterRange(R8, R15, true, false, false, false)
                                     },
                                     { // inputs and outputs
-                                        AsmInstructionResultInput(true,  2, sourceOp),
+                                        AsmInstructionResultInput(true,  2, sourceLocation),
                                         AsmInstructionResultInput(false,  reg, AsmOperand(Location::op, {}, false, 8, 1)),
                                         AsmInstructionResultInput(false, 1, {current.op3(), context})
                                 })
@@ -462,6 +471,70 @@ namespace x86_64 {
                 AsmOperand reg = processor.getFreeRegister(Type::address, 8);
                 CodeGeneratorError("Dereferences not implemented!");
 
+
+            }
+                break;
+            case Bytecode::GetIndexValue: {
+                auto arrayOp = AsmOperand(current.op1(), context);
+                auto indexOp = AsmOperand(current.op2(), context);
+                auto resultOp = AsmOperand(current.op3(), context);
+
+                auto arrayLocation = processor.getLocation(arrayOp);
+                if (arrayLocation.op != Location::reg) {
+                    auto newLocation = processor.getFreeRegister(arrayLocation.type, arrayLocation.size);
+                    auto move = MoveInfo(arrayLocation, newLocation);
+                    x86_64::AddConversionsToMove(move, context, processor, instructions, arrayOp);
+                    arrayLocation = newLocation;
+                }
+
+                // now getting a register to put the extracted data into
+                auto resultLocation = processor.getFreeRegister(resultOp.type, resultOp.size);
+                processor.getContentRef(resultLocation) = resultOp;
+
+                if (indexOp.op == Location::imm) {
+                    AsmOperand src{};
+                    src.op = Location::off;
+                    src.type = resultOp.type;
+                    src.size = resultOp.size;
+
+                    src.value.regOff.addressRegister = arrayLocation.value.reg;
+                    src.value.regOff.offset = resultOp.size * indexOp.value.u32;
+
+                    auto move = MoveInfo(src, resultLocation);
+                    x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
+                }
+                else if (indexOp.op == Location::var) {
+                    auto indexLocation = processor.getLocationRegisterBias(indexOp);
+
+                    // if the index variable is not
+                    if (indexLocation.op != Location::reg) {
+                        auto newLocation = processor.getFreeRegister(indexLocation.type, indexLocation.size);
+                        // this needs to be upsized to the whole register so that it matches the address size
+                        newLocation.size = Options::addressSize;
+                        auto move = MoveInfo(indexLocation, newLocation);
+                        x86_64::AddConversionsToMove(move, context, processor, instructions, indexOp);
+                        indexLocation = newLocation;
+                    }
+
+
+                    // and doing the move itself
+                    AsmOperand src{};
+                    src.op = Location::off;
+                    src.type = resultOp.type;
+                    src.size = resultOp.size;
+
+                    if (arrayLocation.op == Location::reg) {
+                        src.value.regOff.addressRegister = arrayLocation.value.reg;
+                    }
+                    else CodeGeneratorError("Internal: Unimplemented array location!");
+
+                    src.value.regOff.indexRegister = indexLocation.value.reg;
+                    src.value.regOff.indexScale = resultOp.size;
+
+                    auto move = MoveInfo(src, resultLocation);
+                    x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
+                }
+                else CodeGeneratorError("Internal: unsupported data type for index get!");
 
             }
                 break;
@@ -594,7 +667,7 @@ namespace x86_64 {
                     if (sourceOp.op == Location::reg) {
                         //if (not sourceOp.useAddress) CodeGeneratorError("Using register address not marked as used!");
                         sourceOp.op = Location::off;
-                        sourceOp.value.regOff.regNumber = sourceOp.value.reg;
+                        sourceOp.value.regOff.addressRegister = sourceOp.value.reg;
                         sourceOp.value.regOff.offset = offset;
                         sourceOp.type = Type::address;
                         sourceOp.size = 0;

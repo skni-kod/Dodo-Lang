@@ -97,8 +97,8 @@ namespace x86_64 {
                 if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) CodeGeneratorError("Internal: non integer register source!");
                 if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: non integer register target!");
                 if (s.op == Location::imm) moves.emplace_back(mov, t, s);
-                else if ((s.op == Location::reg and t.op == Location::sta)
-                    or (s.op == Location::sta and t.op == Location::reg)
+                else if ((s.op == Location::reg and (t.op == Location::sta or t.op == Location::off))
+                    or ((s.op == Location::sta or s.op == Location::off) and t.op == Location::reg)
                     or (s.op == Location::reg and t.op == Location::reg)) {
                     if (s.size == t.size) moves.emplace_back(mov, t, s);
                     else if (s.size > t.size) {
@@ -106,10 +106,10 @@ namespace x86_64 {
                         moves.emplace_back(mov, t, s);
                     }
                     else {
-                        if (s.size != 4 and t.size != 8)  moves.emplace_back(movzx, t, s);
+                        if (s.size != 4 or t.size != 8)  moves.emplace_back(movzx, t, s);
                         else {
                             // 4 -> 8 byte is a special case where movzx does not apply and we need to split it
-                            moves.emplace_back(movzx, t, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0));
+                            moves.emplace_back(mov, t, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0));
                             moves.emplace_back(movzx, t, s);
                         }
                     }

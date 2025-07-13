@@ -36,7 +36,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         case Bytecode::Save:
             out << "save the value in  " << code.op1() << " to " << code.result();
             break;
-        case Bytecode::Index:
+        case Bytecode::GetIndexValue:
             out << "load value at index " << code.op2() << " of " << code.op1() << " to " << code.result();
             break;
         case Bytecode::Function:

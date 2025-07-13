@@ -491,7 +491,7 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
 
         if ((bracketLevel == 0 and braceLevel == 0 and indexLevel == 0 and IsExpressionEndToken(tokens[n])
                 and not tokens[n]->MatchOperator(Operator::BraceClose, Operator::BracketClose, Operator::IndexClose))
-            or braceLevel == -1 or bracketLevel == -1 or indexLevel == 1) {
+            or braceLevel == -1 or bracketLevel == -1 or indexLevel == -1) {
             if (n != tokens.size() - 1) {
                 ParserError("Invalid expression!");
             }
