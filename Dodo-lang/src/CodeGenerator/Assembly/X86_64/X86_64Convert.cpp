@@ -367,7 +367,7 @@ namespace x86_64 {
                         }};
                         ExecuteInstruction(context, processor, instruction, instructions, index);
                     }
-                    processor.registers[EFLAGS].content = {};
+                    processor.registers[FLAGS].content = {};
 
                     // now we have the comparison done, so let's move its value into a register or memory location
                     // TODO: add an option to use memory if no free register found
@@ -721,6 +721,68 @@ namespace x86_64 {
 
                 }
 
+                    break;
+            case Bytecode::Multiply:
+                    if (currentType == Type::signedInteger) {
+                        // TODO: add support for single operand imul
+                        AsmInstructionInfo instruction = {
+                            { // variants of the instruction
+                                AsmInstructionVariant(imul, Options::None,
+                                    AsmOpDefinition(Location::reg, 1, 8, true, true),
+                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true,  1, {current.op1(), context}),
+                                        AsmInstructionResultInput(true,  2, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                }),
+                                AsmInstructionVariant(imul, Options::None,
+                                    AsmOpDefinition(Location::reg, 1, 8, true, true),
+                                    AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, true, false, false),
+                                        RegisterRange(R8, R15, true, true, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true,  1, {current.op1(), context}),
+                                        AsmInstructionResultInput(true,  2, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                }),
+                                //AsmInstructionVariant(imul, Options::None,
+                                //    AsmOpDefinition(Location::reg, 1, 8, false, true),
+                                //    AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                //    AsmOpDefinition(Location::imm, 1, 8, true, false),
+                                //    { // allowed registers
+                                //        RegisterRange(RAX, RDI, true, true, false, false),
+                                //        RegisterRange(R8, R15, true, true, false, false)
+                                //    },
+                                //    { // inputs and outputs
+                                //        AsmInstructionResultInput(true,  2, {current.op1(), context}),
+                                //        AsmInstructionResultInput(true,  3, {current.op2(), context}),
+                                //        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                //}),
+                                //AsmInstructionVariant(imul, Options::None,
+                                //    AsmOpDefinition(Location::reg, 1, 8, false, true),
+                                //    AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                //    AsmOpDefinition(Location::imm, 1, 8, true, false),
+                                //    { // allowed registers
+                                //        RegisterRange(RAX, RDI, true, false, false, false),
+                                //        RegisterRange(R8, R15, true, false, false, false)
+                                //    },
+                                //    { // inputs and outputs
+                                //        AsmInstructionResultInput(true,  2, {current.op1(), context}),
+                                //        AsmInstructionResultInput(true,  3, {current.op2(), context}),
+                                //        AsmInstructionResultInput(false, 1, {current.op3(), context})
+                                //})
+                            }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                    }
+                    else {
+                        CodeGeneratorError("Unsigned and floating point multiplication is not supported yet!");
+                    }
                     break;
                 case Bytecode::Add:
                     if (currentType != Type::floatingPoint) {

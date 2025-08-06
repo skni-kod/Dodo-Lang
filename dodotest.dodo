@@ -1,16 +1,24 @@
-import "Print.dodo";
+void Println(let i32 number) {
+    if (number < 0) {
+        syscall(1, 0, "-", 1);
+        number *= -1;
+    }
+    if (number == 0) {
+        syscall(1, 0, "0", 1);
+    }
+    else {
+        while (number > 0) {
+            let mut char digit = (number % 10) cast auto;
+            digit += '0';
+            syscall(1, 0, &digit, 1);
+            number /= 10;
+        }
+    }
+    return;
+}
 
 i32 Main() {
-
-    let mut char* wow = "Hello World!";
-    let mut char a = 0;
-
-    while (a < 12) {
-        let char c = wow[a];
-        Print(1, &c);
-        a = a + 1;
-    }
-    Println(0, wow);
-
-    return 0;
+    let i32 num = 0;
+    Println(num);
+    return num;
 }

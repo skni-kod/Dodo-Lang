@@ -354,8 +354,6 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
 uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
     std::vector <LexerToken*>& tokens) {
 
-
-
     auto [start, end] = range;
     uint16_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
     uint16_t firstIndex = 0, lastIndex = 0, startIndex = start;
@@ -378,19 +376,22 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
                         ParserError("Invalid braces!");
                     }
                 braceLevel--;
-                continue;
+                //continue;
+                break;
                 case Operator::BracketClose:
                     if (bracketLevel == 0) {
                         ParserError("Invalid brackets!");
                     }
                 bracketLevel--;
-                continue;
+                //continue;
+                break;
                 case Operator::IndexClose:
                     if (indexLevel == 0) {
                         ParserError("Invalid index brackets!");
                     }
                 indexLevel--;
-                continue;
+                //continue;
+                break;
                 default:
                     break;
             }

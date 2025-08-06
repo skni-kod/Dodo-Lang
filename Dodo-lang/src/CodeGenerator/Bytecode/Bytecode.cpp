@@ -797,7 +797,7 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
                     codes.push_back(code);
                     return code.result();
                 }
-                return {Location::Variable, VariableLocation(VariableLocation::Local, n, m)};
+                return {Location::Variable, VariableLocation(VariableLocation::Local, activeLevels[n], m)};
             }
         }
     }
@@ -842,7 +842,7 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
 VariableObject& BytecodeContext::getVariableObject(const std::string* identifier) {
     // first let's go through local variables from top and back
     for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
-        for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[n].size() != 0; m--) {
+        for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[activeLevels[n]].size() != 0; m--) {
             auto& current = localVariables[activeLevels[n]][m];
             if (current.identifier == identifier or *current.identifier == *identifier) {
                 return current;

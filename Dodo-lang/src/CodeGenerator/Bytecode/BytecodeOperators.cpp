@@ -13,7 +13,7 @@ struct TypeMetaPair {
 
 std::vector<TypeMetaPair> FindArgumentTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, ParserTreeValue& node) {
 
-    if (not values[node.argument].argument) return {};
+    if (not node.argument) return {};
 
     std::vector <TypeMetaPair> arguments;
     // now going through the arguments and adding them to the context

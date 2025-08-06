@@ -643,7 +643,7 @@ namespace x86_64 {
         case InstructionCode::idiv:
             return "";
         case InstructionCode::imul:
-            return "";
+            return "imul" + GASPrefix(ins.op1);
         case InstructionCode::op_int:
             return "";
         case InstructionCode::int0:
@@ -739,7 +739,7 @@ namespace x86_64 {
         case InstructionCode::movzx:
             return "movz" + GASPrefix(ins.op2)  + GASPrefix(ins.op1);
         case InstructionCode::mul:
-            return "";
+            return "mul" + GASPrefix(ins.op1);
         case InstructionCode::mulsd:
             return "";
         case InstructionCode::vmulsd:
