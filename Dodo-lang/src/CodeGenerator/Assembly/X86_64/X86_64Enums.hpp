@@ -521,9 +521,14 @@ namespace x86_64 {
         sets, // set byte if comparison result sign
         // High level procedure exit
         leave,
+        cbw, // convert byte to word (sign extension)
+        cwd, // convert word to doubleword (sign extension)
+        cdq, // convert doubleword to quadword (sign extension)
+        cqo, // convert quadword to octaword(?) (sign extension)
 
         // non-codes which will be used for other stuff
         label
+
 };
 }
 

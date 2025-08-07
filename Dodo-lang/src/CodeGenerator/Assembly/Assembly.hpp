@@ -47,7 +47,6 @@ struct AsmOperand {
     [[nodiscard]] AsmOperand copyTo(Location::Type location, OperandValue value) const;
     VariableObject& object(BytecodeContext& context, Processor& processor) const;
     void print(std::ostream& out, BytecodeContext& context, Processor& processor);
-    bool isAtAssignedPlace(BytecodeContext& context, Processor& processor);
     // moves the value away if it doesn't need to be there and if it doesn't exist elsewhere and returns the same value or
     // if this is the assigned place then it moves it elsewhere and returns the new place
     AsmOperand moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations = nullptr, bool stackOnly = false);

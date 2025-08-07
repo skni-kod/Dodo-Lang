@@ -253,7 +253,6 @@ struct VariableObject {
     uint32_t firstUse = 0;
     uint32_t lastUse = 0;
     uint32_t uses = 0;
-    int32_t assignedOffset = 0;
     bool isPointedTo = false;
 
     void use(uint32_t index);

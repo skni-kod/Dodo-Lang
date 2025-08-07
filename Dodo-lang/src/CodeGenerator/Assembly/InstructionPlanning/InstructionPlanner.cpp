@@ -222,9 +222,6 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
         auto& source = n.source;
         auto& target = n.target;
         if (n.target.op == Location::op) {
-
-            // debug
-            AsmOpDefinition& def = GetOpDefinition(selected, target.value.ui);
             AsmOperand& op = ops[target.value.ui - 1];
             if (op.op == Location::None) CodeGeneratorError("Internal: empty operand for move!");
 
@@ -239,9 +236,9 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
             }
             else CodeGeneratorError("Internal: invalid instruction target!");
         }
-        else {
-            CodeGeneratorError("Internal: unhandled output!");
-        }
+        //else {
+        //    CodeGeneratorError("Internal: unhandled output!");
+        //}
     }
 
     // now checking for things that might need to be moved in the locations

@@ -7,6 +7,7 @@ void Println(let i32 number) {
         syscall(1, 0, "0", 1);
     }
     else {
+        // yeah this prints in reverse order
         while (number > 0) {
             let mut char digit = (number % 10) cast auto;
             digit += '0';
@@ -14,11 +15,12 @@ void Println(let i32 number) {
             number /= 10;
         }
     }
+    syscall(1, 0, "\n", 1);
     return;
 }
 
 i32 Main() {
-    let i32 num = 0;
+    let i32 num = 15456;
     Println(num);
     return num;
 }

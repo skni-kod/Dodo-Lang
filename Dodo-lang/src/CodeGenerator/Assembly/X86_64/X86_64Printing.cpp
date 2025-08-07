@@ -605,12 +605,12 @@ namespace x86_64 {
         case InstructionCode::vcvtsd2ss:
             return "";
         case InstructionCode::cvtsi2sd:
-            if (ins.op2.op == Location::sta) return "cvtsi2sd" + GASPrefix(ins.op2.size);
+            if (ins.op2.op == Location::sta) return "cvtsi2sd" + GASPrefix(ins.op2);
             return "cvtsi2sd";
         case InstructionCode::vcvtsi2sd:
             return "";
         case InstructionCode::cvtsi2ss:
-            if (ins.op2.op == Location::sta) return "cvtsi2ss" + GASPrefix(ins.op2.size);
+            if (ins.op2.op == Location::sta) return "cvtsi2ss" + GASPrefix(ins.op2);
             return "cvtsi2ss";
         case InstructionCode::vcvtsi2ss:
             return "";
@@ -631,7 +631,7 @@ namespace x86_64 {
         case InstructionCode::vcvttss2si:
             return "";
         case InstructionCode::div:
-            return "";
+            return "div" + GASPrefix(ins.op1);
         case InstructionCode::divsd:
             return "";
         case InstructionCode::vdivsd:
@@ -641,7 +641,7 @@ namespace x86_64 {
         case InstructionCode::vdivss:
             return "";
         case InstructionCode::idiv:
-            return "";
+            return "idiv" + GASPrefix(ins.op1);
         case InstructionCode::imul:
             return "imul" + GASPrefix(ins.op1);
         case InstructionCode::op_int:
@@ -842,6 +842,14 @@ namespace x86_64 {
             return "sets";
         case InstructionCode::leave:
             return "leave";
+        case InstructionCode::cbw:
+            return "cbw";
+        case InstructionCode::cwd:
+            return "cwd";
+        case InstructionCode::cdq:
+            return "cdq";
+        case InstructionCode::cqo:
+            return "cqo";
         case InstructionCode::label:
             return "";
             default:

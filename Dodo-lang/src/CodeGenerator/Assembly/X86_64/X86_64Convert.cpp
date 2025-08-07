@@ -65,7 +65,6 @@ namespace x86_64 {
                     }
                     else {
                         processor.pushStack(current.op1(), context);
-                        processor.stack.back().content.object(context, processor).assignedOffset = processor.stack.back().offset;
                     }
                     break;
                 case Bytecode::Return: {
@@ -782,6 +781,156 @@ namespace x86_64 {
                     }
                     else {
                         CodeGeneratorError("Unsigned and floating point multiplication is not supported yet!");
+                    }
+                    break;
+                case Bytecode::Divide:
+                    if (currentType == Type::signedInteger) {
+                        AsmInstructionInfo instruction = {
+                            { // variants of the instruction
+                                AsmInstructionVariant(idiv, Options::None,
+                                    AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {current.op3(), context}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RDX), {})
+                                }),
+                                AsmInstructionVariant(idiv, Options::None,
+                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                    {},
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {current.op3(), context}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RDX), {})
+                                }),
+                            }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                        auto generated = instructions.back();
+                        // we also need to generate the correct rdx or ah sign extension value before division
+                        switch (current.op2().size) {
+                        case 1: instructions.back() = AsmInstruction(cbw); break;
+                        case 2: instructions.back() = AsmInstruction(cwd); break;
+                        case 4: instructions.back() = AsmInstruction(cdq); break;
+                        case 8: instructions.back() = AsmInstruction(cqo); break;
+                        default: CodeGeneratorError("Internal: invalid signed division size!");
+                        }
+                        instructions.push_back(generated);
+                    }
+                    else if (currentType == Type::unsignedInteger) {
+                        AsmInstructionInfo instruction = {
+                            { // variants of the instruction
+                                AsmInstructionVariant(div, Options::None,
+                                    AsmOpDefinition(Location::reg, 1, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {Location::imm, Type::unsignedInteger, false, current.op2().size, 0}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {current.op3(), context}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {})
+                                }),
+                                AsmInstructionVariant(div, Options::None,
+                                    AsmOpDefinition(Location::sta, 1, 8, true, false),
+                                    {},
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {Location::imm, Type::unsignedInteger, false, current.op2().size, 0}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {current.op3(), context}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {})
+                                }),
+                            }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                    }
+                    else {
+                        CodeGeneratorError("Floating point division is not yet supported!");
+                    }
+                    break;
+                case Bytecode::Modulo:
+                    if (currentType == Type::signedInteger) {
+                        AsmInstructionInfo instruction = {
+                            { // variants of the instruction
+                                AsmInstructionVariant(idiv, Options::None,
+                                    AsmOpDefinition(Location::reg, 2, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RDX), {current.op3(), context})
+                                }),
+                                AsmInstructionVariant(idiv, Options::None,
+                                    AsmOpDefinition(Location::sta, 2, 8, true, false),
+                                    {},
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RAX), {}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::signedInteger, false, current.op2().size, RDX), {current.op3(), context})
+                                }),
+                            }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                        auto generated = instructions.back();
+                        // we also need to generate the correct rdx or ah sign extension value before division
+                        switch (current.op2().size) {
+                        case 1: instructions.back() = AsmInstruction(cbw); break;
+                        case 2: instructions.back() = AsmInstruction(cwd); break;
+                        case 4: instructions.back() = AsmInstruction(cdq); break;
+                        case 8: instructions.back() = AsmInstruction(cqo); break;
+                        default: CodeGeneratorError("Internal: invalid signed division size!");
+                        }
+                        instructions.push_back(generated);
+                    }
+                    else if (currentType == Type::unsignedInteger) {
+                        AsmInstructionInfo instruction = {
+                            { // variants of the instruction
+                                AsmInstructionVariant(div, Options::None,
+                                    AsmOpDefinition(Location::reg, 2, 8, true, false),
+                                    { // allowed registers
+                                        RegisterRange(RAX, RDI, true, false, false, false),
+                                        RegisterRange(R8, R15, true, false, false, false)
+                                    },
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {Location::imm, Type::unsignedInteger, false, current.op2().size, 0}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {current.op3(), context})
+                                }),
+                                AsmInstructionVariant(div, Options::None,
+                                    AsmOpDefinition(Location::sta, 2, 8, true, false),
+                                    {},
+                                    { // inputs and outputs
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {current.op1(), context}),
+                                        AsmInstructionResultInput(true, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {Location::imm, Type::unsignedInteger, false, current.op2().size, 0}),
+                                        AsmInstructionResultInput(true,  1, {current.op2(), context}),
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RAX), {}),
+                                        // remainder, unused for now
+                                        AsmInstructionResultInput(false, AsmOperand(Location::reg, Type::unsignedInteger, false, current.op2().size, RDX), {current.op3(), context})
+                                }),
+                            }};
+                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                    }
+                    else {
+                        CodeGeneratorError("Floating point modulo is not yet supported!");
                     }
                     break;
                 case Bytecode::Add:

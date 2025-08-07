@@ -273,7 +273,6 @@ namespace x86_64 {
         return {result, stackOffset};
     }
 
-    // for syscalls
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, BytecodeContext& context, Processor& processor) {
         std::vector <AsmOperand> result;
         int32_t stackOffset = 0;

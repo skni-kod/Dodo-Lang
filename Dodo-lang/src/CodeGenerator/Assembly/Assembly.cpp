@@ -164,7 +164,6 @@ AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context)
             else offset = -stack.back().offset + Options::addressSize;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
             stack.emplace_back(AsmOperand(value, context), -offset, Options::addressSize);
-            var.assignedOffset = -offset;
         }
         else {
             auto size = var.type->typeSize;
@@ -172,7 +171,6 @@ AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context)
             else offset = -stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
             stack.emplace_back(AsmOperand(value, context), -offset, size);
-            var.assignedOffset = -offset;
         }
         return {stack.back().offset};
     }
@@ -189,7 +187,6 @@ AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context) {
             else offset = -stack.back().offset + Options::addressSize;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
             stack.emplace_back(value, -offset, Options::addressSize);
-            var.assignedOffset = -offset;
         }
         else {
             auto size = var.type->typeSize;
@@ -197,7 +194,6 @@ AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context) {
             else offset = -stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
             stack.emplace_back(value, -offset, size);
-            var.assignedOffset = -offset;
         }
         OperandValue off;
         off.offset = stack.back().offset;
@@ -479,14 +475,6 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
     }
 }
 
-bool AsmOperand::isAtAssignedPlace(BytecodeContext& context, Processor& processor) {
-    auto& obj = object(context, processor);
-    if (obj.assignedOffset == 0) return false;
-    auto loc = processor.getLocationStackBias(*this);
-    if (loc.op != Location::sta or loc.value.offset != obj.assignedOffset) return false;
-    return true;
-}
-
 AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations, bool stackOnly) {
     if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
     if (op == Location::reg) {
@@ -504,16 +492,11 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
             if (stackOnly) validPlaces += n.op == Location::sta;
             else validPlaces += isValid and n != *this;
         }
-        if (validPlaces > 0) validPlaces--;
 
-        if (validPlaces == 0) {
+        if (validPlaces <= 1) {
             // there is no other place that will survive where this value is stored
             auto move = MoveInfo(content.copyTo(op, value.reg), {});
-            if (obj.assignedOffset != 0) move.target = content.copyTo(Location::sta, obj.assignedOffset);
-            else {
-                move.target = processor.pushStack(content, context);
-                obj.assignedOffset = move.target.value.offset;
-            }
+            move.target = processor.pushStack(content, context);
             AddConversionsToMove(move, context, processor, instructions, content, forbiddenLocations);
         }
 
