@@ -1,6 +1,6 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains printing functions for standard types.                                 ┃
-// ┃ Last revision: 25.04.2025                                                                 ┃
+// ┃ Last revision: 07.09.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 void Print(let u64 length, let char* message) {
@@ -11,6 +11,36 @@ void Print(let u64 length, let char* message) {
 void Println(let u64 length, let char* message) {
     syscall(1, 0, message, length);
     syscall(1, 0, "\n", 1);
+    return;
+}
+
+void Println(let i32 number) {
+    Print(number);
+    syscall(1, 0, "\n", 1);
+    return;
+}
+
+void Print(let i32 number) {
+    if (number < 0) {
+        syscall(1, 0, "-", 1);
+        number *= -1;
+    }
+    if (number == 0) {
+        syscall(1, 0, "0", 1);
+    }
+    else {
+        let mut i32 base = 1000000000;
+
+        while (base > 0) {
+            if (base < number) {
+                let mut char digit = (number / base) cast auto;
+                digit += '0';
+                syscall(1, 0, &digit, 1);
+                number %= base;
+            }
+            base /= 10;
+        }
+    }
     return;
 }
 

@@ -240,20 +240,14 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
             if (not type->isPrimitive or type->typeSize != 1
                 or type->primitiveType != Type::unsignedInteger or typeMeta.pointerLevel != 1)
                     CodeGeneratorError("String literals can only be assigned to 1 byte unsigned integer pointers!");
-
-            // it seems that we need to find the string that was passed, which will be an issue and needs to be worked on
-            // TODO: improve string support
-            for (uint64_t n = 0; n < passedStrings.size(); n++) {
-                if (passedStrings[n] == current.identifier) return {Location::String, n};
-            }
-            CodeGeneratorError("Internal: could not find passed string!");
+             return {Location::String, FindString(current.identifier), Type::unsignedInteger, Options::addressSize};
         case ParserOperation::Definition:
             code.type = Bytecode::Define;
             if (not types.contains(*current.identifier)) CodeGeneratorError("Type " + *current.identifier + " does not exist!");
             type = &types[*current.identifier];
             if (isGlobal) {
                 // if it's global give it a number and push back a pointer
-                code.op1({Location::Variable, {{VariableLocation::Global, 0, globalVariableObjects.size()}}});
+                code.op1({Location::Variable, {{VariableLocation::Global, 0, globalVariableObjects.size()}}, type->primitiveType, typeMeta.variableSize(*type)});
                 globalVariableObjects.emplace_back(type, values[current.next].identifier, typeMeta.reference());
             }
             else {
@@ -408,7 +402,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
         code.opTypeMeta = TypeMeta();
         code.type = Bytecode::Define;
         code.op1(context.insertVariable(&ThisDummy, function.parentType, {0, context.isMutable, true}));
-        code.op3({Location::Argument, {0}});
+        code.op3({Location::Argument, {0}, Type::none, 0});
         context.codes.push_back(code);
     }
 
@@ -419,7 +413,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
         code.opTypeMeta = function.parameters[n].typeMeta();
         code.type = Bytecode::Define;
         code.op1(context.insertVariable(&function.parameters[n].name(), code.opType, function.parameters[n].typeMeta()));
-        code.op3({Location::Argument, {n + (function.isMethod and function.overloaded == Operator::None)}});
+        code.op3({Location::Argument, {n + (function.isMethod and function.overloaded == Operator::None)}, Type::none, 0});
         context.codes.push_back(code);
     }
 
@@ -494,7 +488,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                             currentCondition.afterLabel = ++labelCounter;
                             Bytecode code;
                             code.type = Bytecode::Jump;
-                            code.op1({Location::Literal, labelCounter});
+                            code.op1({Location::Literal, labelCounter, Type::none, 0});
                             context.codes.push_back(code);
                         }
                     }
@@ -506,7 +500,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                             conditions.back().afterLabel = 0;
                             Bytecode code;
                             code.type = Bytecode::Jump;
-                            code.op1({Location::Literal, currentCondition.afterLabel});
+                            code.op1({Location::Literal, currentCondition.afterLabel, Type::none, 0});
                             context.codes.push_back(code);
                         }
                     }
@@ -514,19 +508,19 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 if (conditions.back().loopConditionLabel) {
                     Bytecode code;
                     code.type = Bytecode::Jump;
-                    code.op1({Location::Literal, conditions.back().loopConditionLabel});
+                    code.op1({Location::Literal, conditions.back().loopConditionLabel, Type::none, 0});
                     context.codes.push_back(code);
                 }
                 if (conditions.back().afterLabel) {
                     Bytecode code;
                     code.type = Bytecode::Label;
-                    code.op1({Location::Literal, conditions.back().afterLabel});
+                    code.op1({Location::Literal, conditions.back().afterLabel, Type::none, 0});
                     context.codes.push_back(code);
                 }
                 if (conditions.back().falseLabel and conditions.back().falseLabel != conditions.back().afterLabel) {
                     Bytecode code;
                     code.type = Bytecode::Label;
-                    code.op1({Location::Literal, conditions.back().falseLabel});
+                    code.op1({Location::Literal, conditions.back().falseLabel, Type::none, 0});
                     context.codes.push_back(code);
                 }
                 conditions.pop_back();
@@ -539,7 +533,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 code.type = Bytecode::If;
                 code.opType = &types["bool"];
                 code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
-                code.op2({Location::Literal, ++labelCounter});
+                code.op2({Location::Literal, ++labelCounter, Type::none, 0});
                 currentCondition.type = n.type;
                 if (not currentCondition.afterLabel) currentCondition.afterLabel = code.op2Value.ui;
                 currentCondition.falseLabel = code.op2Value.ui;
@@ -554,7 +548,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 {
                     Bytecode code;
                     code.type = Bytecode::Label;
-                    code.op1({Location::Literal, ++labelCounter});
+                    code.op1({Location::Literal, ++labelCounter, Type::none, 0});
                     context.codes.push_back(code);
                     code.type = Bytecode::LoopLabel;
                     code.op1({});
@@ -568,7 +562,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 code.op1(GenerateExpressionBytecode(context, n.valueArray, code.opType, {}));
                 currentCondition.type = n.type;
                 currentCondition.loopConditionLabel = labelCounter;
-                code.op2({Location::Literal, ++labelCounter});
+                code.op2({Location::Literal, ++labelCounter, Type::none, 0});
                 currentCondition.falseLabel = code.op2Value.ui;
                 context.codes.push_back(code);
             }
@@ -591,7 +585,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 if (not conditions[conditions.size() - 2].falseLabel) CodeGeneratorError("Invalid expression to break!");
                 Bytecode code;
                 code.type = Bytecode::Jump;
-                code.op1({Location::Literal, conditions[conditions.size() - 2].falseLabel});
+                code.op1({Location::Literal, conditions[conditions.size() - 2].falseLabel, Type::none, 0});
                 context.codes.push_back(code);
             }
             break;
@@ -601,7 +595,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 if (not conditions[conditions.size() - 2].loopConditionLabel) CodeGeneratorError("Invalid expression to break!");
                 Bytecode code;
                 code.type = Bytecode::Jump;
-                code.op1({Location::Literal, conditions[conditions.size() - 2].loopConditionLabel});
+                code.op1({Location::Literal, conditions[conditions.size() - 2].loopConditionLabel, Type::none, 0});
                 context.codes.push_back(code);
             }
             break;
@@ -716,6 +710,10 @@ BytecodeOperand::BytecodeOperand(Location::Type location, OperandValue value, Ty
     this->size = literalSize;
 }
 
+uint8_t VariableObject::variableSize() {
+    return meta.variableSize(*type);
+}
+
 void VariableObject::use(uint32_t index) {
     if (uses == 0) {
         firstUse = index;
@@ -727,6 +725,7 @@ void VariableObject::use(uint32_t index) {
         lastUse = index;
     }
 }
+
 
 BytecodeContext BytecodeContext::current() const {
     BytecodeContext newContext;
@@ -755,7 +754,7 @@ BytecodeOperand BytecodeContext::insertVariable(std::string* identifier, TypeObj
     location.level = localVariables.size() - 1;
     location.number = localVariables[location.level].size();
     localVariables[location.level].emplace_back(type, identifier, meta);
-    return {Location::Variable, {location}};
+    return {Location::Variable, {location}, type->primitiveType, meta.variableSize(*type)};
 }
 
 BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta) {
@@ -763,7 +762,7 @@ BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta
     location.type = VariableLocation::Temporary;
     location.number = temporaries.size();
     temporaries.emplace_back(type, nullptr, meta);
-    return {Location::Variable, {location}};
+    return {Location::Variable, {location}, type->primitiveType, meta.variableSize(*type)};
 
 }
 
@@ -779,7 +778,7 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
                 if (not current.meta.isReference and meta.isReference) {
                     Bytecode code;
                     code.type = Bytecode::Address;
-                    code.op1({Location::Variable, VariableLocation(VariableLocation::Local, n, m)});
+                    code.op1({Location::Variable, VariableLocation(VariableLocation::Local, n, m), type->primitiveType, meta.variableSize(*type)});
                     code.result(insertTemporary(type, meta));
                     code.opTypeMeta = meta;
                     code.opType = type;
@@ -790,14 +789,14 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
                     // in that case the value of the referred is needed
                     Bytecode code;
                     code.type = Bytecode::Dereference;
-                    code.op1({Location::Variable, VariableLocation(VariableLocation::Local, n, m)});
+                    code.op1({Location::Variable, VariableLocation(VariableLocation::Local, n, m), type->primitiveType, meta.variableSize(*type)});
                     code.result(insertTemporary(type, meta));
                     code.opTypeMeta = meta;
                     code.opType = type;
                     codes.push_back(code);
                     return code.result();
                 }
-                return {Location::Variable, VariableLocation(VariableLocation::Local, activeLevels[n], m)};
+                return {Location::Variable, VariableLocation(VariableLocation::Local, activeLevels[n], m), localVariables[activeLevels[n]][m].type->primitiveType,  localVariables[activeLevels[n]][m].variableSize()};
             }
         }
     }
@@ -812,7 +811,7 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
             if (not current.meta.isReference and meta.isReference) {
                 Bytecode code;
                 code.type = Bytecode::Address;
-                code.op1({Location::Variable, VariableLocation(VariableLocation::Global, 0, n)});
+                code.op1({Location::Variable, VariableLocation(VariableLocation::Global, 0, n), type->primitiveType, meta.variableSize(*type)});
                 code.result(insertTemporary(type, meta));
                 code.opTypeMeta = meta;
                 code.opType = type;
@@ -823,14 +822,14 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
                 // in that case the value of the referred is needed
                 Bytecode code;
                 code.type = Bytecode::Dereference;
-                code.op1({Location::Variable, VariableLocation(VariableLocation::Global, 0, n)});
+                code.op1({Location::Variable, VariableLocation(VariableLocation::Global, 0, n), type->primitiveType, meta.variableSize(*type)});
                 code.result(insertTemporary(type, meta));
                 code.opTypeMeta = meta;
                 code.opType = type;
                 codes.push_back(code);
                 return code.result();
             }
-            return {Location::Variable, VariableLocation(VariableLocation::Global, 0, n)};
+            return {Location::Variable, VariableLocation(VariableLocation::Global, 0, n), type->primitiveType, meta.variableSize(*type)};
         }
     }
 

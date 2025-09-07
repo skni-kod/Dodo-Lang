@@ -294,7 +294,7 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
                 return out;
             }
         case Location::String:
-            return out << "string: \"" << *passedStrings[op.value.string] << "\"";
+            return out << "string: \"" << "<placeholder>" << "\"";
         case Location::Label:
             return out << "label: " << op.value.ui;
         case Location::Call:

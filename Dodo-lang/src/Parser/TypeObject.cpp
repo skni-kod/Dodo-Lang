@@ -80,6 +80,11 @@ TypeMeta TypeMeta::reference() const {
     return t;
 }
 
+uint8_t TypeMeta::variableSize(TypeObject& type) {
+    if (isReference or pointerLevel != 0 or not type.isPrimitive) return Options::addressSize;
+    return type.typeSize;
+}
+
 bool TypeMeta::operator==(const TypeMeta& other) const {
     if (other.isReference != isReference) return false;
     if (other.pointerLevel != pointerLevel) return false;

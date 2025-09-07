@@ -450,7 +450,7 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
             }
             break;
         case Location::String:
-            out << "String: " << *passedStrings[value.string] << " ";
+            out << "String: " << "<placeholder>" << " ";
             break;
         case Location::Label:
             out << "";
@@ -493,7 +493,7 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
             else validPlaces += isValid and n != *this;
         }
 
-        if (validPlaces <= 1) {
+        if (validPlaces <= 1 - stackOnly) {
             // there is no other place that will survive where this value is stored
             auto move = MoveInfo(content.copyTo(op, value.reg), {});
             move.target = processor.pushStack(content, context);

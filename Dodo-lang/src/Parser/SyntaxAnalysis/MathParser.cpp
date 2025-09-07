@@ -201,7 +201,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 // a string literal
                 out.operation = ParserOperation::String;
                 out.identifier = tokens[start]->text;
-                passedStrings.push_back(tokens[start]->text);
+                AddString(tokens[start]->text);
                 ReEscapeCharacters(tokens[start]->text);
             }
             else if (tokens[start]->type == Token::Number) {

@@ -99,7 +99,7 @@ struct BytecodeOperand {
     bool isTheRestZeroes : 1 = false;
     OperandValue value;
     BytecodeOperand() = default;
-    BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
+    BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType, uint8_t literalSize);
 };
 
 // represents a single bytecode instruction
@@ -255,6 +255,7 @@ struct VariableObject {
     uint32_t uses = 0;
     bool isPointedTo = false;
 
+    uint8_t variableSize();
     void use(uint32_t index);
 };
 

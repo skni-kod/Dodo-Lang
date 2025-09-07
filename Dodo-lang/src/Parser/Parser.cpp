@@ -18,6 +18,30 @@ const char* ParserException::what() {
     return "Parser has encountered unexpected input";
 }
 
+uint64_t passedStringCounter = 0;
+void AddString(std::string* string) {
+    if (string->length() < LONG_STRING_THRESHOLD and *string != "\n") {
+        if (!passedStrings.contains(*string))
+            passedStrings.emplace(*string, passedStringCounter++);
+    }
+    else {
+        for (auto& n : passedLongStrings)
+            if (*n.first == *string) return;
+        passedLongStrings.emplace_back(string, passedStringCounter++);
+    }
+}
+
+uint64_t FindString(std::string* string) {
+    auto loc = passedStrings.find(*string);
+    if (loc == passedStrings.end()) {
+        for (auto& n : passedLongStrings) {
+            if (n.first == string) return n.second;
+        }
+        CodeGeneratorError("Error: did not find a match in passed strings!");
+    }
+    return loc->second;
+}
+
 void ParserError(const std::string& message) {
     if (currentFile == nullptr) {
         std::cout << "ERROR! Outside file!\n";

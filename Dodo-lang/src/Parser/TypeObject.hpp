@@ -9,6 +9,7 @@
 #include "Options.hpp"
 #include "LexingEnums.hpp"
 
+struct TypeObject;
 struct LexerToken;
 
 namespace Type {
@@ -26,6 +27,8 @@ struct TypeMeta {
     uint8_t isMutable : 1 = false;
     uint8_t isReference : 1 = false;
     #endif
+
+    uint8_t variableSize(TypeObject& type);
 
     bool operator==(const TypeMeta& other) const;
     TypeMeta() = default;
