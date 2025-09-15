@@ -5,10 +5,10 @@
 #include "X86_64.hpp"
 
 // target resolution functions
-void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters) {
+void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
     switch (Options::targetArchitecture) {
         case Options::TargetArchitecture::x86_64:
-            x86_64::AddConversionsToMove(move, context, proc, instructions, contentToSet, forbiddenRegisters);
+            x86_64::AddConversionsToMove(move, context, proc, instructions, contentToSet, forbiddenRegisters, setContent);
             break;
         default:
             CodeGeneratorError("Internal: invalid architecture in move conversion!");

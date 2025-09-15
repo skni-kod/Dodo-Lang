@@ -1,5 +1,6 @@
 #include <complex>
 #include <GenerateCode.hpp>
+#include <iostream>
 #include <Lexing.hpp>
 
 #include "BytecodeInternal.hpp"
@@ -524,10 +525,50 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     break;
                 case Operator::Bracket:
                     if (not current.next) return GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal);
-                    CodeGeneratorError("Next values for grouping not implemented!");
+                    Warning("Expressions grouped by brackets are serverly undertested and may not work correctly!");
+                    code.result(GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal));
+                    // sets the meta to the result of the main code in the bracket
+                    if (context.codes.size() > 1
+                        && context.codes.back().result().location == Location::Variable)
+                        typeMeta = context.getVariableObject(context.codes.back().result()).meta;
+                    return GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, code.result());
+                case Operator::Brace: {
+                    code.type = Bytecode::BraceListStart;
+                    code.opType = type;
+                    code.opTypeMeta = TypeMeta(typeMeta, -1).noReference();
+                    auto startCodeIndex = context.codes.size();
+                    context.codes.push_back(code);
+
+                    uint64_t amount = 0;
+                    auto* element = &current;
+                    while (element->value != 0) {
+                        element = &values[element->value];
+                        Bytecode elementCode{};
+                        elementCode.type = Bytecode::BraceListElement;
+                        elementCode.opType = code.opType;
+                        elementCode.opTypeMeta = code.opTypeMeta;
+                        elementCode.op1(GenerateExpressionBytecode(context, values, type, code.opTypeMeta, element->left, isGlobal));
+                        elementCode.op2({Location::Literal, ++amount, Type::unsignedInteger, Options::addressSize});
+                        context.codes.emplace_back(elementCode);
+                    }
+
+                    context.codes[startCodeIndex].op1({Location::Literal, amount, Type::unsignedInteger, Options::addressSize});
+
+                    // adding the last element with the return value passing it to the start too to set stack content
+                    code.type = Bytecode::BraceListEnd;
+                    context.codes[startCodeIndex].op3(code.op3(context.insertTemporary(type, code.opTypeMeta)));
+                    context.codes.push_back(code);
+
+                    // now we need the get the address from the stack into a variable
+                    code.opTypeMeta = typeMeta;
+                    code.type = Bytecode::Address;
+                    code.op1(code.op3());
+                    code.op3(context.insertTemporary(code.opType, code.opTypeMeta));
+
+
+                    }
+
                     break;
-                case Operator::Brace:
-                    CodeGeneratorError("Brace operator not implemented!");
                 case Operator::Index:
                     code.type = Bytecode::GetIndexValue;
                     code.op1(passedOperand);
@@ -535,7 +576,10 @@ BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<P
                     if (typeMeta.pointerLevel == 0) CodeGeneratorError("Internal: cannot index in a value!");
                     typeMeta.pointerLevel--;
                     code.op3(context.insertTemporary(type, typeMeta));
-                    break;
+                    context.codes.push_back(code);
+                    if (current.next)
+                        return GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal, code.result());
+                    return code.result();
                 default:
                     CodeGeneratorError("Invalid operator for default implementation!");
             }

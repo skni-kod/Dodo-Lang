@@ -155,18 +155,19 @@ AsmOperand Processor::getLocationRegisterBias(AsmOperand& op) {
     return getLocation(op);
 }
 
-AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context) {
+AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context, int32_t amount) {
     if (value.location == Location::Variable) {
         auto& var = context.getVariableObject(value);
         int32_t offset;
         if (var.meta.isReference or var.meta.pointerLevel) {
-            if (stack.empty()) offset = Options::addressSize;
-            else offset = -stack.back().offset + Options::addressSize;
+            int32_t size = amount * Options::addressSize;
+            if (stack.empty()) offset = size;
+            else offset = -stack.back().offset + size;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
-            stack.emplace_back(AsmOperand(value, context), -offset, Options::addressSize);
+            stack.emplace_back(AsmOperand(value, context), -offset, size);
         }
         else {
-            auto size = var.type->typeSize;
+            int32_t size = var.type->typeSize * amount;
             if (stack.empty()) offset = size;
             else offset = -stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
@@ -178,18 +179,19 @@ AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context)
     return {};
 }
 
-AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context) {
+AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context, int32_t amount) {
     if (value.op == Location::Variable) {
         auto& var = value.object(context, *this);
         int32_t offset;
         if (var.meta.isReference or var.meta.pointerLevel) {
-            if (stack.empty()) offset = Options::addressSize;
-            else offset = -stack.back().offset + Options::addressSize;
+            int32_t size = amount * Options::addressSize;
+            if (stack.empty()) offset = size;
+            else offset = -stack.back().offset + size;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
-            stack.emplace_back(value, -offset, Options::addressSize);
+            stack.emplace_back(value, -offset, size);
         }
         else {
-            auto size = var.type->typeSize;
+            int32_t size = var.type->typeSize * amount;
             if (stack.empty()) offset = size;
             else offset = -stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;

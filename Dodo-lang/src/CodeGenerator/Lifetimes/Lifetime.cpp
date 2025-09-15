@@ -36,8 +36,6 @@ void CalculateLifetimes(BytecodeContext& context) {
     for (uint64_t n = 0; n < context.codes.size(); n++) {
         auto& current = context.codes[n];
 
-        // TODO: extending lifetime of variables that have their address taken
-
         // if it's a definition, skip it since it doesn't mean it's used
         if (current.type == Bytecode::Define) continue;
         if (current.type == Bytecode::BeginScope) {
@@ -104,7 +102,10 @@ void CalculateLifetimes(BytecodeContext& context) {
                 if (current.op3Value.variable.type != VariableLocation::Temporary) for (auto& m : scopes) m.toExtend.push_back(&obj);
             }
         }
-
-
     }
+
+    // extending the lifetime of things that got their address taken to the end of function
+    for (auto& n : context.codes)
+        if (n.type == Bytecode::Address)
+            context.getVariableObject(n.op1()).lastUse = context.codes.size() - 1;
 }

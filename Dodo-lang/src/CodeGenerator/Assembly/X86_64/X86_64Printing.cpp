@@ -937,7 +937,7 @@ namespace x86_64 {
     void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset) {
         if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
             // stack stuff
-            if (maxOffset & 16 != 0) maxOffset = (maxOffset / 16 - 1) * 16;
+            if (maxOffset % 16 != 0) maxOffset = (maxOffset / 16 - 1) * 16;
             PrintInstruction(out, AsmInstruction(push,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
             PrintInstruction(out, AsmInstruction(mov,  AsmOperand(Location::reg, Type::address, false, 8, RBP), AsmOperand(Location::reg, Type::address, false, 8, RSP)));
             if (maxOffset != 0) {

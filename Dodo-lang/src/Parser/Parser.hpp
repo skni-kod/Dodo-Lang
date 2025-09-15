@@ -4,13 +4,11 @@
 #include <fstream>
 #include "Lexing.hpp"
 
+inline std::vector <std::pair<std::string*, uint64_t>> passedStrings;
 
 void AddString(std::string* string);
 uint64_t FindString(std::string* string);
-// a map might be a bad idea for this
-inline std::unordered_map <std::string, uint64_t> passedStrings;
-#define LONG_STRING_THRESHOLD 50
-inline std::vector <std::pair<std::string*, uint64_t>> passedLongStrings;
+
 
 const std::string* GetCurrentFile();
 

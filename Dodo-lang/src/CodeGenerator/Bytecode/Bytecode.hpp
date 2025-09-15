@@ -22,7 +22,8 @@ namespace Location {
         Offset = 10, Off = 10, off = 10,
         ComplexOffset = 11, COff = 11, coff = 11,
         Zeroed = 12, Zer = 12, zer = 12, Zero = 12, zero = 12,
-        Operand = 13, Op = 13, op = 13
+        Operand = 13, Op = 13, op = 13,
+        Element = 14
     };
 }
 
@@ -130,6 +131,12 @@ struct Bytecode {
         Save,
         //      syntax: value at op1 + op2 * type size => op3 / result
         GetIndexValue,
+        //      syntax: amount in op1, first value in op2 (returns 1 zeroed element if not present) => op3 / result
+        BraceListStart,
+        //      syntax: (empty)
+        BraceListEnd,
+        //      syntax: value in op1, number in op2
+        BraceListElement,
         //      syntax: function pointer at op1, first argument at op2 (optional) => op3 / result (optional)
         Function,
         //      syntax: method pointer at op1, first argument at op2 (optional) => op3 / result (optional)

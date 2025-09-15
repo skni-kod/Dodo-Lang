@@ -33,7 +33,7 @@ struct TypeMeta {
     bool operator==(const TypeMeta& other) const;
     TypeMeta() = default;
     TypeMeta(uint8_t pointerLevel, bool isMutable, bool isReference);
-    TypeMeta(const TypeMeta& old, int8_t amountToChange);
+    TypeMeta(const TypeMeta& old, int8_t pointerLevelDifference);
     TypeMeta noReference() const;
     TypeMeta reference() const;
 };
@@ -143,6 +143,9 @@ namespace ParserOperation {
         // call parameter
         // parameter value for value, rvalue for next parameter
         Argument,
+        // array group element
+        // parameter value for value, rvalue for next element
+        ArrayElement,
         // constant literal
         // pointer to token with value
         Literal,

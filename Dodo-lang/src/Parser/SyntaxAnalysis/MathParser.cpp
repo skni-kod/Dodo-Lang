@@ -76,7 +76,7 @@ uint32_t FindFirstClosed(const Operator::Type groupType, const std::pair<uint32_
 // takes a range where arguments should be and returns the number the first one is at
 // assumes there is at least one argument
 uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
-    std::vector <LexerToken*>& tokens);
+    std::vector <LexerToken*>& tokens, ParserOperation::Type operationType = ParserOperation::Argument);
 
 ParserTreeValue ParseExpressionCast(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range, std::vector <LexerToken*>& tokens) {
     auto [start, end] = range;
@@ -263,8 +263,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             // brace
             out.operation = ParserOperation::Group;
             out.code = Operator::Brace;
-            valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, closing}, tokens));
-            out.value = valueArray.size() - 1;
+            out.value = ParserArgumentsStep(valueArray, {start + 1, closing}, tokens, ParserOperation::ArrayElement);
             out.isLValued = true;
             if (closing != end - 1) {
                 valueArray.push_back(ParseExpressionStep(valueArray, {closing + 1, end}, tokens));
@@ -339,9 +338,8 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             // TODO: lvalue at this point is probably  useless
             out.isLValued = true;
         }
-        else {
+        else
             ParserError("Unsupported expression step!");
-        }
     }
 
     if (auxToken != nullptr and auxToken->MatchKeyword(Keyword::Syscall) and out.operation != ParserOperation::Syscall) {
@@ -352,7 +350,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
 }
 
 uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range,
-    std::vector <LexerToken*>& tokens) {
+    std::vector <LexerToken*>& tokens, ParserOperation::Type operationType) {
 
     auto [start, end] = range;
     uint16_t bracketLevel = 0, braceLevel = 0, indexLevel = 0;
@@ -399,7 +397,7 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
         if (braceLevel == 0 and bracketLevel == 0 and indexLevel == 0 and (tokens[n]->MatchKeyword(Keyword::Comma) or (n == end - 1 and n++))) {
             ParserTreeValue out;
 
-            out.operation = ParserOperation::Argument;
+            out.operation = operationType;
             out.identifier = tokens[start]->text;
             valueArray.push_back(ParseExpressionStep(valueArray, {startIndex, n}, tokens));
             startIndex = n + 1;

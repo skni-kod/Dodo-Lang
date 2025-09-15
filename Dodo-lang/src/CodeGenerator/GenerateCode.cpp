@@ -75,9 +75,6 @@ void GenerateCode() {
         out << "\n.section .text\n";
         // global text data
         for (auto& n : passedStrings) {
-            out << "LS" << std::to_string(n.second) << ":\n" << std::string(Options::functionIndentation, ' ') << ".string \"" << n.first << "\"\n";
-        }
-        for (auto& n : passedLongStrings) {
             out << "LS" << std::to_string(n.second) << ":\n" << std::string(Options::functionIndentation, ' ') << ".string \"" << *n.first << "\"\n";
         }
 

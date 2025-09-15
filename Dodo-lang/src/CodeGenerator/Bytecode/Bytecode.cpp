@@ -426,11 +426,7 @@ BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
     if (Options::informationLevel == Options::InformationLevel::full)
         std::cout << "INFO L3: Generating function with code: " << function.getFullName() << " with following instructions:\n";
 
-    auto nextToPrint = context.codes.size();
     for (auto& n : function.instructions) {
-        if (Options::informationLevel == Options::InformationLevel::full)
-            for (; nextToPrint < context.codes.size(); nextToPrint++)
-                std::cout << "INFO L3: " << context.codes[nextToPrint];
         if (wasLastConditional and n.type != Instruction::BeginScope) CodeGeneratorError("Conditional statement without scope begin right after!");
         switch (n.type) {
             case Instruction::Expression:

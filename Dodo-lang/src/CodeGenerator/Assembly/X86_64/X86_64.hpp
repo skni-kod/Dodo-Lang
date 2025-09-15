@@ -11,7 +11,7 @@ namespace x86_64 {
     // functions that need to be exposed
 
     // converts simple moves into assembly
-    void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr);
+    void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr, bool setContent = true);
     // returns a vector of registers and stack locations where arguments are to be placed
     // and amount of space on stack required for arguments
     // stack arguments are returned in the form used to reference arguments and not pass them (from 16 up)!

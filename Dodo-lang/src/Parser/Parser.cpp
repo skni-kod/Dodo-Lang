@@ -19,27 +19,21 @@ const char* ParserException::what() {
 }
 
 uint64_t passedStringCounter = 0;
+
+// TODO: make this faster
 void AddString(std::string* string) {
-    if (string->length() < LONG_STRING_THRESHOLD and *string != "\n") {
-        if (!passedStrings.contains(*string))
-            passedStrings.emplace(*string, passedStringCounter++);
-    }
-    else {
-        for (auto& n : passedLongStrings)
-            if (*n.first == *string) return;
-        passedLongStrings.emplace_back(string, passedStringCounter++);
-    }
+    for (auto& n : passedStrings)
+        if (*n.first == *string) return;
+    passedStrings.emplace_back(string, passedStringCounter++);
 }
 
 uint64_t FindString(std::string* string) {
-    auto loc = passedStrings.find(*string);
-    if (loc == passedStrings.end()) {
-        for (auto& n : passedLongStrings) {
-            if (n.first == string) return n.second;
-        }
-        CodeGeneratorError("Error: did not find a match in passed strings!");
+    for (auto& n : passedStrings) {
+        if (*n.first == *string)
+            return n.second;
     }
-    return loc->second;
+    ParserError("Could not find a passed string!");
+    return 0;
 }
 
 void ParserError(const std::string& message) {
