@@ -28,9 +28,10 @@ The project is being developed as a SKNI "KOD" project.
   - increment/decrement don't work
   - default values for types don't work
   - complex types don't have default operators
-  - pointers might need some work done on dereferencing
-  - global functions need support for overloading
-  - global variables and not treated as pointers
+  - global variables are not supported
+  - supports array indexing for both r- and l-values
+  - supports braced list initialisation for arrays
+  - brackets work somewhat
 - assembly generator - partially done
   - all basic x86-64 instructions have been defined and are being implemented
   - can output instruction with operands that are defined
@@ -38,3 +39,4 @@ The project is being developed as a SKNI "KOD" project.
   - can do mostly correct x86-64 unix style calls and syscalls
   - can do loops and conditional statements with memory state preservation
   - moving values and conversions between types largely done
+  - can do offsets of registers for indexing

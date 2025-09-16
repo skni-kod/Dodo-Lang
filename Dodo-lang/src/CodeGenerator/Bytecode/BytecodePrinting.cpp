@@ -42,6 +42,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
     case Bytecode::GetIndexValue:
         out << "load value at index " << code.op2() << " of " << code.op1() << " to " << code.result();
         break;
+    case Bytecode::GetIndexAddress:
+        out << "load address of value at index " << code.op2() << " of " << code.op1() << " to " << code.result();
+        break;
     case Bytecode::Function:
         out << "function " << code.op1();
         if (code.op3Location != Location::None) out << " and store result to " << code.result();

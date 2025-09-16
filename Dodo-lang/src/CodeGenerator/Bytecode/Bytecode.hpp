@@ -131,6 +131,8 @@ struct Bytecode {
         Save,
         //      syntax: value at op1 + op2 * type size => op3 / result
         GetIndexValue,
+        //      syntax: value at op1 + op2 * type size => op3 / result
+        GetIndexAddress,
         //      syntax: amount in op1, first value in op2 (returns 1 zeroed element if not present) => op3 / result
         BraceListStart,
         //      syntax: (empty)

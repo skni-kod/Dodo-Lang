@@ -175,6 +175,7 @@ namespace x86_64 {
                     sourceOp.op = Location::off;
                     sourceOp.value.regOff.addressRegister = sourceOp.value.reg;
                     sourceOp.value.regOff.offset = 0;
+                    sourceOp.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
                     sourceOp.type = Type::address;
                     sourceOp.size = Options::addressSize;
                 }
@@ -521,6 +522,61 @@ namespace x86_64 {
                 CodeGeneratorError("Dereferences not implemented!");
             }
             break;
+            case Bytecode::GetIndexAddress: {
+                auto arrayOp = AsmOperand(current.op1(), context);
+                auto indexOp = AsmOperand(current.op2(), context);
+                auto resultOp = AsmOperand(current.op3(), context);
+
+                auto arrayLocation = processor.getLocationStackBias(arrayOp);
+                //if (arrayLocation.op == Location::reg) {
+                //    CodeGeneratorError("Getting indexes from arrays in registers unsupported!");
+                //}
+
+                // now getting a register to put the extracted data into
+                auto resultLocation = processor.getFreeRegister(resultOp.type, resultOp.size);
+                processor.getContentRef(resultLocation) = resultOp;
+
+                AsmOperand src{};
+                src.op = Location::off;
+                src.type = resultOp.type;
+                src.size = resultOp.size;
+
+                if (indexOp.op == Location::imm) {
+                    src.value.regOff.addressRegister = arrayLocation.value.reg;
+                    src.value.regOff.offset = resultOp.size * indexOp.value.u32;
+                }
+                else if (indexOp.op == Location::var) {
+                    auto indexLocation = processor.getLocationRegisterBias(indexOp);
+
+                    // if the index variable is not
+                    if (indexLocation.op != Location::reg) {
+                        auto newLocation = processor.getFreeRegister(indexLocation.type, indexLocation.size);
+                        // this needs to be upsized to the whole register so that it matches the address size
+                        newLocation.size = Options::addressSize;
+                        auto move = MoveInfo(indexLocation, newLocation);
+                        x86_64::AddConversionsToMove(move, context, processor, instructions, indexOp);
+                        indexLocation = newLocation;
+                    }
+
+
+                    if (arrayLocation.op == Location::reg) {
+                        src.value.regOff.addressRegister = arrayLocation.value.reg;
+                    }
+                    else CodeGeneratorError("Internal: Unimplemented array location!");
+
+                    src.value.regOff.indexRegister = indexLocation.value.reg;
+                    src.value.regOff.indexScale = resultOp.size;
+                }
+                else CodeGeneratorError("Internal: unsupported data type for index get!");
+
+                AsmInstruction ins{};
+                ins.code = lea;
+                ins.op1 = resultLocation;
+                ins.op2 = src;
+                instructions.push_back(ins);
+            }
+            break;
+
             case Bytecode::GetIndexValue: {
                 auto arrayOp = AsmOperand(current.op1(), context);
                 auto indexOp = AsmOperand(current.op2(), context);
