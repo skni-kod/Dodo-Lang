@@ -9,6 +9,7 @@
 #include "Options.hpp"
 #include "LexingEnums.hpp"
 
+struct TypeObject;
 struct LexerToken;
 
 namespace Type {
@@ -27,10 +28,12 @@ struct TypeMeta {
     uint8_t isReference : 1 = false;
     #endif
 
+    uint8_t variableSize(TypeObject& type);
+
     bool operator==(const TypeMeta& other) const;
     TypeMeta() = default;
     TypeMeta(uint8_t pointerLevel, bool isMutable, bool isReference);
-    TypeMeta(const TypeMeta& old, int8_t amountToChange);
+    TypeMeta(const TypeMeta& old, int8_t pointerLevelDifference);
     TypeMeta noReference() const;
     TypeMeta reference() const;
 };
@@ -140,6 +143,9 @@ namespace ParserOperation {
         // call parameter
         // parameter value for value, rvalue for next parameter
         Argument,
+        // array group element
+        // parameter value for value, rvalue for next element
+        ArrayElement,
         // constant literal
         // pointer to token with value
         Literal,
@@ -222,7 +228,8 @@ struct TypeObject {
 };
 
 inline std::unordered_map<std::string, TypeObject> types;
-inline std::unordered_map <std::string, ParserFunctionMethod> functions;
+inline std::unordered_map <std::string, std::vector<ParserFunctionMethod>> functions;
+//inline std::unordered_map <std::string, ParserFunctionMethod> functions;
 inline std::unordered_map <std::string, ParserMemberVariableParameter> globalVariables;
 
 std::ostream& operator<<(std::ostream& out, const ParserMemberVariableParameter& variable);

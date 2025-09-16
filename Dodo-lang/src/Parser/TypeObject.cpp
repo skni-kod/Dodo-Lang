@@ -50,10 +50,23 @@ std::string& ParserMemberVariableParameter::typeName() const {
 
 TypeMeta::TypeMeta(const uint8_t pointerLevel, const bool isMutable, const bool isReference) : pointerLevel(pointerLevel), isMutable(isMutable), isReference(isReference) {}
 
-TypeMeta::TypeMeta(const TypeMeta& old, const int8_t amountToChange) {
-    if (amountToChange < 0 and old.pointerLevel < -amountToChange) CodeGeneratorError("Cannot get put address into a non pointer!");
-    pointerLevel = old.pointerLevel + amountToChange;
+TypeMeta::TypeMeta(const TypeMeta& old, const int8_t pointerLevelDifference) {
+    if (pointerLevelDifference == -1 and not old.isReference) {
+        pointerLevel = old.pointerLevel + pointerLevelDifference;
+        isMutable = old.isMutable;
+        isReference = true;
+        return;
+    }
+    if (pointerLevelDifference == 1 and old.isReference) {
+        pointerLevel = old.pointerLevel + pointerLevelDifference;
+        isMutable = old.isMutable;
+        isReference = false;
+        return;
+    }
+    if (pointerLevelDifference < 0 and old.pointerLevel < -pointerLevelDifference) CodeGeneratorError("Cannot get put address into a non pointer!");
+    pointerLevel = old.pointerLevel + pointerLevelDifference;
     isMutable = old.isMutable;
+    isReference = old.isReference;
 }
 
 TypeMeta TypeMeta::noReference() const {
@@ -65,6 +78,11 @@ TypeMeta TypeMeta::reference() const {
     TypeMeta t = *this;
     t.isReference = true;
     return t;
+}
+
+uint8_t TypeMeta::variableSize(TypeObject& type) {
+    if (isReference or pointerLevel != 0 or not type.isPrimitive) return Options::addressSize;
+    return type.typeSize;
 }
 
 bool TypeMeta::operator==(const TypeMeta& other) const {

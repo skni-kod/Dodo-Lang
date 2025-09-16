@@ -4,7 +4,12 @@
 #include <fstream>
 #include "Lexing.hpp"
 
-inline std::vector <std::string*> passedStrings;
+inline std::vector <std::pair<std::string*, uint64_t>> passedLongStrings;
+inline std::unordered_map <std::string, uint64_t> passedStrings;
+
+void AddString(std::string* string);
+uint64_t FindString(std::string* string);
+
 
 const std::string* GetCurrentFile();
 

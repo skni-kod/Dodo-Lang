@@ -46,7 +46,7 @@ namespace x86_64 {
         ES = 20, // 16 bit - Extra Segment, for string operations
         FS = 21, // 16 bit - general purpose Segment
         GS = 22, // 16 bit - general purpose Segment
-        EFLAGS = 23, // 64 bit - Register FLAGS
+        RFLAGS = 23, EFLAGS = 23, FLAGS = 23, // 64 bit - Register FLAGS
 
         // registers like the control ones should not be needed, right?
         // registers introduced later, mixed with each other due to extensions over time
@@ -521,9 +521,14 @@ namespace x86_64 {
         sets, // set byte if comparison result sign
         // High level procedure exit
         leave,
+        cbw, // convert byte to word (sign extension)
+        cwd, // convert word to doubleword (sign extension)
+        cdq, // convert doubleword to quadword (sign extension)
+        cqo, // convert quadword to octaword(?) (sign extension)
 
         // non-codes which will be used for other stuff
         label
+
 };
 }
 

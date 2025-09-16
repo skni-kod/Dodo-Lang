@@ -137,7 +137,8 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
                 }
             }
             else {
-                functions.emplace(*thingIdentifier->text, std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None)));
+                if (functions.contains(*thingIdentifier->text)) functions[*thingIdentifier->text].emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None)));
+                else functions.emplace(*thingIdentifier->text, std::vector({std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None))}));
             }
         }
     }

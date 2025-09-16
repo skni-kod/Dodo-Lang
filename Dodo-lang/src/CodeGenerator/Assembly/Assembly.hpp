@@ -47,7 +47,6 @@ struct AsmOperand {
     [[nodiscard]] AsmOperand copyTo(Location::Type location, OperandValue value) const;
     VariableObject& object(BytecodeContext& context, Processor& processor) const;
     void print(std::ostream& out, BytecodeContext& context, Processor& processor);
-    bool isAtAssignedPlace(BytecodeContext& context, Processor& processor);
     // moves the value away if it doesn't need to be there and if it doesn't exist elsewhere and returns the same value or
     // if this is the assigned place then it moves it elsewhere and returns the new place
     AsmOperand moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations = nullptr, bool stackOnly = false);
@@ -157,8 +156,8 @@ struct Processor {
     AsmOperand getLocationRegisterBias(AsmOperand& op);
     AsmOperand& getContentRef(AsmOperand& op);
     // pushes variable at the back of the stack
-    AsmOperand pushStack(BytecodeOperand value, BytecodeContext& context);
-    AsmOperand pushStack(AsmOperand value, BytecodeContext& context);
+    AsmOperand pushStack(BytecodeOperand value, BytecodeContext& context, int32_t amount = 1);
+    AsmOperand pushStack(AsmOperand value, BytecodeContext& context, int32_t amount = 1);
     // returns a stack location for a temporary operation, does not set a value
     AsmOperand pushStackTemp(uint32_t size, uint32_t alignment);
     // returns a viable location for this size and alignment
@@ -274,6 +273,6 @@ inline std::stack <std::vector <MemorySnapshotEntry>> memorySnapshots;
 // functions
 
 void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstructionInfo& instruction, std::vector<AsmInstruction>& instructions, uint32_t index);
-void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr);
+void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr, bool setContent = true);
 
 #endif //ASSEMBLY_HPP

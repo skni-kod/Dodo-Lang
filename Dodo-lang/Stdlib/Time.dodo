@@ -7,7 +7,7 @@ type Timespec {
     let mut u64 s;
     let mut u64 ns;
 
-    // TODO: change this
+    // TODO: change this when RAII is added
     void operator=(let mut Timespec& spec, let u64 seconds) {
         spec.s = seconds;
         spec.ns = 0;

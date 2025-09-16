@@ -510,7 +510,7 @@ LexerLine LexLine(std::string& line) {
                                 result += '\r';
                             break;
                             case 'e':
-                                result += 0x1b;
+                                result += '\x1b';
                             break;
                             case '0':
                                 result += '\0';

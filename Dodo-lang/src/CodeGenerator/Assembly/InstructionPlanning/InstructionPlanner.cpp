@@ -5,10 +5,10 @@
 #include "X86_64.hpp"
 
 // target resolution functions
-void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters) {
+void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
     switch (Options::targetArchitecture) {
         case Options::TargetArchitecture::x86_64:
-            x86_64::AddConversionsToMove(move, context, proc, instructions, contentToSet, forbiddenRegisters);
+            x86_64::AddConversionsToMove(move, context, proc, instructions, contentToSet, forbiddenRegisters, setContent);
             break;
         default:
             CodeGeneratorError("Internal: invalid architecture in move conversion!");
@@ -100,8 +100,14 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                         if (thing.value.size != thing.fixedLocation.size) cost += CONVERSION_COST;
                     }
                     else {
-                        if (thing.value.op == Location::Variable) thing.value = processor.getLocation(thing.value);
+
                         auto& def = GetOpDefinition(n, thing.operandNumber);
+                        if (thing.value.op == Location::Variable) {
+                            if (def.opType != Location::reg)
+                                thing.value = processor.getLocationStackBias((thing.value));
+                            else
+                                thing.value = processor.getLocation(thing.value);
+                        }
                         if (not def.isInput) continue;
                         if (def.opType == Location::imm and thing.value.op != Location::imm) {
                             isValid = false;
@@ -117,10 +123,15 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                        if (def.opType == Location::reg) {
                            if (thing.value.op == Location::reg) {
                                if (IsRegisterAllowed(n.allowedRegisters, thing.operandNumber, thing.value.value.reg)) cost += REGISTER_COST;
-                               // moving between different types of registers seems to be costly, for example x86-64 GP register to an XMM
                                else cost += REGISTER_COST + MOVE_COST + CONVERSION_COST;
                            }
                            else if (thing.value.op == Location::sta) cost += STACK_COST;
+                           else if (thing.value.op == Location::imm) cost += REGISTER_COST;
+                           else cost += MEMORY_COST;
+                       }
+                       else if (def.opType == Location::sta && thing.value.op != Location::sta) {
+                           if (thing.value.op == Location::reg) cost += REGISTER_COST;
+                           else if (thing.value.op == Location::imm) cost += MOVE_COST;
                            else cost += MEMORY_COST;
                        }
                     }
@@ -206,6 +217,16 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                         target = op = source;
                     else CodeGeneratorError("Internal: unimplemented register to valid register move!");
                 }
+                else if (def.opType == Location::Stack and source.op == Location::reg) {
+                    auto content = processor.getContent(source, context);
+                    auto location = processor.getLocationStackBias(content);
+                    if (location.op == Location::reg) {
+                        location = processor.pushStack(content, context);
+                        MoveInfo move = {source, location};
+                        AddConversionsToMove(move, context, processor, instructions, content);
+                    }
+                    target = op = source;
+                }
                 else CodeGeneratorError("Internal: unimplemented register to somewhere move!");
                 if (source.op == Location::off) {
                     moves.erase(moves.begin() + k);
@@ -222,9 +243,6 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
         auto& source = n.source;
         auto& target = n.target;
         if (n.target.op == Location::op) {
-
-            // debug
-            AsmOpDefinition& def = GetOpDefinition(selected, target.value.ui);
             AsmOperand& op = ops[target.value.ui - 1];
             if (op.op == Location::None) CodeGeneratorError("Internal: empty operand for move!");
 
@@ -239,9 +257,9 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
             }
             else CodeGeneratorError("Internal: invalid instruction target!");
         }
-        else {
-            CodeGeneratorError("Internal: unhandled output!");
-        }
+        //else {
+        //    CodeGeneratorError("Internal: unhandled output!");
+        //}
     }
 
     // now checking for things that might need to be moved in the locations

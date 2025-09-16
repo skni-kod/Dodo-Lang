@@ -516,10 +516,12 @@ namespace x86_64 {
             CodeGeneratorError("Internal: unimplemented operand print!");
             return;
         case Location::Register :
-            if (op.useAddress) out << "(";
+            if (op.useAddress)
+                out << "(";
             out << "%";
             PrintRegisterName(op.value.u64, op.size, out);
-            if (op.useAddress) out << ")";
+            if (op.useAddress)
+                out << ")";
             return;
         case Location::Memory:
             CodeGeneratorError("Internal: unimplemented operand print!");
@@ -527,10 +529,21 @@ namespace x86_64 {
         case Location::Stack:
             out << std::to_string(op.value.offset) << "(%rbp)";
             return;
-            case Location::Offset :
-            if (op.value.regOff.offset != 0) out << std::to_string(op.value.regOff.offset);
+        case Location::Offset:
+            if (not op.value.regOff.isPrefixLabel) {
+                if (op.value.regOff.offset != 0) out << std::to_string(op.value.regOff.offset);
+            }
+            else CodeGeneratorError("Label register offsets not supported!");
+            if (op.value.regOff.addressRegister != NO_REGISTER_IN_OFFSET) {
                 out << "(%";
-                PrintRegisterName(op.value.regOff.regNumber, op.size, out);
+                PrintRegisterName(op.value.regOff.addressRegister, Options::addressSize, out);
+            }
+            else out << "(";
+            if (op.value.regOff.indexRegister != NO_REGISTER_IN_OFFSET) {
+                out << ", %";
+                PrintRegisterName(op.value.regOff.indexRegister, Options::addressSize, out);
+            }
+            if (op.value.regOff.indexScale != 0) out << ", " << std::to_string(op.value.regOff.indexScale);
                 out << ")";
             return;
         default:
@@ -592,12 +605,12 @@ namespace x86_64 {
         case InstructionCode::vcvtsd2ss:
             return "";
         case InstructionCode::cvtsi2sd:
-            if (ins.op2.op == Location::sta) return "cvtsi2sd" + GASPrefix(ins.op2.size);
+            if (ins.op2.op == Location::sta) return "cvtsi2sd" + GASPrefix(ins.op2);
             return "cvtsi2sd";
         case InstructionCode::vcvtsi2sd:
             return "";
         case InstructionCode::cvtsi2ss:
-            if (ins.op2.op == Location::sta) return "cvtsi2ss" + GASPrefix(ins.op2.size);
+            if (ins.op2.op == Location::sta) return "cvtsi2ss" + GASPrefix(ins.op2);
             return "cvtsi2ss";
         case InstructionCode::vcvtsi2ss:
             return "";
@@ -618,7 +631,7 @@ namespace x86_64 {
         case InstructionCode::vcvttss2si:
             return "";
         case InstructionCode::div:
-            return "";
+            return "div" + GASPrefix(ins.op1);
         case InstructionCode::divsd:
             return "";
         case InstructionCode::vdivsd:
@@ -628,9 +641,9 @@ namespace x86_64 {
         case InstructionCode::vdivss:
             return "";
         case InstructionCode::idiv:
-            return "";
+            return "idiv" + GASPrefix(ins.op1);
         case InstructionCode::imul:
-            return "";
+            return "imul" + GASPrefix(ins.op1);
         case InstructionCode::op_int:
             return "";
         case InstructionCode::int0:
@@ -720,13 +733,13 @@ namespace x86_64 {
         case InstructionCode::vminss:
             return "";
         case InstructionCode::movsx:
-            return "";
+            return "movs" + GASPrefix(ins.op2)  + GASPrefix(ins.op1);
         case InstructionCode::movsxd:
             return "";
         case InstructionCode::movzx:
-            return "";
+            return "movz" + GASPrefix(ins.op2)  + GASPrefix(ins.op1);
         case InstructionCode::mul:
-            return "";
+            return "mul" + GASPrefix(ins.op1);
         case InstructionCode::mulsd:
             return "";
         case InstructionCode::vmulsd:
@@ -829,6 +842,14 @@ namespace x86_64 {
             return "sets";
         case InstructionCode::leave:
             return "leave";
+        case InstructionCode::cbw:
+            return "cbw";
+        case InstructionCode::cwd:
+            return "cwd";
+        case InstructionCode::cdq:
+            return "cdq";
+        case InstructionCode::cqo:
+            return "cqo";
         case InstructionCode::label:
             return "";
             default:
@@ -916,7 +937,7 @@ namespace x86_64 {
     void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset) {
         if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
             // stack stuff
-            if (maxOffset & 16 != 0) maxOffset = (maxOffset / 16 - 1) * 16;
+            if (maxOffset % 16 != 0) maxOffset = (maxOffset / 16 - 1) * 16;
             PrintInstruction(out, AsmInstruction(push,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));
             PrintInstruction(out, AsmInstruction(mov,  AsmOperand(Location::reg, Type::address, false, 8, RBP), AsmOperand(Location::reg, Type::address, false, 8, RSP)));
             if (maxOffset != 0) {

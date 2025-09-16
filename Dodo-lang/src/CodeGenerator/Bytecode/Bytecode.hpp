@@ -10,7 +10,7 @@
 namespace Location {
     enum Type {
         None = 0, Unknown = 0,
-        Variable = 1,
+        Variable = 1, Var = 1, var = 1,
         Literal = 2, Immediate = 2, Imm = 2, imm = 2,
         String = 3,
         Label = 4,
@@ -20,8 +20,10 @@ namespace Location {
         Memory = 8, Mem = 8, mem = 8,
         Stack, Sta = 9, sta = 9,
         Offset = 10, Off = 10, off = 10,
-        Zeroed = 11, Zer = 11, zer = 11, Zero = 11, zero = 11,
-        Operand = 12, Op = 12, op = 12
+        ComplexOffset = 11, COff = 11, coff = 11,
+        Zeroed = 12, Zer = 12, zer = 12, Zero = 12, zero = 12,
+        Operand = 13, Op = 13, op = 13,
+        Element = 14
     };
 }
 
@@ -40,13 +42,25 @@ struct VariableLocation {
     uint64_t number : 48 = 0;
 };
 
+#define NO_REGISTER_IN_OFFSET 0x7F
+
+// represents the data about how and what to offset as an operand
 struct RegisterOffset {
-    uint16_t regNumber = 0;
-    int32_t offset = 0;
+    uint8_t  addressRegister : 7 = NO_REGISTER_IN_OFFSET;
+    bool     isPrefixLabel   : 1 = false;
+    uint8_t  indexRegister   : 7 = NO_REGISTER_IN_OFFSET;
+    bool     isNStringLabel  : 1 = false;
+    uint16_t indexScale          = 0   ;
+    union {
+        uint32_t labelIndex      = 0   ;
+        int32_t  offset                ;
+    };
+
 };
 
 union OperandValue {
-    uint64_t ui = 0;
+    RegisterOffset regOff{};
+    uint64_t ui;
     uint64_t u64;
     uint32_t u32;
     uint16_t u16;
@@ -65,7 +79,7 @@ union OperandValue {
     uint64_t reg;
     ParserFunctionMethod* function;
     VariableLocation variable;
-    RegisterOffset regOff;
+
     OperandValue() = default;
     OperandValue(uint64_t val);
     OperandValue(VariableLocation val);
@@ -86,7 +100,7 @@ struct BytecodeOperand {
     bool isTheRestZeroes : 1 = false;
     OperandValue value;
     BytecodeOperand() = default;
-    BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType = Type::none, uint8_t literalSize = 0);
+    BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType, uint8_t literalSize);
 };
 
 // represents a single bytecode instruction
@@ -109,12 +123,22 @@ struct Bytecode {
         // gets value from address
         //      syntax: value at op1 => op3 / result
         Dereference,
+        //      syntax: value at op1 => op3 / result
+        ToReference,
         //      syntax: op1 (source), op2 (offset) => op3 / result
         Member,
         //      syntax: op1 => op3 / result
         Save,
         //      syntax: value at op1 + op2 * type size => op3 / result
-        Index,
+        GetIndexValue,
+        //      syntax: value at op1 + op2 * type size => op3 / result
+        GetIndexAddress,
+        //      syntax: amount in op1, first value in op2 (returns 1 zeroed element if not present) => op3 / result
+        BraceListStart,
+        //      syntax: (empty)
+        BraceListEnd,
+        //      syntax: value in op1, number in op2
+        BraceListElement,
         //      syntax: function pointer at op1, first argument at op2 (optional) => op3 / result (optional)
         Function,
         //      syntax: method pointer at op1, first argument at op2 (optional) => op3 / result (optional)
@@ -238,9 +262,9 @@ struct VariableObject {
     uint32_t firstUse = 0;
     uint32_t lastUse = 0;
     uint32_t uses = 0;
-    int32_t assignedOffset = 0;
     bool isPointedTo = false;
 
+    uint8_t variableSize();
     void use(uint32_t index);
 };
 

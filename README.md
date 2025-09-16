@@ -3,7 +3,7 @@
 ### The compiler nobody asked for!
 
 ## Technologies:
-- C++
+- C++ 23
 - CMake
 
 ## About Dodo Lang:
@@ -13,28 +13,34 @@ It's yet another statically typed language, though it has/will have some feature
 
 The project is being developed as a SKNI "KOD" project.
 
-## Currently nearly the entire project is being rewritten with those goals:
-- complete rework of type system,
-- compound types with methods and operator overloads,
+## Most of the project has been rewritten (again) achieving following goals:
+- complete rework of type system to be more flexible,
+- complex and "simple" types with methods and operator overloads,
 - removing string dependency in later parts of the compilation,
 - complete replacement of old lexer,
-- support for floating point values.
+- support for floating point values,
+- performance and memory usage improvements,
+- better optimisation of resulting code.
 
 ## Current progress of rewriting:
 - lexer - virtually done:
+  - fixing minor bugs if they arise and adding new keywords
 - parser - virtually done
-    - methods might need some work
+  - methods might need some work
 - bytecode generator - mostly done:
   - increment/decrement don't work
   - default values for types don't work
   - complex types don't have default operators
-  - pointers might need some work done on dereferencing
-  - global functions need support for overloading
-  - global variables and not treated as pointers
-- assembly generator - partially done
+  - global variables are not supported
+  - supports array indexing for both r- and l-values
+  - supports braced list initialisation for arrays
+  - brackets work somewhat
+- assembly generator - mostly done
   - all basic x86-64 instructions have been defined and are being implemented
   - can output instruction with operands that are defined
   - can convert types
   - can do mostly correct x86-64 unix style calls and syscalls
   - can do loops and conditional statements with memory state preservation
   - moving values and conversions between types largely done
+  - can do offsets of registers for indexing
+  - still needs a for lot of instructions to be added but it's just a lot of copy paste

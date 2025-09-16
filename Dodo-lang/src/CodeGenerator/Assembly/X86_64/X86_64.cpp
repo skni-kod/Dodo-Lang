@@ -26,7 +26,7 @@ namespace x86_64 {
         return op.op == Location::reg and (op.value.reg >= ZMM0 and op.value.reg <= ZMM31);
     }
 
-    void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters) {
+    void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
 
         // assumes every move contains known locations only, since we need to know which one exactly to move
         // so those can be: registers, stack offsets, literals, labels and addresses
@@ -40,7 +40,7 @@ namespace x86_64 {
             if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) proc.getContentRef(t) = proc.getContent(contentToSet, context);
             else if (s.op == Location::imm and t.op == Location::imm) return;
             else if (t.op == Location::off) return;
-            else proc.getContentRef(t) = contentToSet;
+            else if (setContent) proc.getContentRef(t) = contentToSet;
 
             return;
         }
@@ -66,7 +66,7 @@ namespace x86_64 {
                     if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
                     else CodeGeneratorError("Internal: Invalid address immediate target!");
                 }
-                else if (s.op == Location::sta) {
+                else if (s.op == Location::sta or s.op == Location::off) {
                     if (t.op == Location::reg) moves.emplace_back(mov, t, s);
                     else if (t.op == Location::sta) CodeGeneratorError("Internal: Invalid address stack to stack!");
                     else CodeGeneratorError("Internal: Invalid address stack target!");
@@ -97,8 +97,8 @@ namespace x86_64 {
                 if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) CodeGeneratorError("Internal: non integer register source!");
                 if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: non integer register target!");
                 if (s.op == Location::imm) moves.emplace_back(mov, t, s);
-                else if ((s.op == Location::reg and t.op == Location::sta)
-                    or (s.op == Location::sta and t.op == Location::reg)
+                else if ((s.op == Location::reg and (t.op == Location::sta or t.op == Location::off))
+                    or ((s.op == Location::sta or s.op == Location::off) and t.op == Location::reg)
                     or (s.op == Location::reg and t.op == Location::reg)) {
                     if (s.size == t.size) moves.emplace_back(mov, t, s);
                     else if (s.size > t.size) {
@@ -106,10 +106,10 @@ namespace x86_64 {
                         moves.emplace_back(mov, t, s);
                     }
                     else {
-                        if (s.size != 4 and t.size != 8)  moves.emplace_back(movzx, t, s);
+                        if (s.size != 4 or t.size != 8)  moves.emplace_back(movzx, t, s);
                         else {
                             // 4 -> 8 byte is a special case where movzx does not apply and we need to split it
-                            moves.emplace_back(movzx, t, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0));
+                            moves.emplace_back(mov, t, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0));
                             moves.emplace_back(movzx, t, s);
                         }
                     }
@@ -125,6 +125,7 @@ namespace x86_64 {
                 if (s.op == Location::imm) moves.emplace_back(mov, t, s);
                 else if ((s.op == Location::reg and t.op == Location::sta)
                     or (s.op == Location::sta and t.op == Location::reg)
+                    or (s.op == Location::off and t.op == Location::reg)
                     or (s.op == Location::reg and t.op == Location::reg)) {
                     if (s.size == t.size) moves.emplace_back(mov, t, s);
                     else if (s.size > t.size) {
@@ -184,7 +185,8 @@ namespace x86_64 {
         }
         else CodeGeneratorError("Internal: address to address move!");
 
-        proc.getContentRef(t) = contentToSet;
+        if (setContent)
+            proc.getContentRef(t) = contentToSet;
     }
 
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target) {
@@ -273,7 +275,6 @@ namespace x86_64 {
         return {result, stackOffset};
     }
 
-    // for syscalls
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, BytecodeContext& context, Processor& processor) {
         std::vector <AsmOperand> result;
         int32_t stackOffset = 0;

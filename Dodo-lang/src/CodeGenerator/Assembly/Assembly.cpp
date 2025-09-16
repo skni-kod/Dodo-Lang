@@ -155,24 +155,23 @@ AsmOperand Processor::getLocationRegisterBias(AsmOperand& op) {
     return getLocation(op);
 }
 
-AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context) {
+AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context, int32_t amount) {
     if (value.location == Location::Variable) {
         auto& var = context.getVariableObject(value);
         int32_t offset;
         if (var.meta.isReference or var.meta.pointerLevel) {
-            if (stack.empty()) offset = Options::addressSize;
-            else offset = -stack.back().offset + Options::addressSize;
+            int32_t size = amount * Options::addressSize;
+            if (stack.empty()) offset = size;
+            else offset = -stack.back().offset + size;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
-            stack.emplace_back(AsmOperand(value, context), -offset, Options::addressSize);
-            var.assignedOffset = -offset;
+            stack.emplace_back(AsmOperand(value, context), -offset, size);
         }
         else {
-            auto size = var.type->typeSize;
+            int32_t size = var.type->typeSize * amount;
             if (stack.empty()) offset = size;
             else offset = -stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
             stack.emplace_back(AsmOperand(value, context), -offset, size);
-            var.assignedOffset = -offset;
         }
         return {stack.back().offset};
     }
@@ -180,24 +179,23 @@ AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context)
     return {};
 }
 
-AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context) {
+AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context, int32_t amount) {
     if (value.op == Location::Variable) {
         auto& var = value.object(context, *this);
         int32_t offset;
         if (var.meta.isReference or var.meta.pointerLevel) {
-            if (stack.empty()) offset = Options::addressSize;
-            else offset = -stack.back().offset + Options::addressSize;
+            int32_t size = amount * Options::addressSize;
+            if (stack.empty()) offset = size;
+            else offset = -stack.back().offset + size;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
-            stack.emplace_back(value, -offset, Options::addressSize);
-            var.assignedOffset = -offset;
+            stack.emplace_back(value, -offset, size);
         }
         else {
-            auto size = var.type->typeSize;
+            int32_t size = var.type->typeSize * amount;
             if (stack.empty()) offset = size;
             else offset = -stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
             stack.emplace_back(value, -offset, size);
-            var.assignedOffset = -offset;
         }
         OperandValue off;
         off.offset = stack.back().offset;
@@ -385,18 +383,22 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
         }
             break;
         case Location::Literal:
-            out << "Literal:";
+            out << "Literal: ";
             switch (type) {
                 case Type::address:
                     switch (Options::addressSize) {
                         case 1:
-                            out << "fixed address: " << value.u8;
+                            out << "fixed address: " << value.u8 << " ";
+                            break;
                         case 2:
-                            out << "fixed address: " << value.u16;
+                            out << "fixed address: " << value.u16 << " ";
+                            break;
                         case 4:
-                            out << "fixed address: " << value.u32;
+                            out << "fixed address: " << value.u32 << " ";
+                            break;
                         case 8:
-                            out << "fixed address: " << value.u64;
+                            out << "fixed address: " << value.u64 << " ";
+                            break;
                         default:
                             break;
                     }
@@ -404,10 +406,13 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                     switch (size) {
                         case 2:
                             CodeGeneratorError("16 bit floats not supported in printing!");
+                            break;
                         case 4:
-                            out << "floating point literal: " << value.f32;
+                            out << "floating point literal: " << value.f32 << " ";
+                            break;
                         case 8:
-                            out << "floating point literal: " << value.f64;
+                            out << "floating point literal: " << value.f64 << " ";
+                            break;
                         default:
                             break;
                     }
@@ -415,13 +420,17 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                 case Type::signedInteger:
                     switch (size) {
                         case 1:
-                            out << "signed integer literal: " << value.i8;
+                            out << "signed integer literal: " << value.i8 << " ";
+                            break;
                         case 2:
-                            out << "signed integer literal: " << value.i16;
+                            out << "signed integer literal: " << value.i16 << " ";
+                            break;
                         case 4:
-                            out << "signed integer literal: " << value.i32;
+                            out << "signed integer literal: " << value.i32 << " ";
+                            break;
                         case 8:
-                            out << "signed integer literal: " << value.i64;
+                            out << "signed integer literal: " << value.i64 << " ";
+                            break;
                         default:
                             break;
                     }
@@ -429,20 +438,21 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
                 case Type::unsignedInteger:
                     switch (size) {
                         case 1:
-                            out << "unsigned integer literal: " << static_cast <uint64_t>(value.u8);
+                            out << "unsigned integer literal: " << static_cast <uint64_t>(value.u8) << " ";
                         case 2:
-                            out << "unsigned integer literal: " << value.u16;
+                            out << "unsigned integer literal: " << value.u16 << " ";
                         case 4:
-                            out << "unsigned integer literal: " << value.u32;
+                            out << "unsigned integer literal: " << value.u32 << " ";
                         case 8:
-                            out << "unsigned integer literal: " << value.u64;
+                            out << "unsigned integer literal: " << value.u64 << " ";
                         default:
                             break;
                     }
+                    break;
             }
             break;
         case Location::String:
-            out << "String: " << *passedStrings[value.string];
+            out << "String: " << "<placeholder>" << " ";
             break;
         case Location::Label:
             out << "";
@@ -457,22 +467,14 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
             out << "";
             break;
         case Location::Stack:
-            out << "Stack: " << std::to_string(value.offset);
+            out << "Stack: " << std::to_string(value.offset) << " ";
         break;
         case Location::Register:
-            out << "Register: " << std::to_string(value.reg);
+            out << "Register: " << std::to_string(value.reg) << " ";
         break;
         default:
             CodeGeneratorError("Internal: unhandled operand print case!");
     }
-}
-
-bool AsmOperand::isAtAssignedPlace(BytecodeContext& context, Processor& processor) {
-    auto& obj = object(context, processor);
-    if (obj.assignedOffset == 0) return false;
-    auto loc = processor.getLocationStackBias(*this);
-    if (loc.op != Location::sta or loc.value.offset != obj.assignedOffset) return false;
-    return true;
 }
 
 AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations, bool stackOnly) {
@@ -492,16 +494,11 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
             if (stackOnly) validPlaces += n.op == Location::sta;
             else validPlaces += isValid and n != *this;
         }
-        if (validPlaces > 0) validPlaces--;
 
-        if (validPlaces == 0) {
+        if (validPlaces <= 1 - stackOnly) {
             // there is no other place that will survive where this value is stored
             auto move = MoveInfo(content.copyTo(op, value.reg), {});
-            if (obj.assignedOffset != 0) move.target = content.copyTo(Location::sta, obj.assignedOffset);
-            else {
-                move.target = processor.pushStack(content, context);
-                obj.assignedOffset = move.target.value.offset;
-            }
+            move.target = processor.pushStack(content, context);
             AddConversionsToMove(move, context, processor, instructions, content, forbiddenLocations);
         }
 

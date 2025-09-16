@@ -74,8 +74,11 @@ void GenerateCode() {
 
         out << "\n.section .text\n";
         // global text data
-        for (uint64_t n = 0; n < passedStrings.size(); n++) {
-            out << "LS" << std::to_string(n) << ":\n" << std::string(Options::functionIndentation, ' ') << ".string \"" << *passedStrings[n] << "\"\n";
+        for (auto& n : passedStrings) {
+            out << "LS" << std::to_string(n.second) << ":\n" << std::string(Options::functionIndentation, ' ') << ".string \"" << n.first << "\"\n";
+        }
+        for (auto& n : passedLongStrings) {
+            out << "LS" << std::to_string(n.second) << ":\n" << std::string(Options::functionIndentation, ' ') << ".string \"" << *n.first << "\"\n";
         }
 
         out << "\n.global _start\n";
@@ -103,7 +106,7 @@ void GenerateCode() {
 
 
         if (not functions.contains("Main")) CodeGeneratorError("Function \"Main\" not found!");
-        x86_64::PrintInstruction(out, {x86_64::call, {&functions["Main"]}});
+        x86_64::PrintInstruction(out, {x86_64::call, {&functions["Main"][0]}});
 
 
 
@@ -143,20 +146,22 @@ void GenerateCode() {
 
     // functions
     for (auto& n : functions) {
-        auto context = GenerateFunctionBytecode(n.second);
-        if (Options::informationLevel >= 2) {
-            // TODO: add waaaay more printing functions
-            std::cout << "INFO L3: Bytecodes for function " << *n.second.name << "(...):\n";
-            for (uint64_t k = 0; k < context.codes.size(); k++) {
-                std::cout << "INFO L3: (" << k << ") " << context.codes[k];
+        for (auto& m : n.second) {
+            auto context = GenerateFunctionBytecode(m);
+            if (Options::informationLevel >= 2) {
+                // TODO: add waaaay more printing functions
+                std::cout << "INFO L3: Bytecodes for function " << *m.name << "(...):\n";
+                for (uint64_t k = 0; k < context.codes.size(); k++) {
+                    std::cout << "INFO L3: (" << k << ") " << context.codes[k];
+                }
             }
+            CalculateLifetimes(context);
+            proc.clear();
+            auto label = AsmInstruction(x86_64::label, AsmOperand(&m));
+            out << "\n";
+            x86_64::PrintInstruction(label, out);
+            x86_64::ConvertBytecode(context, proc, &m, out);
         }
-        CalculateLifetimes(context);
-        proc.clear();
-        auto label = AsmInstruction(x86_64::label, AsmOperand(&n.second));
-        out << "\n";
-        x86_64::PrintInstruction(label, out);
-        x86_64::ConvertBytecode(context, proc, &n.second, out);
     }
 
     std::cout << "INFO L1: Assembly output generation complete!\n";

@@ -18,6 +18,27 @@ const char* ParserException::what() {
     return "Parser has encountered unexpected input";
 }
 
+uint64_t passedStringCounter = 0;
+
+// TODO: make this faster
+void AddString(std::string* string) {
+    if (passedStrings.contains(*string)) return;
+    if (string->length() < 32)
+        passedStrings.emplace(*string, passedStringCounter++);
+    else
+        passedLongStrings.emplace_back(string, passedStringCounter++);
+}
+
+uint64_t FindString(std::string* string) {
+    if (passedStrings.contains(*string)) return passedStrings[*string];
+    for (auto& n : passedLongStrings) {
+        if (*n.first == *string)
+            return n.second;
+    }
+    ParserError("Could not find a passed string!");
+    return 0;
+}
+
 void ParserError(const std::string& message) {
     if (currentFile == nullptr) {
         std::cout << "ERROR! Outside file!\n";
