@@ -1,5 +1,7 @@
 i32 Main() {
     let i32** tab = {{1}};
-    tab[0][0] = 5;
-    return tab[0][0];
+    let i32* ptr = tab[0];
+    *ptr = 5;
+    return *ptr;
+    return 0;
 }

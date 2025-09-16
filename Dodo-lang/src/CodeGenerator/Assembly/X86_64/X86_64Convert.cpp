@@ -32,7 +32,7 @@ namespace x86_64 {
             }
 
             if (Options::informationLevel >= Options::full) {
-                std::cout << "INFO L3: Processor before instruction " << index << ":\nINFO L3: Registers:\n";
+                std::cout << "INFO L3: Processor before instruction " << index << " - " << context.codes[index] << "INFO L3: Registers:\n";
                 for (auto& n : processor.registers) {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: ";
@@ -517,9 +517,26 @@ namespace x86_64 {
                 auto sourceOp = AsmOperand(current.op1(), context);
                 auto resultOp = AsmOperand(current.op3(), context);
 
+                if (sourceOp.op == Location::var) sourceOp = processor.getLocation(sourceOp);
 
-                AsmOperand reg = processor.getFreeRegister(Type::address, 8);
-                CodeGeneratorError("Dereferences not implemented!");
+                auto resultLocation = processor.getFreeRegister(resultOp.type, resultOp.size);
+                processor.getContentRef(resultLocation) = resultOp;
+
+                if (sourceOp.op != Location::reg) {
+                    auto sourceContent = sourceOp.op != Location::var ? processor.getContent(sourceOp, context) : sourceOp;
+                    MoveInfo move = {sourceOp, sourceOp = processor.getFreeRegister(sourceOp.type, sourceOp.size)};
+                    x86_64::AddConversionsToMove(move, context, processor, instructions, sourceContent);
+                }
+
+                AsmOperand src{};
+                src.op = Location::off;
+                src.type = resultOp.type;
+                src.size = resultOp.size;
+                src.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
+                src.value.regOff.addressRegister = sourceOp.value.reg;
+
+                auto move = MoveInfo(src, resultLocation);
+                x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
             }
             break;
             case Bytecode::GetIndexAddress: {

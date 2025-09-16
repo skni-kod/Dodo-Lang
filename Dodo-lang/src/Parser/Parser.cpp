@@ -22,13 +22,16 @@ uint64_t passedStringCounter = 0;
 
 // TODO: make this faster
 void AddString(std::string* string) {
-    for (auto& n : passedStrings)
-        if (*n.first == *string) return;
-    passedStrings.emplace_back(string, passedStringCounter++);
+    if (passedStrings.contains(*string)) return;
+    if (string->length() < 32)
+        passedStrings.emplace(*string, passedStringCounter++);
+    else
+        passedLongStrings.emplace_back(string, passedStringCounter++);
 }
 
 uint64_t FindString(std::string* string) {
-    for (auto& n : passedStrings) {
+    if (passedStrings.contains(*string)) return passedStrings[*string];
+    for (auto& n : passedLongStrings) {
         if (*n.first == *string)
             return n.second;
     }

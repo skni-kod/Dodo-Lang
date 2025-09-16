@@ -3,6 +3,6 @@
 
 #include <string>
 
-const std::string incrementedVersionValue =  "0.3.1 (full pointer support WIP), build: 2651 (2025-09-16)";
+const std::string incrementedVersionValue =  "0.3.1 (pointers and arrays beta), build: 2682 (2025-09-16)";
 
 #endif
