@@ -2,7 +2,7 @@
 
 #include <stack>
 
-void CalculateLifetimes(BytecodeContext& context) {
+void CalculateLifetimes(Context& context) {
 
     // Theoretically this could be done during the bytecode generation
 

@@ -11,14 +11,14 @@ namespace x86_64 {
     // functions that need to be exposed
 
     // converts simple moves into assembly
-    void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr, bool setContent = true);
+    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr, bool setContent = true);
     // returns a vector of registers and stack locations where arguments are to be placed
     // and amount of space on stack required for arguments
     // stack arguments are returned in the form used to reference arguments and not pass them (from 16 up)!
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target);
-    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, BytecodeContext& context, Processor& processor);
+    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, Context& context);
     // the driver function for converting bytecode to assembly
-    void ConvertBytecode(BytecodeContext& context, Processor& processor, ParserFunctionMethod* source, std::ofstream& out);
+    void ConvertBytecode(Context& context, ParserFunctionMethod* source, std::ofstream& out);
     // prints all instructions
     void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset);
     // prints a single instruction

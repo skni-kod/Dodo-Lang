@@ -12,7 +12,7 @@ struct TypeMetaPair {
     Bytecode code;
 };
 
-std::vector<TypeMetaPair> FindArgumentTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values,
+std::vector<TypeMetaPair> FindArgumentTypes(Context& context, std::vector<ParserTreeValue>& values,
                                             ParserTreeValue& node) {
     if (not node.argument) return {};
 
@@ -31,7 +31,7 @@ std::vector<TypeMetaPair> FindArgumentTypes(BytecodeContext& context, std::vecto
     return arguments;
 }
 
-bool DoesFunctionMatchAndAddCall(std::vector<TypeMetaPair>& arguments, BytecodeContext& context,
+bool DoesFunctionMatchAndAddCall(std::vector<TypeMetaPair>& arguments, Context& context,
                                  ParserFunctionMethod& overload, std::vector<ParserTreeValue>& values,
                                  ParserTreeValue& node, Bytecode& code, bool isGlobal) {
     // TODO: change this after adding default parameters
@@ -102,7 +102,7 @@ bool DoesFunctionMatchAndAddCall(std::vector<TypeMetaPair>& arguments, BytecodeC
     return true;
 }
 
-void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta,
+void BytecodeCall(Context& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta,
                   Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod, BytecodeOperand caller) {
     if (code.type == Bytecode::Syscall) {
         code.op1Location = Location::Literal;
@@ -159,7 +159,7 @@ void BytecodeCall(BytecodeContext& context, std::vector<ParserTreeValue>& values
 }
 
 // checks if the operator has been redefined for this type
-bool AssignOverloadedOperatorIfPossible(BytecodeContext& context, std::vector<ParserTreeValue>& values, Bytecode& code,
+bool AssignOverloadedOperatorIfPossible(Context& context, std::vector<ParserTreeValue>& values, Bytecode& code,
                                         ParserTreeValue& node, TypeObject* type, TypeMeta typeMeta, bool isGlobal) {
     bool anyFound = false;
 
@@ -201,7 +201,7 @@ bool AssignOverloadedOperatorIfPossible(BytecodeContext& context, std::vector<Pa
     return false;
 }
 
-BytecodeOperand HandleCondition(BytecodeContext& context, std::vector<ParserTreeValue>& values, uint16_t index,
+BytecodeOperand HandleCondition(Context& context, std::vector<ParserTreeValue>& values, uint16_t index,
                                 bool isGlobal, Bytecode::BytecodeInstruction condition) {
     Bytecode code;
     code.type = condition;
@@ -218,7 +218,7 @@ BytecodeOperand HandleCondition(BytecodeContext& context, std::vector<ParserTree
     return code.op3();
 }
 
-BytecodeOperand InsertOperatorExpression(BytecodeContext& context, std::vector<ParserTreeValue>& values,
+BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTreeValue>& values,
                                          TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal,
                                          BytecodeOperand passedOperand) {
     // first of all let's see if the type has the operator redefined

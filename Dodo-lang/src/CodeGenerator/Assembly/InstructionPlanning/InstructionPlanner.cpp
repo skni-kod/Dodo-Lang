@@ -5,10 +5,10 @@
 #include "X86_64.hpp"
 
 // target resolution functions
-void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
+void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
     switch (Options::targetArchitecture) {
         case Options::TargetArchitecture::x86_64:
-            x86_64::AddConversionsToMove(move, context, proc, instructions, contentToSet, forbiddenRegisters, setContent);
+            x86_64::AddConversionsToMove(move, context, instructions, contentToSet, forbiddenRegisters, setContent);
             break;
         default:
             CodeGeneratorError("Internal: invalid architecture in move conversion!");
@@ -38,14 +38,14 @@ bool IsRegisterAllowed(std::vector <RegisterRange>& allowedRegisters, uint8_t op
     return false;
 }
 
-AsmOperand GetFreeRegister(std::vector <RegisterRange>& allowedRegisters, uint8_t opNumber, Processor& processor, std::vector<AsmOperand>* forbiddenRegisters) {
+AsmOperand GetFreeRegister(Context& context, std::vector <RegisterRange>& allowedRegisters, uint8_t opNumber, std::vector<AsmOperand>* forbiddenRegisters) {
     for (auto& n : allowedRegisters) {
         if ((opNumber == 1 and n.canBeOp1) or
             (opNumber == 2 and n.canBeOp2) or
             (opNumber == 3 and n.canBeOp3) or
             (opNumber == 4 and n.canBeOp4)) {
             for (uint8_t m = n.first; m <= n.last; m++) {
-                if (processor.registers[m].content.op != Location::Variable) {
+                if (context.registers[m].content.op != Location::Variable) {
                     if (forbiddenRegisters != nullptr) {
                         bool isValid = true;
                         for (auto& k : *forbiddenRegisters) {
@@ -55,7 +55,7 @@ AsmOperand GetFreeRegister(std::vector <RegisterRange>& allowedRegisters, uint8_
                         }
                         if (not isValid) continue;
                     }
-                    return AsmOperand(Location::reg, Type::none, false, processor.registers[m].size, m);
+                    return AsmOperand(Location::reg, Type::none, false, context.registers[m].size, m);
                 }
             }
         }
@@ -67,7 +67,7 @@ AsmOperand GetFreeRegister(std::vector <RegisterRange>& allowedRegisters, uint8_
 // This function is responsible for resolving instruction definition variants,
 // planning moves, conversions and passing off the tasks to platform dependent functions
 // this file is to be platform-agnostic to make introducing other targets easier
-void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstructionInfo& instruction, std::vector<AsmInstruction>& instructions, uint32_t index) {
+void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::vector<AsmInstruction>& instructions, uint32_t index) {
 
     // first off choosing the best candidate for the instruction if there are multiple
     if (instruction.variants.size() == 1) {
@@ -95,7 +95,7 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
             for (auto& thing : n.resultsAndInputs) {
                 if (thing.isInput) {
                     if (thing.isFixedLocation) {
-                        if (processor.getContentRef(thing.fixedLocation) != thing.value) cost += MOVE_COST;
+                        if (context.getContentRef(thing.fixedLocation) != thing.value) cost += MOVE_COST;
                         if (thing.value.type != thing.fixedLocation.type) cost += CONVERSION_COST;
                         if (thing.value.size != thing.fixedLocation.size) cost += CONVERSION_COST;
                     }
@@ -104,9 +104,9 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                         auto& def = GetOpDefinition(n, thing.operandNumber);
                         if (thing.value.op == Location::Variable) {
                             if (def.opType != Location::reg)
-                                thing.value = processor.getLocationStackBias((thing.value));
+                                thing.value = context.getLocationStackBias((thing.value));
                             else
-                                thing.value = processor.getLocation(thing.value);
+                                thing.value = context.getLocation(thing.value);
                         }
                         if (not def.isInput) continue;
                         if (def.opType == Location::imm and thing.value.op != Location::imm) {
@@ -174,7 +174,7 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
         auto& source = moves[k].source;
         auto& target = moves[k].target;
         // if it's a variable get it's location
-        if (source.op == Location::Variable) source = processor.getLocation(source);
+        if (source.op == Location::Variable) source = context.getLocation(source);
 
         if (target.op == Location::op) {
             // if it's an operand we need to check if it is in the correct place
@@ -189,12 +189,12 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                 }
                 else if (def.opType == Location::sta) {
                     // TODO: what about size?
-                    target = op = source.copyTo(Location::sta, processor.pushStackTemp(def.sizeMax, def.sizeMax).value.offset);
+                    target = op = source.copyTo(Location::sta, context.pushStackTemp(def.sizeMax, def.sizeMax).value.offset);
                 }
                 else if (def.opType == Location::reg) {
                     // TODO: what about size?
                     // TODO: forbidden registers
-                    target = op = source.copyTo(Location::reg, GetFreeRegister(selected.allowedRegisters, target.value.ui, processor, nullptr).value.reg);
+                    target = op = source.copyTo(Location::reg, GetFreeRegister(context, selected.allowedRegisters, target.value.ui, nullptr).value.reg);
                 }
                 else CodeGeneratorError("Internal: unimplemented immediate to somewhere move!");
             }
@@ -205,7 +205,7 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                 }
                 else if (def.opType == Location::reg) {
                     // in that case we need to move it into a correct register first
-                    auto where = GetFreeRegister(selected.allowedRegisters, target.value.ui, processor, nullptr);
+                    auto where = GetFreeRegister(context, selected.allowedRegisters, target.value.ui, nullptr);
                     op = target = target.copyTo(Location::reg, where.value.ui);
                 }
                 else CodeGeneratorError("Internal: unimplemented stack to somewhere move!");
@@ -218,12 +218,12 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
                     else CodeGeneratorError("Internal: unimplemented register to valid register move!");
                 }
                 else if (def.opType == Location::Stack and source.op == Location::reg) {
-                    auto content = processor.getContent(source, context);
-                    auto location = processor.getLocationStackBias(content);
+                    auto content = context.getContent(source);
+                    auto location = context.getLocationStackBias(content);
                     if (location.op == Location::reg) {
-                        location = processor.pushStack(content, context);
+                        location = context.pushStack(content);
                         MoveInfo move = {source, location};
-                        AddConversionsToMove(move, context, processor, instructions, content);
+                        AddConversionsToMove(move, context, instructions, content);
                     }
                     target = op = source;
                 }
@@ -265,13 +265,13 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     // now checking for things that might need to be moved in the locations
     for (auto& n : moves) {
         if (n.source == n.target) continue;
-        auto content = processor.getContent(n.target, context);
+        auto content = context.getContent(n.target);
 
         if (content.op == Location::None) continue;
 
         // when it gets here we know that there is something there
         if (content.op == Location::Variable) {
-            auto& object = content.object(context, processor);
+            auto& object = content.object(context);
 
             // that means it escaped clearing and can be removed safely
             if (object.lastUse < index) {
@@ -298,9 +298,9 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     for (auto& n : moves) {
         auto content = n.source;
         if (content.op != Location::Variable and content.op != Location::String and content.op != Location::imm)
-            content = processor.getContent(content, context);
+            content = context.getContent(content);
 
-        AddConversionsToMove(n, context, processor, instructions, content, nullptr);
+        AddConversionsToMove(n, context, instructions, content, nullptr);
     }
 
     // adding the instruction itself
@@ -312,13 +312,13 @@ void ExecuteInstruction(BytecodeContext& context, Processor& processor, AsmInstr
     ins.op4 = ops[3];
 
     for (auto& n : results) {
-        if (n.source.op == Location::Variable and n.source.object(context, processor).lastUse <= index) continue;
+        if (n.source.op == Location::Variable and n.source.object(context).lastUse <= index) continue;
         if (n.target.op == Location::Variable) {
-            auto loc = n.target.moveAwayOrGetNewLocation(context, processor, instructions, index, nullptr);
-            processor.getContentRef(loc) = n.source;
+            auto loc = n.target.moveAwayOrGetNewLocation(context, instructions, index, nullptr);
+            context.getContentRef(loc) = n.source;
         }
         else {
-            processor.getContentRef(n.target) = n.source;
+            context.getContentRef(n.target) = n.source;
         }
     }
 

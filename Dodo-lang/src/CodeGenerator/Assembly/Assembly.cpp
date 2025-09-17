@@ -5,14 +5,14 @@
 #include <Parser.hpp>
 #include <utility>
 
-void Processor::clear() {
+void Context::clearProcessor() {
     for (auto& n : registers) {
         n.content = {};
     }
     stack.clear();
 }
 
-Place Processor::get(AsmOperand& op) {
+Place Context::get(AsmOperand& op) {
     if (op.op == Location::reg) {
         return {&registers[op.value.ui], Location::reg};
     }
@@ -24,13 +24,13 @@ Place Processor::get(AsmOperand& op) {
         }
         return {static_cast <StackEntry*>(nullptr), Location::sta};
     }
-    CodeGeneratorError("Internal: invalid processor location 1!");
+    CodeGeneratorError("Internal: invalid context location 1!");
     return {};
 }
 
 AsmOperand emptyContent = {};
 
-AsmOperand& Processor::getContentRef(AsmOperand& op) {
+AsmOperand& Context::getContentRef(AsmOperand& op) {
     if (op.op == Location::reg) {
         return registers[op.value.ui].content;
     }
@@ -58,13 +58,13 @@ AsmOperand& Processor::getContentRef(AsmOperand& op) {
 
         stack.emplace(stack.begin() + index, StackEntry({}, op.value.offset, op.size));
         return stack[index].content;
-        //CodeGeneratorError("Internal: invalid processor location for reference!");
+        //CodeGeneratorError("Internal: invalid context location for reference!");
     }
-    CodeGeneratorError("Internal: invalid processor location 3!");
+    CodeGeneratorError("Internal: invalid context location 3!");
     return emptyContent;
 }
 
-AsmOperand Processor::getContent(AsmOperand& op, BytecodeContext& context) {
+AsmOperand Context::getContent(AsmOperand& op) {
     if (op.op == Location::reg) {
         return registers[op.value.ui].content;
     }
@@ -79,23 +79,23 @@ AsmOperand Processor::getContent(AsmOperand& op, BytecodeContext& context) {
         }
         return {};
     }
-    CodeGeneratorError("Internal: invalid processor location 2!");
+    CodeGeneratorError("Internal: invalid context location 2!");
     return {};
 }
 
-AsmOperand Processor::getContentAtOffset(int32_t offset) {
+AsmOperand Context::getContentAtOffset(int32_t offset) {
     for (const auto& n : stack) if (n.offset == offset) return n.content;
     return {};
 }
 
-AsmOperand& Processor::getContentRefAtOffset(int32_t offset) {
+AsmOperand& Context::getContentRefAtOffset(int32_t offset) {
     for (auto& n : stack) if (n.offset == offset) return n.content;
     // in that case it does not exist
     CodeGeneratorError("Internal: cannot get content in stack!");
     return stack[0].content;
 }
 
-AsmOperand Processor::getLocation(AsmOperand& op) {
+AsmOperand Context::getLocation(AsmOperand& op) {
     if (op.op == Location::Variable) {
         for (uint16_t n = 0; n < registers.size(); n++) {
             if (registers[n].content == op) {
@@ -114,7 +114,7 @@ AsmOperand Processor::getLocation(AsmOperand& op) {
     return op;
 }
 
-AsmOperand Processor::getLocationIfExists(AsmOperand& op) {
+AsmOperand Context::getLocationIfExists(AsmOperand& op) {
     if (op.op == Location::Variable) {
         for (uint16_t n = 0; n < registers.size(); n++) {
             if (registers[n].content == op) {
@@ -132,7 +132,7 @@ AsmOperand Processor::getLocationIfExists(AsmOperand& op) {
     return {};
 }
 
-AsmOperand Processor::getLocationStackBias(AsmOperand& op) {
+AsmOperand Context::getLocationStackBias(AsmOperand& op) {
     if (op.op == Location::Variable) {
         for (auto& n : stack) {
             if (n.content == op) {
@@ -151,27 +151,27 @@ AsmOperand Processor::getLocationStackBias(AsmOperand& op) {
     return op;
 }
 
-AsmOperand Processor::getLocationRegisterBias(AsmOperand& op) {
+AsmOperand Context::getLocationRegisterBias(AsmOperand& op) {
     return getLocation(op);
 }
 
-AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context, int32_t amount) {
+AsmOperand Context::pushStack(BytecodeOperand value, int32_t amount) {
     if (value.location == Location::Variable) {
-        auto& var = context.getVariableObject(value);
+        auto& var = getVariableObject(value);
         int32_t offset;
         if (var.meta.isReference or var.meta.pointerLevel) {
             int32_t size = amount * Options::addressSize;
             if (stack.empty()) offset = size;
             else offset = -stack.back().offset + size;
             if (offset % Options::addressSize) offset = (offset / Options::addressSize + 1) * Options::addressSize;
-            stack.emplace_back(AsmOperand(value, context), -offset, size);
+            stack.emplace_back(AsmOperand(value, *this), -offset, size);
         }
         else {
             int32_t size = var.type->typeSize * amount;
             if (stack.empty()) offset = size;
             else offset = -stack.back().offset + size;
             if (offset % var.type->typeAlignment) offset = (offset / var.type->typeAlignment + 1) * var.type->typeAlignment;
-            stack.emplace_back(AsmOperand(value, context), -offset, size);
+            stack.emplace_back(AsmOperand(value, *this), -offset, size);
         }
         return {stack.back().offset};
     }
@@ -179,9 +179,9 @@ AsmOperand Processor::pushStack(BytecodeOperand value, BytecodeContext& context,
     return {};
 }
 
-AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context, int32_t amount) {
+AsmOperand Context::pushStack(AsmOperand value, int32_t amount) {
     if (value.op == Location::Variable) {
-        auto& var = value.object(context, *this);
+        auto& var = value.object(*this);
         int32_t offset;
         if (var.meta.isReference or var.meta.pointerLevel) {
             int32_t size = amount * Options::addressSize;
@@ -205,7 +205,7 @@ AsmOperand Processor::pushStack(AsmOperand value, BytecodeContext& context, int3
     return {};
 }
 
-AsmOperand Processor::pushStackTemp(uint32_t size, uint32_t alignment) {
+AsmOperand Context::pushStackTemp(uint32_t size, uint32_t alignment) {
     int32_t offset;
     if (stack.empty()) offset = size;
     else offset = -stack.back().offset + size;
@@ -214,7 +214,7 @@ AsmOperand Processor::pushStackTemp(uint32_t size, uint32_t alignment) {
     return -offset;
 }
 
-AsmOperand Processor::tempStack(uint8_t size, uint8_t alignment) {
+AsmOperand Context::tempStack(uint8_t size, uint8_t alignment) {
     if (not alignment) alignment = size;
     AsmOperand location;
     location.op = Location::sta;
@@ -227,7 +227,7 @@ AsmOperand Processor::tempStack(uint8_t size, uint8_t alignment) {
     return location;
 }
 
-AsmOperand Processor::getFreeRegister(Type::TypeEnum valueType, uint16_t size) const {
+AsmOperand Context::getFreeRegister(Type::TypeEnum valueType, uint16_t size) const {
     // TODO: add register cost levels
     for (auto& n : registers) {
         if (n.content.op != Location::None) continue;
@@ -276,7 +276,7 @@ AsmOperand::AsmOperand(const int32_t stackOffset) {
     value.offset = stackOffset;
 }
 
-AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context) {
+AsmOperand::AsmOperand(BytecodeOperand op, Context& context) {
     if (op.location == Location::Variable) {
         auto var = context.getVariableObject(op);
         this->op = op.location;
@@ -312,7 +312,7 @@ bool AsmOperand::operator==(const AsmOperand& target) const {
     return target.op == op and target.type == type and target.useAddress == useAddress and target.value.ui == value.ui and target.size == size;
 }
 
-AsmOperand::AsmOperand(BytecodeOperand op, BytecodeContext& context, Location::Type location, OperandValue value) {
+AsmOperand::AsmOperand(BytecodeOperand op, Context& context, Location::Type location, OperandValue value) {
     if (op.location == Location::Variable) {
         auto var = context.getVariableObject(op);
         this->op = location;
@@ -348,11 +348,11 @@ AsmOperand AsmOperand::copyTo(Location::Type location, OperandValue value) const
     return op;
 }
 
-VariableObject& AsmOperand::object(BytecodeContext& context, Processor& processor) const {
+VariableObject& AsmOperand::object(Context& context) const {
     AsmOperand location = *this;
     if (op != Location::Variable) {
         if (op == Location::reg or op == Location::sta or op == Location::mem) {
-            location = processor.getContentRef(location);
+            location = context.getContentRef(location);
             if (location.op != Location::Variable) CodeGeneratorError("Internal: non variable object get!");
         }
         else CodeGeneratorError("Internal: non variable object get!");
@@ -372,12 +372,12 @@ VariableObject& AsmOperand::object(BytecodeContext& context, Processor& processo
     }
 }
 
-void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& processor) {
+void AsmOperand::print(std::ostream& out, Context& context) {
     switch (op) {
         case Location::Variable:
             out << "Variable: ";
         {
-            auto& obj = object(context, processor);
+            auto& obj = object(context);
             if (value.variable.type != VariableLocation::Temporary) out << *obj.identifier;
             else out << "Temporary: " << std::to_string(value.variable.number);
         }
@@ -477,14 +477,14 @@ void AsmOperand::print(std::ostream& out, BytecodeContext& context, Processor& p
     }
 }
 
-AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Processor& processor, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations, bool stackOnly) {
+AsmOperand AsmOperand::moveAwayOrGetNewLocation(Context& context, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations, bool stackOnly) {
     if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
     if (op == Location::reg) {
-        auto& content = processor.registers[value.reg].content;
-        if (processor.registers[value.reg].content.op == Location::None) return *this;
-        auto& obj = content.object(context, processor);
+        auto& content = context.registers[value.reg].content;
+        if (context.registers[value.reg].content.op == Location::None) return *this;
+        auto& obj = content.object(context);
         if (obj.lastUse < index) return *this;
-        auto locations = content.getAllLocations(processor);
+        auto locations = content.getAllLocations(context);
         uint16_t validPlaces = 0;
         for (auto& n : locations) {
             if (n == *this) continue;
@@ -498,26 +498,26 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(BytecodeContext& context, Proces
         if (validPlaces <= 1 - stackOnly) {
             // there is no other place that will survive where this value is stored
             auto move = MoveInfo(content.copyTo(op, value.reg), {});
-            move.target = processor.pushStack(content, context);
-            AddConversionsToMove(move, context, processor, instructions, content, forbiddenLocations);
+            move.target = context.pushStack(content);
+            AddConversionsToMove(move, context, instructions, content, forbiddenLocations);
         }
 
     }
     else if (op == Location::sta) {
-        auto content = processor.getContentAtOffset(value.offset);
+        auto content = context.getContentAtOffset(value.offset);
         if (content.op != Location::Variable) return *this;
-        auto& obj = content.object(context, processor);
+        auto& obj = content.object(context);
         CodeGeneratorError("Internal: moves away to stack are unimplemented!");
     }
     return *this;
 }
 
-std::vector<AsmOperand> AsmOperand::getAllLocations(Processor& processor) {
+std::vector<AsmOperand> AsmOperand::getAllLocations(Context& context) {
     std::vector<AsmOperand> result;
-    for (auto& n : processor.registers) {
+    for (auto& n : context.registers) {
         if (n.content == *this) result.push_back(n.content.copyTo(Location::reg, n.number));
     }
-    for (auto& n : processor.stack) {
+    for (auto& n : context.stack) {
         if (n.content == *this) result.push_back(n.content.copyTo(Location::sta, n.offset));
     }
     return std::move(result);
@@ -609,7 +609,7 @@ bool Register::canBeStored(const VariableObject& variable) const {
     }
 }
 
-void Processor::assignVariable(AsmOperand variable, AsmOperand source, BytecodeContext& context, std::vector<AsmInstruction>& instructions) {
+void Context::assignVariable(AsmOperand variable, AsmOperand source, std::vector<AsmInstruction>& instructions) {
     auto locations = variable.getAllLocations(*this);
     //if (locations.empty()) pushStack(variable, context);
     if (source.op == Location::imm or source.op == Location::String) {
@@ -617,71 +617,71 @@ void Processor::assignVariable(AsmOperand variable, AsmOperand source, BytecodeC
         MoveInfo move = {source, location};
         for (auto& n : registers) if (n.content == variable) n.content = {};
         for (auto& n : stack) if (n.content == variable) n.content = {};
-        AddConversionsToMove(move, context, *this, instructions, variable, nullptr);
+        AddConversionsToMove(move, *this, instructions, variable, nullptr);
     }
     else if (source.op == Location::reg or source.op == Location::sta) {
         AsmOperand location = {};
-        if (getContent(source, context).op == Location::Variable) {
-            auto content = getContent(source, context);
-            auto& obj = content.object(context, *this);
+        if (getContent(source).op == Location::Variable) {
+            auto content = getContent(source);
+            auto& obj = content.object(*this);
             if (obj.lastUse <= index) location = source;
-            else location = source.moveAwayOrGetNewLocation(context, *this, instructions, index, nullptr);
+            else location = source.moveAwayOrGetNewLocation(*this, instructions, index, nullptr);
         }
         else location = source;
         MoveInfo move = {source, location};
         for (auto& n : registers) if (n.content == variable) n.content = {};
         for (auto& n : stack) if (n.content == variable) n.content = {};
-        AddConversionsToMove(move, context, *this, instructions, variable, nullptr);
+        AddConversionsToMove(move, *this, instructions, variable, nullptr);
     }
     else CodeGeneratorError("Internal: unimplemented assignment source!");
 }
 
-void Processor::cleanUnusedVariables(BytecodeContext& context, uint32_t index) {
+void Context::cleanUnusedVariables() {
     for (auto& n : registers) {
         if (n.content.op == Location::Variable) {
-            auto& obj = n.content.object(context, *this);
+            auto& obj = n.content.object(*this);
             if (obj.lastUse <= index) n.content = {};
         }
     }
     for (auto& n : stack) {
         if (n.content.op == Location::Variable) {
-            auto& obj = n.content.object(context, *this);
+            auto& obj = n.content.object(*this);
             if (obj.lastUse <= index) n.content = {};
         }
     }
 }
 
-std::vector<MemorySnapshotEntry> Processor::createSnapshot(BytecodeContext& context) {
+std::vector<MemorySnapshotEntry> Context::createSnapshot() {
     std::vector<MemorySnapshotEntry> output;
     for (auto& n : registers) {
         if (n.content.op == Location::Variable)
-            if (n.content.object(context, *this).lastUse > index)
+            if (n.content.object(*this).lastUse > index)
                 output.emplace_back(n.content.copyTo(Location::reg, n.number), n.content);
     }
     for (auto& n : stack) {
         if (n.content.op == Location::Variable)
-            if (n.content.object(context, *this).lastUse > index)
+            if (n.content.object(*this).lastUse > index)
                 output.emplace_back(n.content.copyTo(Location::sta, n.offset), n.content);
     }
     return std::move(output);
 }
 
-void Processor::restoreSnapshot(std::vector<MemorySnapshotEntry>& snapshot, std::vector <AsmInstruction>& instructions, BytecodeContext& context) {
+void Context::restoreSnapshot(std::vector<MemorySnapshotEntry>& snapshot, std::vector <AsmInstruction>& instructions) {
     // registers and stack are always in order
     // first let's move things
     for (auto& n : snapshot) {
         if (n.where.op == Location::reg) {
             if (registers[n.where.value.reg].content != n.what) {
-                MoveInfo move = {getLocation(n.what), n.where.moveAwayOrGetNewLocation(context, *this, instructions, index, nullptr)};
+                MoveInfo move = {getLocation(n.what), n.where.moveAwayOrGetNewLocation(*this, instructions, index, nullptr)};
                 // TODO: add registers to set as forbidden
-                AddConversionsToMove(move ,context, *this, instructions, n.what, nullptr);
+                AddConversionsToMove(move, *this, instructions, n.what, nullptr);
             }
         }
         else {
-            if (getContent(n.where, context) != n.what) {
-                MoveInfo move = {getLocation(n.what), n.where.moveAwayOrGetNewLocation(context, *this, instructions, index, nullptr)};
+            if (getContent(n.where) != n.what) {
+                MoveInfo move = {getLocation(n.what), n.where.moveAwayOrGetNewLocation(*this, instructions, index, nullptr)};
                 // TODO: add registers to set as forbidden
-                AddConversionsToMove(move ,context, *this, instructions, n.what, nullptr);
+                AddConversionsToMove(move, *this, instructions, n.what, nullptr);
             }
         }
     }

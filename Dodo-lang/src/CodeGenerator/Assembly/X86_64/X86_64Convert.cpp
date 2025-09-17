@@ -4,9 +4,10 @@
 #include <list>
 
 #include "X86_64.hpp"
+#include "X86_64Enums.hpp"
 
 namespace x86_64 {
-    void ConvertBytecode(BytecodeContext& context, Processor& processor, ParserFunctionMethod* source,
+    void ConvertBytecode(Context& context, ParserFunctionMethod* source,
                          std::ofstream& out) {
         std::vector<AsmInstruction> instructions;
         std::vector<AsmOperand> argumentPlaces;
@@ -15,7 +16,7 @@ namespace x86_64 {
         // first is offset, second is amount to move by, third is content, fourth is original offset
         std::stack<std::tuple<int64_t, int32_t, AsmOperand, int64_t>> listStack{};
 
-        for (uint32_t index = processor.index = 0; index < context.codes.size(); processor.index = ++index) {
+        for (uint32_t index = context.index = 0; index < context.codes.size(); context.index = ++index) {
             uint32_t printingStart = instructions.size();
 
             auto& current = context.codes[index];
@@ -33,20 +34,20 @@ namespace x86_64 {
 
             if (Options::informationLevel >= Options::full) {
                 std::cout << "INFO L3: Processor before instruction " << index << " - " << context.codes[index] << "INFO L3: Registers:\n";
-                for (auto& n : processor.registers) {
+                for (auto& n : context.registers) {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: ";
                         PrintRegisterName(n.number, n.content.size, std::cout);
                         std::cout << ": ";
-                        n.content.print(std::cout, context, processor);
+                        n.content.print(std::cout, context);
                         std::cout << "\n";
                     }
                 }
                 std::cout << "INFO L3: Stack:\n";
-                for (auto& n : processor.stack) {
+                for (auto& n : context.stack) {
                     if (n.content.op != Location::None) {
                         std::cout << "INFO L3: " << n.offset << ": ";
-                        n.content.print(std::cout, context, processor);
+                        n.content.print(std::cout, context);
                         if (n.content.op == Location::Variable) std::cout << " (value size: " << n.content.size * 1 <<
                             ")\n";
                         else std::cout << "\n";
@@ -64,14 +65,14 @@ namespace x86_64 {
                         argumentOffset = off;
                     }
                     if (argumentPlaces[current.op3Value.ui].op == Location::sta)
-                        processor.stack.emplace_back(AsmOperand(current.op1(), context),
+                        context.stack.emplace_back(AsmOperand(current.op1(), context),
                                                      argumentPlaces[current.op3Value.ui].value.offset,
                                                      argumentPlaces[current.op3Value.ui].size);
 
-                    processor.getContentRef(argumentPlaces[current.op3Value.ui]) = AsmOperand(current.op1(), context);
+                    context.getContentRef(argumentPlaces[current.op3Value.ui]) = AsmOperand(current.op1(), context);
                 }
                 else {
-                    processor.pushStack(current.op1(), context);
+                    context.pushStack(current.op1());
                 }
                 break;
             case Bytecode::Return: {
@@ -127,7 +128,7 @@ namespace x86_64 {
                         // data for the operation itself: source 1, source 2, source 3, destination
                     };
                 }
-                ExecuteInstruction(context, processor, instruction, instructions, index);
+                ExecuteInstruction(context, instruction, instructions, index);
 
                 break;
             }
@@ -137,15 +138,15 @@ namespace x86_64 {
 
                 bool skip = false;
 
-                if (sourceOp.object(context, processor).lastUse <= index) skip = true;
+                if (sourceOp.object(context).lastUse <= index) skip = true;
 
                 // let's find out what the value is
                 if (valueOp.op == Location::Variable) {
-                    valueOp = processor.getLocation(valueOp);
+                    valueOp = context.getLocation(valueOp);
                 }
 
                 // now let's assign the location or value to the variable
-                if (not skip) processor.assignVariable(sourceOp, valueOp, context, instructions);
+                if (not skip) context.assignVariable(sourceOp, valueOp, instructions);
             }
             break;
             case Bytecode::AssignAt: {
@@ -155,20 +156,20 @@ namespace x86_64 {
 
                 bool assignResult = false;
 
-                assignResult = resultOp.object(context, processor).lastUse > index;
+                assignResult = resultOp.object(context).lastUse > index;
 
                 if (valueOp.op == Location::Variable) {
-                    if (assignResult and sourceOp.object(context, processor).lastUse > index) {
+                    if (assignResult and sourceOp.object(context).lastUse > index) {
                         // assigning result but the value is here
                         CodeGeneratorError("Internal: assign at result not implemented!");
                     }
                     else if (assignResult) {
                         CodeGeneratorError("Internal: assign at result not implemented!");
                     }
-                    valueOp = processor.getLocation(valueOp);
+                    valueOp = context.getLocation(valueOp);
                 }
 
-                sourceOp = processor.getLocation(sourceOp);
+                sourceOp = context.getLocation(sourceOp);
 
                 // now we need to generate a move from the value to the address in source
                 if (sourceOp.op == Location::reg) {
@@ -182,7 +183,7 @@ namespace x86_64 {
                 else if (sourceOp.op != Location::off) CodeGeneratorError("Internal: non-register address!");
 
                 MoveInfo move = {valueOp, sourceOp};
-                x86_64::AddConversionsToMove(move, context, processor, instructions, {}, nullptr);
+                x86_64::AddConversionsToMove(move, context, instructions, {}, nullptr);
             }
             break;
             case Bytecode::Jump:
@@ -194,10 +195,10 @@ namespace x86_64 {
                     label, AsmOperand(Location::Label, Type::none, false, AsmOperand::jump, current.op1Value));
                 break;
             case Bytecode::BeginScope:
-                memorySnapshots.emplace(std::move(processor.createSnapshot(context)));
+                memorySnapshots.emplace(std::move(context.createSnapshot()));
                 break;
             case Bytecode::EndScope:
-                processor.restoreSnapshot(memorySnapshots.top(), instructions, context);
+                context.restoreSnapshot(memorySnapshots.top(), instructions);
                 memorySnapshots.pop();
                 break;
             case Bytecode::If: {
@@ -227,7 +228,7 @@ namespace x86_64 {
                     }
                 }
                 else {
-                    if (condition.op == Location::Variable) condition = processor.getLocation(condition);
+                    if (condition.op == Location::Variable) condition = context.getLocation(condition);
                     auto falseLabel = AsmOperand(Location::Label, Type::none, false, AsmOperand::jump,
                                                  current.op2Value);
 
@@ -308,7 +309,7 @@ namespace x86_64 {
                                                   })
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else if (left.type == Type::floatingPoint and left.size == 8) {
                     // for now this will be the unoptimized version that returns a 0 or 1
@@ -367,7 +368,7 @@ namespace x86_64 {
                                                   })
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
                     // for now this will be the unoptimized version that returns a 0 or 1
@@ -413,13 +414,13 @@ namespace x86_64 {
                                                   })
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
-                processor.registers[FLAGS].content = {};
+                context.registers[FLAGS].content = {};
 
                 // now we have the comparison done, so let's move its value into a register or memory location
                 // TODO: add an option to use memory if no free register found
-                AsmOperand reg = processor.getFreeRegister(Type::unsignedInteger, 1);
+                AsmOperand reg = context.getFreeRegister(Type::unsignedInteger, 1);
                 // now we need to do a conditional set
                 switch (current.type) {
                 case Bytecode::Greater:
@@ -447,7 +448,7 @@ namespace x86_64 {
                 default:
                     CodeGeneratorError("Internal: forgot to add setcc for condition!");
                 }
-                processor.registers[reg.value.reg].content = result;
+                context.registers[reg.value.reg].content = result;
             }
             break;
             case Bytecode::Address: {
@@ -455,19 +456,19 @@ namespace x86_64 {
                 auto sourceOp = AsmOperand(current.op1(), context);
                 auto sourceLocation = sourceOp;
 
-                if (sourceLocation.op == Location::Variable) sourceLocation = processor.getLocationStackBias(
+                if (sourceLocation.op == Location::Variable) sourceLocation = context.getLocationStackBias(
                     sourceLocation);
 
                 if (sourceLocation.op != Location::sta) {
                     // TODO: make this a function
-                    auto temp = processor.pushStack(sourceOp, context);
+                    auto temp = context.pushStack(sourceOp);
                     auto move = MoveInfo(sourceLocation, temp);
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, sourceOp);
+                    x86_64::AddConversionsToMove(move, context, instructions, sourceOp);
                     sourceLocation = temp;
                 }
 
                 //CodeGeneratorError("Internal: non-stack pointer places not supported!");
-                AsmOperand reg = processor.getFreeRegister(Type::address, 8);
+                AsmOperand reg = context.getFreeRegister(Type::address, 8);
 
                 AsmInstructionInfo instruction = {
                     {
@@ -489,7 +490,7 @@ namespace x86_64 {
                                               })
                     }
                 };
-                ExecuteInstruction(context, processor, instruction, instructions, index);
+                ExecuteInstruction(context, instruction, instructions, index);
             }
             break;
             case Bytecode::ToReference: {
@@ -500,15 +501,15 @@ namespace x86_64 {
                 if (sourceOp.op == Location::Variable) {
                     // checking if the source is used later
                     auto obj = context.getVariableObject(current.op1());
-                    sourceOp = processor.getLocation(sourceOp);
+                    sourceOp = context.getLocation(sourceOp);
                     if (obj.lastUse > index) {
-                        AsmOperand reg = processor.getFreeRegister(Type::address, 8);
+                        AsmOperand reg = context.getFreeRegister(Type::address, 8);
                         MoveInfo move{sourceOp, reg};
-                        x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
+                        x86_64::AddConversionsToMove(move, context, instructions, resultOp);
                     }
                     else {
                         // should work?
-                        processor.getContentRef(sourceOp) = resultOp;
+                        context.getContentRef(sourceOp) = resultOp;
                     }
                 }
             }
@@ -517,15 +518,15 @@ namespace x86_64 {
                 auto sourceOp = AsmOperand(current.op1(), context);
                 auto resultOp = AsmOperand(current.op3(), context);
 
-                if (sourceOp.op == Location::var) sourceOp = processor.getLocation(sourceOp);
+                if (sourceOp.op == Location::var) sourceOp = context.getLocation(sourceOp);
 
-                auto resultLocation = processor.getFreeRegister(resultOp.type, resultOp.size);
-                processor.getContentRef(resultLocation) = resultOp;
+                auto resultLocation = context.getFreeRegister(resultOp.type, resultOp.size);
+                context.getContentRef(resultLocation) = resultOp;
 
                 if (sourceOp.op != Location::reg) {
-                    auto sourceContent = sourceOp.op != Location::var ? processor.getContent(sourceOp, context) : sourceOp;
-                    MoveInfo move = {sourceOp, sourceOp = processor.getFreeRegister(sourceOp.type, sourceOp.size)};
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, sourceContent);
+                    auto sourceContent = sourceOp.op != Location::var ? context.getContent(sourceOp) : sourceOp;
+                    MoveInfo move = {sourceOp, sourceOp = context.getFreeRegister(sourceOp.type, sourceOp.size)};
+                    x86_64::AddConversionsToMove(move, context, instructions, sourceContent);
                 }
 
                 AsmOperand src{};
@@ -536,7 +537,7 @@ namespace x86_64 {
                 src.value.regOff.addressRegister = sourceOp.value.reg;
 
                 auto move = MoveInfo(src, resultLocation);
-                x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
+                x86_64::AddConversionsToMove(move, context, instructions, resultOp);
             }
             break;
             case Bytecode::GetIndexAddress: {
@@ -544,14 +545,14 @@ namespace x86_64 {
                 auto indexOp = AsmOperand(current.op2(), context);
                 auto resultOp = AsmOperand(current.op3(), context);
 
-                auto arrayLocation = processor.getLocationStackBias(arrayOp);
+                auto arrayLocation = context.getLocationStackBias(arrayOp);
                 //if (arrayLocation.op == Location::reg) {
                 //    CodeGeneratorError("Getting indexes from arrays in registers unsupported!");
                 //}
 
                 // now getting a register to put the extracted data into
-                auto resultLocation = processor.getFreeRegister(resultOp.type, resultOp.size);
-                processor.getContentRef(resultLocation) = resultOp;
+                auto resultLocation = context.getFreeRegister(resultOp.type, resultOp.size);
+                context.getContentRef(resultLocation) = resultOp;
 
                 AsmOperand src{};
                 src.op = Location::off;
@@ -563,15 +564,15 @@ namespace x86_64 {
                     src.value.regOff.offset = resultOp.size * indexOp.value.u32;
                 }
                 else if (indexOp.op == Location::var) {
-                    auto indexLocation = processor.getLocationRegisterBias(indexOp);
+                    auto indexLocation = context.getLocationRegisterBias(indexOp);
 
                     // if the index variable is not
                     if (indexLocation.op != Location::reg) {
-                        auto newLocation = processor.getFreeRegister(indexLocation.type, indexLocation.size);
+                        auto newLocation = context.getFreeRegister(indexLocation.type, indexLocation.size);
                         // this needs to be upsized to the whole register so that it matches the address size
                         newLocation.size = Options::addressSize;
                         auto move = MoveInfo(indexLocation, newLocation);
-                        x86_64::AddConversionsToMove(move, context, processor, instructions, indexOp);
+                        x86_64::AddConversionsToMove(move, context, instructions, indexOp);
                         indexLocation = newLocation;
                     }
 
@@ -599,17 +600,17 @@ namespace x86_64 {
                 auto indexOp = AsmOperand(current.op2(), context);
                 auto resultOp = AsmOperand(current.op3(), context);
 
-                auto arrayLocation = processor.getLocation(arrayOp);
+                auto arrayLocation = context.getLocation(arrayOp);
                 if (arrayLocation.op != Location::reg) {
-                    auto newLocation = processor.getFreeRegister(arrayLocation.type, arrayLocation.size);
+                    auto newLocation = context.getFreeRegister(arrayLocation.type, arrayLocation.size);
                     auto move = MoveInfo(arrayLocation, newLocation);
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, arrayOp);
+                    x86_64::AddConversionsToMove(move, context, instructions, arrayOp);
                     arrayLocation = newLocation;
                 }
 
                 // now getting a register to put the extracted data into
-                auto resultLocation = processor.getFreeRegister(resultOp.type, resultOp.size);
-                processor.getContentRef(resultLocation) = resultOp;
+                auto resultLocation = context.getFreeRegister(resultOp.type, resultOp.size);
+                context.getContentRef(resultLocation) = resultOp;
 
                 if (indexOp.op == Location::imm) {
                     AsmOperand src{};
@@ -621,18 +622,18 @@ namespace x86_64 {
                     src.value.regOff.offset = resultOp.size * indexOp.value.u32;
 
                     auto move = MoveInfo(src, resultLocation);
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
+                    x86_64::AddConversionsToMove(move, context, instructions, resultOp);
                 }
                 else if (indexOp.op == Location::var) {
-                    auto indexLocation = processor.getLocationRegisterBias(indexOp);
+                    auto indexLocation = context.getLocationRegisterBias(indexOp);
 
                     // if the index variable is not
                     if (indexLocation.op != Location::reg) {
-                        auto newLocation = processor.getFreeRegister(indexLocation.type, indexLocation.size);
+                        auto newLocation = context.getFreeRegister(indexLocation.type, indexLocation.size);
                         // this needs to be upsized to the whole register so that it matches the address size
                         newLocation.size = Options::addressSize;
                         auto move = MoveInfo(indexLocation, newLocation);
-                        x86_64::AddConversionsToMove(move, context, processor, instructions, indexOp);
+                        x86_64::AddConversionsToMove(move, context, instructions, indexOp);
                         indexLocation = newLocation;
                     }
 
@@ -652,7 +653,7 @@ namespace x86_64 {
                     src.value.regOff.indexScale = resultOp.size;
 
                     auto move = MoveInfo(src, resultLocation);
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp);
+                    x86_64::AddConversionsToMove(move, context, instructions, resultOp);
                 }
                 else CodeGeneratorError("Internal: unsupported data type for index get!");
             }
@@ -661,22 +662,22 @@ namespace x86_64 {
                 auto sourceOp = AsmOperand(current.op1(), context);
                 auto resultOp = AsmOperand(current.op3(), context);
 
-                if (sourceOp.object(context, processor).lastUse <= index) {
-                    auto loc = processor.getLocation(sourceOp);
+                if (sourceOp.object(context).lastUse <= index) {
+                    auto loc = context.getLocation(sourceOp);
                     AsmOperand targetLoc;
                     if ((sourceOp.type == Type::floatingPoint or resultOp.type == Type::floatingPoint) and sourceOp.type
-                        != resultOp.type) targetLoc = processor.getFreeRegister(resultOp.type, resultOp.size);
+                        != resultOp.type) targetLoc = context.getFreeRegister(resultOp.type, resultOp.size);
                     else targetLoc = loc;
                     MoveInfo move = {
                         sourceOp.copyTo(loc.op, loc.value), resultOp.copyTo(targetLoc.op, targetLoc.value)
                     };
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp, nullptr);
+                    x86_64::AddConversionsToMove(move, context, instructions, resultOp, nullptr);
                 }
                 else {
-                    auto loc = processor.getFreeRegister(resultOp.type, resultOp.size);
-                    auto sloc = processor.getLocation(sourceOp);
+                    auto loc = context.getFreeRegister(resultOp.type, resultOp.size);
+                    auto sloc = context.getLocation(sourceOp);
                     MoveInfo move = {sloc, resultOp.copyTo(loc.op, loc.value)};
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, resultOp, nullptr);
+                    x86_64::AddConversionsToMove(move, context, instructions, resultOp, nullptr);
                 }
             }
             break;
@@ -690,7 +691,7 @@ namespace x86_64 {
 
                     if (current.type == Bytecode::BraceListStart) {
 
-                        auto place = processor.pushStack(AsmOperand(current.op3(), context), context, current.op1Value.i32);
+                        auto place = context.pushStack(AsmOperand(current.op3(), context), current.op1Value.i32);
                         listStack.emplace(place.value.offset, current.opTypeMeta.pointerLevel or current.opTypeMeta.isReference ? Options::addressSize : current.opType->typeAlignment, AsmOperand(current.op3(), context), place.value.offset);
                         break;
                     }
@@ -702,12 +703,12 @@ namespace x86_64 {
                     AsmOperand target = AsmOperand(Location::sta, current.op1LiteralType, false, current.op1LiteralSize, std::get<0>(listStack.top()));
                     std::get<0>(listStack.top()) += std::get<1>(listStack.top());
                     MoveInfo move = {AsmOperand(current.op1(), context), target};
-                    move.source = processor.getLocationStackBias(move.source);
+                    move.source = context.getLocationStackBias(move.source);
                     move.target.type = move.source.type;
 
 
 
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, std::get<2>(listStack.top()), nullptr, false);
+                    x86_64::AddConversionsToMove(move, context, instructions, std::get<2>(listStack.top()), nullptr, false);
 
             }
                 break;
@@ -724,7 +725,7 @@ namespace x86_64 {
                 // now we have arguments gathered, so let's get the call itself
                 switch (context.codes[index].type) {
                 case Bytecode::Syscall: {
-                    auto [args, off] = GetFunctionMethodArgumentLocations(arguments, context, processor);
+                    auto [args, off] = GetFunctionMethodArgumentLocations(arguments, context);
                     argumentPlaces = std::move(args);
                     argumentOffset = off;
                 }
@@ -745,16 +746,16 @@ namespace x86_64 {
                     auto s = AsmOperand(arguments[n]->op3(), context);
                     // TODO: add forbidden locations
                     MoveInfo move = {
-                        processor.getLocation(s),
-                        argumentPlaces[n].moveAwayOrGetNewLocation(context, processor, instructions, firstIndex,
+                        context.getLocation(s),
+                        argumentPlaces[n].moveAwayOrGetNewLocation(context, instructions, firstIndex,
                                                                    nullptr, true)
                     };
-                    x86_64::AddConversionsToMove(move, context, processor, instructions, s, nullptr);
+                    x86_64::AddConversionsToMove(move, context, instructions, s, nullptr);
                 }
 
                 // now that the arguments are in place, we need to move away the ones that would get overwritten
                 // TODO: add caller and callee saved registers
-                for (auto& n : processor.registers) {
+                for (auto& n : context.registers) {
                     // only variables get preserved
                     if (n.content.op != Location::Variable) {
                         n.content = {};
@@ -771,14 +772,14 @@ namespace x86_64 {
                     if (not evacuate) continue;
 
                     // now we need to know if the thing there is even needed
-                    auto& obj = n.content.object(context, processor);
-                    if (obj.lastUse > index and processor.getLocationStackBias(n.content).op != Location::sta) {
+                    auto& obj = n.content.object(context);
+                    if (obj.lastUse > index and context.getLocationStackBias(n.content).op != Location::sta) {
                         // it exists if it has a stack location, then it's fine.
                         // if it has none, then we need to move it from the register to the stack
                         n.content.copyTo(Location::reg, n.number).moveAwayOrGetNewLocation(
-                            context, processor, instructions, index, nullptr, true);
-                        //MoveInfo move = {n.content.copyTo(Location::reg, n.number), processor.pushStack(n.content, context)};
-                        //x86_64::AddConversionsToMove(move, context, processor, instructions, n.content, nullptr);
+                            context, instructions, index, nullptr, true);
+                        //MoveInfo move = {n.content.copyTo(Location::reg, n.number), context.pushStack(n.content, context)};
+                        //x86_64::AddConversionsToMove(move, context, instructions, n.content, nullptr);
                     }
 
                     n.content = {};
@@ -801,13 +802,13 @@ namespace x86_64 {
 
                 // removing saved values from argument registers
                 for (auto& n : argumentPlaces) {
-                    if (n.op == Location::reg) processor.registers[n.value.reg].content = {};
+                    if (n.op == Location::reg) context.registers[n.value.reg].content = {};
                 }
 
                 auto result = AsmOperand(context.codes[index].op3(), context);
                 if (result.op != Location::None) {
-                    if (result.type == Type::floatingPoint) processor.registers[XMM0].content = result;
-                    else processor.registers[RAX].content = result;
+                    if (result.type == Type::floatingPoint) context.registers[XMM0].content = result;
+                    else context.registers[RAX].content = result;
                 }
             }
             break;
@@ -817,10 +818,10 @@ namespace x86_64 {
                 int32_t offset = current.op2Value.i32;
                 auto resultOp = AsmOperand(current.op3(), context);
 
-                if (sourceOp.op == Location::Variable) sourceOp = processor.getLocation(sourceOp);
+                if (sourceOp.op == Location::Variable) sourceOp = context.getLocation(sourceOp);
 
                 // let's get a free register for the pointer for lea
-                AsmOperand reg = processor.getFreeRegister(Type::address, 8);
+                AsmOperand reg = context.getFreeRegister(Type::address, 8);
 
                 // if it's a register
                 // TODO: add more checks
@@ -888,7 +889,7 @@ namespace x86_64 {
                                               })
                     }
                 };
-                ExecuteInstruction(context, processor, instruction, instructions, index);
+                ExecuteInstruction(context, instruction, instructions, index);
             }
 
             break;
@@ -954,7 +955,7 @@ namespace x86_64 {
                             //})
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
                     CodeGeneratorError("Unsigned and floating point multiplication is not supported yet!");
@@ -1011,7 +1012,7 @@ namespace x86_64 {
                                                   }),
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                     auto generated = instructions.back();
                     // we also need to generate the correct rdx or ah sign extension value before division
                     switch (current.op2().size) {
@@ -1091,7 +1092,7 @@ namespace x86_64 {
                                                   }),
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
                     CodeGeneratorError("Floating point division is not yet supported!");
@@ -1148,7 +1149,7 @@ namespace x86_64 {
                                                   }),
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                     auto generated = instructions.back();
                     // we also need to generate the correct rdx or ah sign extension value before division
                     switch (current.op2().size) {
@@ -1228,7 +1229,7 @@ namespace x86_64 {
                                                   }),
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
                     CodeGeneratorError("Floating point modulo is not yet supported!");
@@ -1309,7 +1310,7 @@ namespace x86_64 {
                                                   })
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
                     if (currentSize == 4) {
@@ -1345,7 +1346,7 @@ namespace x86_64 {
                                                       })
                             }
                         };
-                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                        ExecuteInstruction(context, instruction, instructions, index);
                     }
                     else {
                         // double precision
@@ -1380,7 +1381,7 @@ namespace x86_64 {
                                                       })
                             }
                         };
-                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                        ExecuteInstruction(context, instruction, instructions, index);
                     }
                 }
                 break;
@@ -1459,7 +1460,7 @@ namespace x86_64 {
                                                   })
                         }
                     };
-                    ExecuteInstruction(context, processor, instruction, instructions, index);
+                    ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
                     if (currentSize == 4) {
@@ -1495,7 +1496,7 @@ namespace x86_64 {
                                                       })
                             }
                         };
-                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                        ExecuteInstruction(context, instruction, instructions, index);
                     }
                     else {
                         // double precision
@@ -1530,7 +1531,7 @@ namespace x86_64 {
                                                       })
                             }
                         };
-                        ExecuteInstruction(context, processor, instruction, instructions, index);
+                        ExecuteInstruction(context, instruction, instructions, index);
                     }
                 }
                 break;
@@ -1540,8 +1541,8 @@ namespace x86_64 {
 
             // checking stack offset before clearing to not remove very short-lived variables
             // TODO: maybe iterate to not include unused or something
-            if (not processor.stack.empty() and processor.stack.back().offset < maxOffset) maxOffset = processor.stack.back().offset;
-            processor.cleanUnusedVariables(context, index);
+            if (not context.stack.empty() and context.stack.back().offset < maxOffset) maxOffset = context.stack.back().offset;
+            context.cleanUnusedVariables();
             if (Options::informationLevel >= Options::full) {
                 for (; printingStart < instructions.size(); printingStart++) {
                     std::cout << "INFO L3: Generated instruction: ";
@@ -1552,22 +1553,22 @@ namespace x86_64 {
 
         if (Options::informationLevel >= Options::full) {
             std::cout << "INFO L3: Processor after the last instruction:\nINFO L3: Registers:\n";
-            for (auto& n : processor.registers) {
+            for (auto& n : context.registers) {
                 if (n.content.op != Location::None) {
                     std::cout << "INFO L3: ";
                     PrintRegisterName(n.number, n.content.size, std::cout);
                     std::cout << ": ";
-                    n.content.print(std::cout, context, processor);
+                    n.content.print(std::cout, context);
                     std::cout << "\n";
                 }
             }
             std::cout << "INFO L3: Stack:\n";
-            for (auto& n : processor.stack) {
+            for (auto& n : context.stack) {
                 if (n.content.op != Location::None) {
                     std::cout << "INFO L3: " << n.offset << ": ";
-                    n.content.print(std::cout, context, processor);
+                    n.content.print(std::cout, context);
                     if (n.content.op == Location::Variable) std::cout << " (value size: " << n.content.
-                        object(context, processor).type->typeSize << ")\n";
+                        object(context).type->typeSize << ")\n";
                     else std::cout << "\n";
                 }
             }

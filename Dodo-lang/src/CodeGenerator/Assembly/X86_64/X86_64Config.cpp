@@ -5,11 +5,11 @@
 #include "X86_64Enums.hpp"
 
 namespace x86_64 {
-    void PrepareProcessor(Processor& proc) {
+    void PrepareProcessor(Context& context) {
 
         switch (Options::architectureVersion) {
             case Options::AMD64_v1:
-                proc.registers = {
+                context.registers = {
                     {x86_64::RAX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
                     {x86_64::RBX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
                     {x86_64::RCX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
@@ -56,7 +56,7 @@ namespace x86_64 {
             case Options::AMD64_v2:
             case Options::AMD64_v3:
                 // they seem to have the same registers and only differ in instructions
-                proc.registers = {
+                context.registers = {
                     {x86_64::RAX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
                     {x86_64::RBX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
                     {x86_64::RCX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
@@ -101,7 +101,7 @@ namespace x86_64 {
                 break;
             case Options::AMD64_v4:
                 // they seem to have the same registers and only differ in instructions
-                proc.registers = {
+                context.registers = {
                     {x86_64::RAX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
                     {x86_64::RBX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},
                     {x86_64::RCX, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, 8, true, true, true, true, true, true, false, true, true, false, false, false},

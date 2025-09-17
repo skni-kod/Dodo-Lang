@@ -127,7 +127,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeObject* type, TypeMeta typeMeta)
 }
 
 // pass reference type
-BytecodeOperand Dereference(BytecodeContext& context, BytecodeOperand op, TypeObject* type, TypeMeta meta) {
+BytecodeOperand Dereference(Context& context, BytecodeOperand op, TypeObject* type, TypeMeta meta) {
     if (not meta.isReference) CodeGeneratorError("Cannot dereference a non-reference!");
     if (op.location == Location::Variable) {
         auto& var = context.getVariableObject(op);
@@ -146,7 +146,7 @@ BytecodeOperand Dereference(BytecodeContext& context, BytecodeOperand op, TypeOb
 // it recursively creates bytecode instructions needed to make the expression work
 // it is the most important function of the entire bytecode generator, probably
 // also references are a mess
-BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, BytecodeOperand passedOperand) {
+BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, BytecodeOperand passedOperand) {
     // first off let's do a switch to know what is going on
     auto& current = values[index];
 
@@ -273,12 +273,12 @@ BytecodeOperand GenerateExpressionBytecode(BytecodeContext& context, std::vector
     return {};
 }
 
-BytecodeContext GenerateGlobalVariablesBytecode() {
+Context GenerateGlobalVariablesBytecode() {
     // global variable bytecode is used for things before main is called
     // they cannot use any variables, though this might be changed in the future
 
     // at the very least this will take up 1 instruction per variable, so let's prepare it
-    BytecodeContext context;
+    Context context;
     context.isConstExpr = true;
     context.codes.reserve(globalVariables.size());
 
@@ -291,7 +291,7 @@ BytecodeContext GenerateGlobalVariablesBytecode() {
     return std::move(context);
 }
 
-void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, ParserTreeValue& current) {
+void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, ParserTreeValue& current) {
 
     switch (current.operation) {
         case ParserOperation::Operator:
@@ -359,11 +359,11 @@ void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, Ty
     // TODO: add indexes
 }
 
-void GetTypes(BytecodeContext& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
+void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeObject*& type, TypeMeta& typeMeta, uint16_t index) {
     GetTypes(context, values, type, typeMeta, values[index]);
 }
 
-void PushScope(BytecodeContext& context) {
+void PushScope(Context& context) {
     context.activeLevels.push_back(context.localVariables.size());
     context.localVariables.emplace_back();
     Bytecode code;
@@ -371,7 +371,7 @@ void PushScope(BytecodeContext& context) {
     context.codes.push_back(code);
 }
 
-void PopScope(BytecodeContext& context) {
+void PopScope(Context& context) {
     context.activeLevels.pop_back();
     Bytecode code;
     code.type = Bytecode::EndScope;
@@ -389,10 +389,10 @@ struct ConditionalInfo {
 };
 uint64_t labelCounter = 0;
 
-BytecodeContext GenerateFunctionBytecode(ParserFunctionMethod& function) {
+Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
 
     std::vector<ConditionalInfo> conditions;
-    BytecodeContext context;
+    Context context;
     context.codes.reserve(function.instructions.size() + function.parameters.size() + function.isMethod);
 
     // adding the pointer to object in methods
@@ -723,8 +723,8 @@ void VariableObject::use(uint32_t index) {
 }
 
 
-BytecodeContext BytecodeContext::current() const {
-    BytecodeContext newContext;
+Context Context::current() const {
+    Context newContext;
     newContext.localVariables = localVariables;
     newContext.temporaries = temporaries;
     newContext.isConstExpr = isConstExpr;
@@ -733,7 +733,7 @@ BytecodeContext BytecodeContext::current() const {
     return newContext;
 }
 
-void BytecodeContext::merge(BytecodeContext& context) {
+void Context::merge(Context& context) {
     localVariables = std::move(context.localVariables);
     temporaries = std::move(context.temporaries);
     // activeLevels = std::move(context.activeLevels)
@@ -744,7 +744,7 @@ void BytecodeContext::merge(BytecodeContext& context) {
     }
 }
 
-BytecodeOperand BytecodeContext::insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
+BytecodeOperand Context::insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
     VariableLocation location;
     location.type = VariableLocation::Local;
     location.level = localVariables.size() - 1;
@@ -753,7 +753,7 @@ BytecodeOperand BytecodeContext::insertVariable(std::string* identifier, TypeObj
     return {Location::Variable, {location}, type->primitiveType, meta.variableSize(*type)};
 }
 
-BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta) {
+BytecodeOperand Context::insertTemporary(TypeObject* type, TypeMeta meta) {
     VariableLocation location;
     location.type = VariableLocation::Temporary;
     location.number = temporaries.size();
@@ -762,7 +762,7 @@ BytecodeOperand BytecodeContext::insertTemporary(TypeObject* type, TypeMeta meta
 
 }
 
-BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
+BytecodeOperand Context::getVariable(std::string* identifier, TypeObject* type, TypeMeta meta) {
     // first let's go through local variables from top and back
     for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
         for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[activeLevels[n]].size() != 0; m--) {
@@ -834,7 +834,7 @@ BytecodeOperand BytecodeContext::getVariable(std::string* identifier, TypeObject
 }
 
 
-VariableObject& BytecodeContext::getVariableObject(const std::string* identifier) {
+VariableObject& Context::getVariableObject(const std::string* identifier) {
     // first let's go through local variables from top and back
     for (int64_t n = activeLevels.size() - 1; n >= 0; n--) {
         for (int64_t m = localVariables[activeLevels[n]].size() - 1; m >= 0 and localVariables[activeLevels[n]].size() != 0; m--) {
@@ -856,7 +856,7 @@ VariableObject& BytecodeContext::getVariableObject(const std::string* identifier
     return globalVariableObjects[0];
 }
 
-VariableObject& BytecodeContext::getVariableObject(BytecodeOperand operand) {
+VariableObject& Context::getVariableObject(BytecodeOperand operand) {
     if (operand.location != Location::Variable) CodeGeneratorError("Cannot get a variable from non-variable location!");
     switch (operand.value.variable.type) {
         case VariableLocation::None:
@@ -873,7 +873,7 @@ VariableObject& BytecodeContext::getVariableObject(BytecodeOperand operand) {
     }
 }
 
-void BytecodeContext::addLoopLabel() {
+void Context::addLoopLabel() {
     Bytecode code;
     code.type = Bytecode::LoopLabel;
     codes.push_back(code);

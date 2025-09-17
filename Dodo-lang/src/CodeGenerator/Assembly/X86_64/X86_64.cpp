@@ -1,4 +1,5 @@
 #include "X86_64.hpp"
+#include "X86_64Enums.hpp"
 
 #include <GenerateCode.hpp>
 
@@ -26,7 +27,7 @@ namespace x86_64 {
         return op.op == Location::reg and (op.value.reg >= ZMM0 and op.value.reg <= ZMM31);
     }
 
-    void AddConversionsToMove(MoveInfo& move, BytecodeContext& context, Processor& proc, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
+    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
 
         // assumes every move contains known locations only, since we need to know which one exactly to move
         // so those can be: registers, stack offsets, literals, labels and addresses
@@ -37,10 +38,10 @@ namespace x86_64 {
 
 
         if (s == t) {
-            if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) proc.getContentRef(t) = proc.getContent(contentToSet, context);
+            if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) context.getContentRef(t) = context.getContent(contentToSet);
             else if (s.op == Location::imm and t.op == Location::imm) return;
             else if (t.op == Location::off) return;
-            else if (setContent) proc.getContentRef(t) = contentToSet;
+            else if (setContent) context.getContentRef(t) = contentToSet;
 
             return;
         }
@@ -186,7 +187,7 @@ namespace x86_64 {
         else CodeGeneratorError("Internal: address to address move!");
 
         if (setContent)
-            proc.getContentRef(t) = contentToSet;
+            context.getContentRef(t) = contentToSet;
     }
 
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target) {
@@ -275,7 +276,7 @@ namespace x86_64 {
         return {result, stackOffset};
     }
 
-    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, BytecodeContext& context, Processor& processor) {
+    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, Context& context) {
         std::vector <AsmOperand> result;
         int32_t stackOffset = 0;
 
@@ -295,7 +296,7 @@ namespace x86_64 {
                 bool isSimple = true;
                 VariableObject* obj = nullptr;
                 if (thing.op == Location::Variable) {
-                    obj = &thing.object(context, processor);
+                    obj = &thing.object(context);
                     if (not obj->type->isPrimitive and (not obj->meta.isReference and obj->meta.pointerLevel == 0)) isSimple = false;
                 }
 
