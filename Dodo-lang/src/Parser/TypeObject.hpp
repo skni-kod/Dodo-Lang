@@ -202,6 +202,8 @@ struct ParserFunctionMethod {
     Operator::Type overloaded = Operator::None;
     bool isMethod = false;
     bool isOperator = false;
+    bool isConstructor = false;
+    bool isDestructor = false;
     std::vector<ParserMemberVariableParameter> parameters;
     ParserValueTypeObject returnType;
     TypeObject* parentType = nullptr;
@@ -229,7 +231,6 @@ struct TypeObject {
 
 inline std::unordered_map<std::string, TypeObject> types;
 inline std::unordered_map <std::string, std::vector<ParserFunctionMethod>> functions;
-//inline std::unordered_map <std::string, ParserFunctionMethod> functions;
 inline std::unordered_map <std::string, ParserMemberVariableParameter> globalVariables;
 
 std::ostream& operator<<(std::ostream& out, const ParserMemberVariableParameter& variable);

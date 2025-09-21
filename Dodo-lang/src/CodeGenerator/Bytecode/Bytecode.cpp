@@ -148,6 +148,8 @@ BytecodeOperand Dereference(Context& context, BytecodeOperand op, TypeObject* ty
 // also references are a mess
 BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, uint16_t index, bool isGlobal, BytecodeOperand passedOperand) {
     // first off let's do a switch to know what is going on
+    if (values.empty())
+        CodeGeneratorError("Expected a return value!");
     auto& current = values[index];
 
     //if (typeMeta.isReference) {
@@ -165,31 +167,42 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
         case ParserOperation::Group:
             return InsertOperatorExpression(context, values, type, typeMeta, index, isGlobal, passedOperand);
         case ParserOperation::Member:
-            // TODO: add method support here
-            if (typeMeta.pointerLevel or not typeMeta.isReference) CodeGeneratorError("Cannot use non-reference or pointer types for members!");
             code.type = Bytecode::Member;
             code.op1(passedOperand);
-            code.op2Value.offset = type->getMemberOffsetAndType(current.identifier, type, typeMeta);
+            code.op2Value.offset = type->getMemberOffsetAndType(current.identifier, code.opType, code.opTypeMeta);
             code.opType = type;
-            code.opTypeMeta = typeMeta;
             code.opTypeMeta.isReference = true;
-            code.result(context.insertTemporary(type, typeMeta));
+            code.result(context.insertTemporary(type, code.opTypeMeta));
             context.codes.push_back(code);
+
+            // then we need the value and not the address
+            if (not typeMeta.isReference) {
+                code.type = Bytecode::Dereference;
+                code.opTypeMeta = typeMeta;
+                code.op1(code.op3());
+                code.op2({});
+                code.op3(context.insertTemporary(type, typeMeta));
+                context.codes.push_back(code);
+            }
+
             return code.result();
-        case ParserOperation::Call:
+        case ParserOperation::Call: {
+            bool doNotStore = false;
             if (passedOperand.location == Location::Variable) {
                 // it's a method
                 code.type = Bytecode::Method;
-                BytecodeCall(context, values, type, typeMeta, code, current, isGlobal, true, passedOperand);
+                BytecodeCall(context, values, type, typeMeta, code, current, isGlobal, true, passedOperand, &doNotStore);
             }
             else {
                 // a normal function
                 code.type = Bytecode::Function;
-                BytecodeCall(context, values, type, typeMeta, code, current, isGlobal);
+                BytecodeCall(context, values, type, typeMeta, code, current, isGlobal, false, {}, &doNotStore);
             }
             context.codes.push_back(code);
+            if (doNotStore)
+                context.codes.back().result({});
             return code.result();
-        break;
+        }
         case ParserOperation::Syscall:
             code.type = Bytecode::Syscall;
             BytecodeCall(context, values, type, typeMeta, code, current, isGlobal);
@@ -393,7 +406,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
 
     std::vector<ConditionalInfo> conditions;
     Context context;
-    context.codes.reserve(function.instructions.size() + function.parameters.size() + function.isMethod);
+    context.codes.reserve(function.instructions.size() + function.parameters.size() + (function.isMethod and not function.isOperator));
 
     // adding the pointer to object in methods
     if (function.isMethod and function.overloaded == Operator::None) {
@@ -403,6 +416,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
         code.type = Bytecode::Define;
         code.op1(context.insertVariable(&ThisDummy, function.parentType, {0, context.isMutable, true}));
         code.op3({Location::Argument, {0}, Type::none, 0});
+
         context.codes.push_back(code);
     }
 

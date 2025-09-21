@@ -36,6 +36,27 @@ namespace x86_64 {
         auto& s = move.source;
         auto& t = move.target;
 
+        // getting the size for complex types
+
+        // TODO: can there be a case when conversions are needed with complex type moves?
+        uint64_t amount = 1;
+        auto lastIndex = moves.size();
+        if (s.op != Location::imm) {
+            auto content = context.getContent(s);
+            if (content.op == Location::var) {
+                auto object = context.getVariableObject({content.op, content.value, s.type, s.size});
+                if (not object.type->isPrimitive and not object.meta.isReference and object.meta.pointerLevel == 0) {
+                    amount = object.type->typeSize;
+                    if (amount % object.type->typeAlignment != 0)
+                        amount = amount / object.type->typeAlignment + 1;
+                    else amount = amount / object.type->typeAlignment;
+                    s.size = object.type->typeAlignment;
+                }
+            }
+        }
+
+
+
 
         if (s == t) {
             if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) context.getContentRef(t) = context.getContent(contentToSet);
@@ -59,7 +80,7 @@ namespace x86_64 {
                 // addresses can be only moved if not used, so that's simple
                 // TODO: make this possible for things like printing addresses
                 if (t.type != Type::address) CodeGeneratorError("Internal: address to non address move!");
-                if ((s.size != 8 and not (s.op == Location::imm and ((s.size = 8)))) or t.size != 8) CodeGeneratorError("Internal: wrong address operand size!");
+                //if ((s.size != 8 and not (s.op == Location::imm and ((s.size = 8)))) or t.size != 8) CodeGeneratorError("Internal: wrong address operand size!");
                 if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: invalid register for address storage!");
 
                 // now actually moving it
@@ -69,7 +90,11 @@ namespace x86_64 {
                 }
                 else if (s.op == Location::sta or s.op == Location::off) {
                     if (t.op == Location::reg) moves.emplace_back(mov, t, s);
-                    else if (t.op == Location::sta) CodeGeneratorError("Internal: Invalid address stack to stack!");
+                    else if (t.op == Location::sta or s.op == Location::off) {
+                        auto reg = context.getFreeRegister(s.type, s.size);
+                        moves.emplace_back(mov, reg, s);
+                        moves.emplace_back(mov, t, reg);
+                    }
                     else CodeGeneratorError("Internal: Invalid address stack target!");
                 }
                 else if (s.op == Location::reg) {
@@ -186,6 +211,20 @@ namespace x86_64 {
         }
         else CodeGeneratorError("Internal: address to address move!");
 
+        auto lastSize = moves.size();
+        // add more moves for complex types
+        for (auto n = 1; n < amount; ++n)
+            for (auto m = lastIndex; m < lastSize; ++m) {
+                auto move = moves[m];
+                if (m == lastIndex and move.op2.op == Location::sta)
+                    move.op2.value.offset += n * s.size;
+                if (m == lastSize - 1 and move.op1.op == Location::sta)
+                    move.op1.value.offset += n * s.size;
+                moves.push_back(move);
+            }
+
+
+
         if (setContent)
             context.getContentRef(t) = contentToSet;
     }
@@ -206,7 +245,7 @@ namespace x86_64 {
             if (target.isMethod and not target.isOperator) {
                 // add the "this" argument if it applies
                 intPointerCounter++;
-                result.emplace_back(Location::reg, Type::address, false, Options::addressSize, RDI);
+                result.emplace_back(Location::reg, Type::address, false, Options::addressSize, integersPointers[0]);
             }
 
             // TODO: add "eightbytes" for structures, mostly for syscalls/c calls

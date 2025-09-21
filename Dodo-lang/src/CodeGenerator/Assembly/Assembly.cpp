@@ -479,9 +479,9 @@ void AsmOperand::print(std::ostream& out, Context& context) {
 
 AsmOperand AsmOperand::moveAwayOrGetNewLocation(Context& context, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations, bool stackOnly) {
     if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
-    if (op == Location::reg) {
-        auto& content = context.registers[value.reg].content;
-        if (context.registers[value.reg].content.op == Location::None) return *this;
+    if (op == Location::reg or true) {
+        auto& content = op == Location::reg ? context.registers[value.reg].content : context.getContentRefAtOffset(value.offset);
+        if (content.op == Location::None) return *this;
         auto& obj = content.object(context);
         if (obj.lastUse < index) return *this;
         auto locations = content.getAllLocations(context);
@@ -497,8 +497,8 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(Context& context, std::vector<As
 
         if (validPlaces <= 1 - stackOnly) {
             // there is no other place that will survive where this value is stored
-            auto move = MoveInfo(content.copyTo(op, value.reg), {});
-            move.target = context.pushStack(content);
+            auto move = MoveInfo(*this, context.pushStack(content));
+            //move.target = context.pushStack(content);
             AddConversionsToMove(move, context, instructions, content, forbiddenLocations);
         }
 

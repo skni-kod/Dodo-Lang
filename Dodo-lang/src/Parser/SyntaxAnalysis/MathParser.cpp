@@ -580,6 +580,7 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
             }
             valueArray[startIndex].value = valueArray.size();
             valueArray.emplace_back();
+            // TODO: is this fragment needed?
             valueArray[valueArray[startIndex].value] = ParseExpressionStep(valueArray, {name + 2, tokens.size()}, tokens);
         }
         valueArray.shrink_to_fit();

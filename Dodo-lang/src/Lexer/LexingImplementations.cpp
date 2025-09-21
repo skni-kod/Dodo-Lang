@@ -221,6 +221,8 @@ std::ostream& PrintOperatorSymbol(const Operator::Type op, std::ostream& out) {
             return out << "dereference";
         case Operator::Cast:
             return out << "cast";
+        case Operator::Destructor:
+            return out << "~";
         default:
             LexerError("Internal bug - invalid operator in printing!");
         return out;
@@ -393,6 +395,8 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
                     return out << "Operator: dereference pointer,";
                 case Operator::Cast:
                     return out << "Operator: cast,";
+                case Operator::Destructor:
+                    return out << "Operator: destructor,";
                 default:
                     LexerError("Internal bug - invalid operator in printing!");
             }

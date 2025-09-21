@@ -36,7 +36,7 @@ namespace Operator {
         Lesser, Greater, Equals, LesserEqual, GreaterEqual, NotEqual, And, NAnd, XOr, Or, NOr, Imply, NImply, Assign,
         // these are special cases that do not use order of operations
         Macro, BracketOpen, BracketClose, Bracket,
-        BraceOpen, BraceClose, Brace, IndexOpen, IndexClose, Index, None
+        BraceOpen, BraceClose, Brace, IndexOpen, IndexClose, Index, Destructor, Constructor, None
 
     };
 }

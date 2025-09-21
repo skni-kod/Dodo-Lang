@@ -562,6 +562,7 @@ namespace x86_64 {
                 if (indexOp.op == Location::imm) {
                     src.value.regOff.addressRegister = arrayLocation.value.reg;
                     src.value.regOff.offset = resultOp.size * indexOp.value.u32;
+                    src.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
                 }
                 else if (indexOp.op == Location::var) {
                     auto indexLocation = context.getLocationRegisterBias(indexOp);
@@ -579,6 +580,7 @@ namespace x86_64 {
 
                     if (arrayLocation.op == Location::reg) {
                         src.value.regOff.addressRegister = arrayLocation.value.reg;
+                        src.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
                     }
                     else CodeGeneratorError("Internal: Unimplemented array location!");
 
@@ -620,6 +622,7 @@ namespace x86_64 {
 
                     src.value.regOff.addressRegister = arrayLocation.value.reg;
                     src.value.regOff.offset = resultOp.size * indexOp.value.u32;
+                    src.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
 
                     auto move = MoveInfo(src, resultLocation);
                     x86_64::AddConversionsToMove(move, context, instructions, resultOp);
@@ -646,6 +649,7 @@ namespace x86_64 {
 
                     if (arrayLocation.op == Location::reg) {
                         src.value.regOff.addressRegister = arrayLocation.value.reg;
+                        src.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
                     }
                     else CodeGeneratorError("Internal: Unimplemented array location!");
 
@@ -830,6 +834,7 @@ namespace x86_64 {
                     sourceOp.op = Location::off;
                     sourceOp.value.regOff.addressRegister = sourceOp.value.reg;
                     sourceOp.value.regOff.offset = offset;
+                    sourceOp.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
                     sourceOp.type = Type::address;
                     sourceOp.size = 0;
                 }

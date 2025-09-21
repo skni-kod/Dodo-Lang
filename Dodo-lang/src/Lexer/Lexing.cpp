@@ -33,6 +33,7 @@ bool IsSpecialCharacter(uint32_t code) {
         case ';':
         case '.':
         case ',':
+        case '~':
             return true;
         default:
             return false;

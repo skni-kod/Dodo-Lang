@@ -319,8 +319,12 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
     case Location::Call:
         out << "call: ";
         if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
-        if (op.value.function->isOperator) return
-            PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
+        if (op.value.function->isConstructor)
+            return out << "constructor(...)";
+        if (op.value.function->isDestructor)
+            return out << "destructor(...)";
+        if (op.value.function->isOperator)
+            return PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
         return out << op.value.function->getFullName();
     case Location::Argument:
         return out << "argument number: " << op.value.ui;

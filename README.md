@@ -11,7 +11,7 @@ It's yet another statically typed language, though it has/will have some feature
 
 #### [Documentation TBA]
 
-The project is being developed as a SKNI "KOD" project.
+The project is being developed as a SKNI "KOD" project. The entire codebase is 100% organic.
 
 ## Most of the project has been rewritten (again) achieving following goals:
 - complete rework of type system to be more flexible,

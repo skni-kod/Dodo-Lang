@@ -112,6 +112,9 @@ inline std::unordered_map keywordsAndOperators {
     std::pair<std::string, LexerToken> ("]",                LexerToken(Token::Operator, static_cast <uint64_t>(Operator::IndexClose), 0)),
     std::pair<std::string, LexerToken> ("[]",               LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Index), 0)),
     std::pair<std::string, LexerToken> ("++",               LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Increment), 0)),
-    std::pair<std::string, LexerToken> ("--",               LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Decrement), 0))};
+    std::pair<std::string, LexerToken> ("--",               LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Decrement), 0)),
+    std::pair<std::string, LexerToken> ("~",                LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Destructor), 0)),
+    std::pair<std::string, LexerToken> ("destructor",       LexerToken(Token::Operator, static_cast <uint64_t>(Operator::Destructor), 0))
+};
 
 #endif //LEXINGINTERNAL_HPP

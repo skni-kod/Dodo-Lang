@@ -1,12 +1,14 @@
 #include "AnalysisInternal.hpp"
 
 ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
-    const ParserValueTypeObject& type, LexerToken* identifier, bool isMethod, uint32_t operatorType) {
+    const ParserValueTypeObject& type, LexerToken* identifier, bool isMethod, Operator::Type operatorType) {
 
     ParserFunctionMethod output;
     output.returnType = type;
     output.isMethod = isMethod;
-    output.isOperator = operatorType != Operator::None;
+    output.isConstructor = operatorType == Operator::Constructor;
+    output.isDestructor = operatorType == Operator::Destructor;
+    output.isOperator = operatorType != Operator::None and not output.isConstructor and not output.isDestructor;
 
     auto* current = generator();
 

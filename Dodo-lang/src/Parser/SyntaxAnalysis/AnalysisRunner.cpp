@@ -1,5 +1,8 @@
 #include "SyntaxAnalysis.hpp"
 #include "AnalysisInternal.hpp"
+#include "Bytecode.hpp"
+
+std::string voidDummy = "void";
 
 std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToken*>& generator, LexerToken* first) {
     ParserValueTypeObject output;
@@ -10,10 +13,16 @@ std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToke
             first = generator();
             output.type.isMutable = true;
         }
-        if (first->type != Token::Identifier) {
+        if (first->MatchOperator(Operator::Constructor, Operator::Destructor)) {
+            output.typeName = &voidDummy;
+        }
+        else if (first->type != Token::Identifier) {
             ParserError("Expected an identifier!");
         }
-        output.typeName = first->text;
+        else {
+            output.typeName = first->text;
+        }
+
 
         while ((current = generator())->MatchOperator(Operator::Multiply, Operator::Dereference)) {
             output.type.pointerLevel++;
@@ -117,6 +126,21 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
         }
         // function or method
         else {
+            if (isInType) {
+                bool isDestructor = false;
+                if (current->MatchOperator(Operator::Destructor)) {
+                    isDestructor = true;
+                    current = generator();
+                }
+
+                // destructors/constructors are special cases
+                if (current->type == Token::Identifier and *current->string == type->typeName) {
+                    type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, {} , current, true, isDestructor ? Operator::Destructor : Operator::Constructor)));
+                    continue;
+                }
+            }
+
+
             // TODO: somehow unify type interpolation into 1 function with math parser
             auto [thingType, thingIdentifier] = ParseValueType(generator, current);
 

@@ -58,23 +58,42 @@ bool DoesFunctionMatchAndAddCall(std::vector<TypeMetaPair>& arguments, Context& 
 
     std::vector<Bytecode> argumentCodes;
     uint64_t numbers = 0;
+
+    if (overload.isConstructor) {
+        Bytecode res{};
+        res.type = Bytecode::Define;
+        res.opType = overload.parentType;
+        res.opTypeMeta = TypeMeta(0, true, false);
+        res.op1(context.insertTemporary(res.opType, res.opTypeMeta));
+        argumentCodes.push_back(res);
+
+        res.type = Bytecode::Address;
+        res.op3(context.insertTemporary(res.opType, res.opTypeMeta.reference()));
+        argumentCodes.push_back(res);
+
+        res.type = Bytecode::Argument;
+        res.op1({});
+        res.opTypeMeta = res.opTypeMeta.reference();
+        argumentCodes.push_back(res);
+    }
+
+
     if (node.operation == ParserOperation::Call) {
-        for (auto* current = &values[node.argument]; ; current = &values[current->argument]) {
-            Bytecode arg;
-            arg.type = Bytecode::Argument;
-            arg.op3(GenerateExpressionBytecode(context, values, overload.parameters[numbers].typeObject,
-                                               overload.parameters[numbers].typeMeta(), current->left, isGlobal));
-            arg.op1Value = numbers++;
-            argumentCodes.push_back(arg);
-            if (not current->argument) break;
-        }
+        if (overload.parameters.size() != 0)
+            for (auto* current = &values[node.argument]; ; current = &values[current->argument]) {
+                Bytecode arg;
+                arg.type = Bytecode::Argument;
+                arg.op3(GenerateExpressionBytecode(context, values, overload.parameters[numbers].typeObject, overload.parameters[numbers].typeMeta(), current->left, isGlobal));
+                arg.op1Value = numbers++;
+                argumentCodes.push_back(arg);
+                if (not current->argument) break;
+            }
     }
     else {
         if (node.left) {
             Bytecode arg;
             arg.type = Bytecode::Argument;
-            arg.op3(GenerateExpressionBytecode(context, values, overload.parameters[numbers].typeObject,
-                                               overload.parameters[numbers].typeMeta(), node.left, isGlobal));
+            arg.op3(GenerateExpressionBytecode(context, values, overload.parameters[numbers].typeObject, overload.parameters[numbers].typeMeta(), node.left, isGlobal));
             arg.op1Value = numbers++;
             argumentCodes.push_back(arg);
         }
@@ -94,6 +113,8 @@ bool DoesFunctionMatchAndAddCall(std::vector<TypeMetaPair>& arguments, Context& 
 
     if (overload.returnType.typeName != nullptr)
         code.result(context.insertTemporary(&types[*overload.returnType.typeName], overload.returnType.type));
+    else if (overload.isConstructor)
+        code.result(argumentCodes.front().op1());
 
     for (auto& n : argumentCodes) {
         context.codes.push_back(n);
@@ -103,7 +124,7 @@ bool DoesFunctionMatchAndAddCall(std::vector<TypeMetaPair>& arguments, Context& 
 }
 
 void BytecodeCall(Context& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta,
-                  Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod, BytecodeOperand caller) {
+                  Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod, BytecodeOperand caller, bool* doNotStore) {
     if (code.type == Bytecode::Syscall) {
         code.op1Location = Location::Literal;
         code.op1Value = values[values[node.argument].left].literal->unsigned64;
@@ -133,11 +154,15 @@ void BytecodeCall(Context& context, std::vector<ParserTreeValue>& values, TypeOb
     // first off, let's get the types of the arguments
     auto arguments = FindArgumentTypes(context, values, node);
 
-    if (isMethod) {
+    if (isMethod or *node.identifier == type->typeName) {
         // TODO: check if this actually works
         for (auto& n : type->methods) {
-            if (n.name != nullptr and !n.name->empty() and *n.name == *node.identifier) {
-                if (DoesFunctionMatchAndAddCall(arguments, context, n, values, node, code, isGlobal)) return;
+            if (n.name != nullptr and !n.name->empty() and *n.name == *node.identifier and !n.isDestructor) {
+                if (DoesFunctionMatchAndAddCall(arguments, context, n, values, node, code, isGlobal)) {
+                    if (doNotStore != nullptr and n.isConstructor)
+                        *doNotStore = true;
+                    return;
+                }
             }
         }
 
@@ -149,7 +174,11 @@ void BytecodeCall(Context& context, std::vector<ParserTreeValue>& values, TypeOb
 
         auto& overloads = functions[*node.identifier];
         for (auto& overload : overloads) {
-            if (DoesFunctionMatchAndAddCall(arguments, context, overload, values, node, code, isGlobal)) return;
+            if (DoesFunctionMatchAndAddCall(arguments, context, overload, values, node, code, isGlobal)) {
+                if (doNotStore != nullptr and overload.isConstructor)
+                    *doNotStore = true;
+                return;
+            }
         }
 
         CodeGeneratorError("Could not find a valid overload for function: " + *node.identifier + "!");
@@ -235,7 +264,8 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
     // default operations for primitive and complex types
     // lots of repeated code
     auto current = values[index];
-    if (type->isPrimitive) {
+    // TODO: aren't complex types exactly the same on bytecode level?
+    if (type->isPrimitive or true) {
         if (current.operation == ParserOperation::Operator or current.operation == ParserOperation::SingleOperator or
             current.operation == ParserOperation::Group) {
             switch (current.operatorType) {
@@ -664,6 +694,9 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
             if (not typeMeta.pointerLevel) CodeGeneratorError("Cannot assign an address into a non-pointer!");
             code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, -1}, current.prefix, isGlobal));
             code.op3(context.insertTemporary(type, typeMeta));
+        }
+        else if (current.operation == ParserOperation::Operator and current.operatorType == Operator::Assign) {
+
         }
         else CodeGeneratorError("Complex type default operations not implemented!");
     }

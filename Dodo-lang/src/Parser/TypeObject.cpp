@@ -94,7 +94,10 @@ bool TypeMeta::operator==(const TypeMeta& other) const {
 
 std::string ParserFunctionMethod::getFullName() const {
     std::string name;
-    if (returnType.typeName != nullptr) name = *returnType.typeName;
+
+    if (isConstructor) name = "constructor$";
+    else if (isDestructor) name = "destructor$";
+    else if (returnType.typeName != nullptr) name = *returnType.typeName;
     else name = "void";
     name += "$";
     name += (returnType.type.isMutable ? "m" : "") + std::string(returnType.type.pointerLevel, 'p') + (returnType.type.isReference ? "r" : "");
