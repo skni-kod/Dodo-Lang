@@ -23,7 +23,7 @@ bool IsRightToLeftOrdered(const LexerToken* token) {
             case Operator::Assign:
             case Operator::Address:
             case Operator::Dereference:
-            case Operator::Cast:
+            case Operator::Convert:
                 return true;
             default:
                 break;
@@ -176,7 +176,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
         if (IsRightToLeftOrdered(mostImportant)) {
             valueArray.push_back(ParseExpressionStep(valueArray, {start, lastChosen}, tokens));
             out.left = valueArray.size() - 1;
-            if (out.code == Operator::Cast) valueArray.push_back(ParseExpressionCast(valueArray, {lastChosen + 1, end}, tokens));
+            if (out.code == Operator::Convert) valueArray.push_back(ParseExpressionCast(valueArray, {lastChosen + 1, end}, tokens));
             else valueArray.push_back(ParseExpressionStep(valueArray, {lastChosen + 1, end}, tokens));
             out.right = valueArray.size() - 1;
         }

@@ -9,6 +9,8 @@
 #include "Options.hpp"
 #include "LexingEnums.hpp"
 
+struct TypeInfo;
+struct VariableObject;
 struct TypeObject;
 struct LexerToken;
 
@@ -28,14 +30,14 @@ struct TypeMeta {
     uint8_t isReference : 1 = false;
     #endif
 
-    uint8_t variableSize(TypeObject& type);
+    uint8_t variableSize(TypeObject& type) const;
 
     bool operator==(const TypeMeta& other) const;
     TypeMeta() = default;
     TypeMeta(uint8_t pointerLevel, bool isMutable, bool isReference);
     TypeMeta(const TypeMeta& old, int8_t pointerLevelDifference);
-    TypeMeta noReference() const;
-    TypeMeta reference() const;
+    [[nodiscard]] TypeMeta noReference() const;
+    [[nodiscard]] TypeMeta reference() const;
 };
 
 struct TypeObject;
@@ -225,8 +227,25 @@ struct TypeObject {
     std::vector <ParserMemberVariableParameter> members;
     std::vector <ParserFunctionMethod> methods;
 
-    uint64_t getMemberOffsetAndType(std::string* identifier, TypeObject*& typeToSet, TypeMeta& typeMetaToSet);
+    int64_t getMemberOffsetAndSetType(std::string* identifier, TypeInfo& info);
     ParserFunctionMethod& findMethod(std::string* identifier);
+};
+
+struct TypeInfo : TypeMeta {
+    TypeObject* type = nullptr;
+
+    TypeInfo AssignType(VariableObject& variable);
+    TypeInfo AssignType(TypeInfo& info);
+    TypeInfo AssignType(TypeObject* typeObject, TypeMeta meta);
+
+    TypeInfo() = default;
+    TypeInfo(uint8_t pointerLevel, bool isMutable, bool isReference, TypeObject* type);
+    TypeInfo(TypeMeta meta, TypeObject* type);
+    TypeInfo(TypeObject* type, TypeMeta meta);
+    TypeInfo(const TypeInfo& old, int8_t pointerLevelDifference);
+    TypeMeta meta() const;
+    [[nodiscard]] TypeInfo noReference() const;
+    [[nodiscard]] TypeInfo reference() const;
 };
 
 inline std::unordered_map<std::string, TypeObject> types;

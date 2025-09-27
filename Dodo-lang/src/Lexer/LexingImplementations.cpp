@@ -219,7 +219,7 @@ std::ostream& PrintOperatorSymbol(const Operator::Type op, std::ostream& out) {
             return out << "address of";
         case Operator::Dereference:
             return out << "dereference";
-        case Operator::Cast:
+        case Operator::Convert:
             return out << "cast";
         case Operator::Destructor:
             return out << "~";
@@ -393,7 +393,7 @@ std::ostream& operator<<(std::ostream& out, const LexerToken& token) {
                     return out << "Operator: address of,";
                 case Operator::Dereference:
                     return out << "Operator: dereference pointer,";
-                case Operator::Cast:
+                case Operator::Convert:
                     return out << "Operator: cast,";
                 case Operator::Destructor:
                     return out << "Operator: destructor,";

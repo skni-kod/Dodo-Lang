@@ -3,6 +3,40 @@
 #include <GenerateCode.hpp>
 #include <ostream>
 
+#include "ErrorHandling.hpp"
+
+TypeInfo::TypeInfo(uint8_t pointerLevel, bool isMutable, bool isReference, TypeObject* type) {
+    this->pointerLevel = pointerLevel;
+    this->isMutable = isMutable;
+    this->isReference = isReference;
+    this->type = type;
+}
+
+TypeInfo::TypeInfo(TypeMeta meta, TypeObject* type) : TypeMeta(meta) {
+    this->type = type;
+}
+
+TypeInfo::TypeInfo(TypeObject* type, TypeMeta meta) : TypeInfo(meta, type) {}
+
+TypeInfo::TypeInfo(const TypeInfo& old, int8_t pointerLevelDifference) : TypeMeta(old, pointerLevelDifference) {
+    type = old.type;
+}
+
+TypeMeta TypeInfo::meta() const {
+    return static_cast<TypeMeta>(*this);
+}
+
+TypeInfo TypeInfo::noReference() const {
+    TypeInfo t = *this;
+    t.isReference = false;
+    return t;
+}
+TypeInfo TypeInfo::reference() const {
+    TypeInfo t = *this;
+    t.isReference = true;
+    return t;
+}
+
 std::ostream& operator<<(std::ostream& out, const ParserMemberVariableParameter& variable) {
     return out << "INFO L3: \t" << (variable.typeMeta().isMutable ? "mut " : "")
     << variable.typeObject->typeName
@@ -51,22 +85,15 @@ std::string& ParserMemberVariableParameter::typeName() const {
 TypeMeta::TypeMeta(const uint8_t pointerLevel, const bool isMutable, const bool isReference) : pointerLevel(pointerLevel), isMutable(isMutable), isReference(isReference) {}
 
 TypeMeta::TypeMeta(const TypeMeta& old, const int8_t pointerLevelDifference) {
-    if (pointerLevelDifference == -1 and not old.isReference) {
-        pointerLevel = old.pointerLevel + pointerLevelDifference;
-        isMutable = old.isMutable;
-        isReference = true;
-        return;
+    DebugError(pointerLevelDifference != -1 and pointerLevelDifference != +1, "Invalid pointer level difference!");
+
+    if (pointerLevelDifference == -1 and old.pointerLevel == 0) {
+        Error("Cannot dereference a value");
     }
-    if (pointerLevelDifference == 1 and old.isReference) {
-        pointerLevel = old.pointerLevel + pointerLevelDifference;
-        isMutable = old.isMutable;
-        isReference = false;
-        return;
+    if (pointerLevelDifference == +1 and old.pointerLevel == 0x7F) {
+        Error("Maximum pointer level reached!");
     }
-    if (pointerLevelDifference < 0 and old.pointerLevel < -pointerLevelDifference) CodeGeneratorError("Cannot get put address into a non pointer!");
-    pointerLevel = old.pointerLevel + pointerLevelDifference;
-    isMutable = old.isMutable;
-    isReference = old.isReference;
+    TypeMeta(old.pointerLevel + pointerLevelDifference, old.isMutable, old.isReference);
 }
 
 TypeMeta TypeMeta::noReference() const {
@@ -80,7 +107,7 @@ TypeMeta TypeMeta::reference() const {
     return t;
 }
 
-uint8_t TypeMeta::variableSize(TypeObject& type) {
+uint8_t TypeMeta::variableSize(TypeObject& type) const {
     if (isReference or pointerLevel != 0 or not type.isPrimitive) return Options::addressSize;
     return type.typeSize;
 }

@@ -12,6 +12,7 @@
 #include <X86_64Config.hpp>
 #include <X86_64Enums.hpp>
 
+#include "ErrorHandling.hpp"
 #include "Options.hpp"
 #include "X86_64.hpp"
 
@@ -28,11 +29,13 @@ void CodeGeneratorError(std::string message) {
 }
 
 void Warning(std::string message) {
-    std::cout << "WARNING: " << message << "\n";
+    std::cout << "WARNING: " << message << (message.ends_with("!") ? "" : "!") << "\n";
 }
 
 
 void GenerateCode() {
+    SetCompilationStage(CompilationStage::bytecode);
+
     doneParsing = true;
     std::ofstream out;
     if (!fs::is_directory("build")) {
@@ -100,8 +103,9 @@ void GenerateCode() {
         }
 
         CalculateLifetimes(context);
+        SetCompilationStage(CompilationStage::assembly);
         x86_64::ConvertBytecode(context, nullptr, out);
-
+        SetCompilationStage(CompilationStage::output);
 
         if (not functions.contains("Main")) CodeGeneratorError("Function \"Main\" not found!");
         x86_64::PrintInstruction(out, {x86_64::call, {&functions["Main"][0]}});
@@ -125,6 +129,7 @@ void GenerateCode() {
     // methods
     for (auto& n : types) {
         for (auto& m : n.second.methods) {
+            SetCompilationStage(CompilationStage::bytecode);
             auto context = GenerateFunctionBytecode(m);
             x86_64::PrepareProcessor(context);
             if (Options::informationLevel >= 2) {
@@ -135,9 +140,11 @@ void GenerateCode() {
                 }
             }
             CalculateLifetimes(context);
+            SetCompilationStage(CompilationStage::output);
             auto label = AsmInstruction(x86_64::label, AsmOperand(&m));
             out << "\n";
             x86_64::PrintInstruction(label, out);
+            SetCompilationStage(CompilationStage::assembly);
             x86_64::ConvertBytecode(context, &m, out);
         }
     }
@@ -145,6 +152,7 @@ void GenerateCode() {
     // functions
     for (auto& n : functions) {
         for (auto& m : n.second) {
+            SetCompilationStage(CompilationStage::bytecode);
             auto context = GenerateFunctionBytecode(m);
             x86_64::PrepareProcessor(context);
             if (Options::informationLevel >= 2) {
@@ -155,9 +163,11 @@ void GenerateCode() {
                 }
             }
             CalculateLifetimes(context);
+            SetCompilationStage(CompilationStage::output);
             auto label = AsmInstruction(x86_64::label, AsmOperand(&m));
             out << "\n";
             x86_64::PrintInstruction(label, out);
+            SetCompilationStage(CompilationStage::assembly);
             x86_64::ConvertBytecode(context, &m, out);
         }
     }

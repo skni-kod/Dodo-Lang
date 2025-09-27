@@ -3,6 +3,7 @@
 #include <fstream>
 #include <list>
 
+#include "ErrorHandling.hpp"
 #include "X86_64.hpp"
 #include "X86_64Enums.hpp"
 
@@ -22,7 +23,7 @@ namespace x86_64 {
             auto& current = context.codes[index];
             uint16_t currentSize;
             Type::TypeEnum currentType;
-            if (current.opType != nullptr and (current.opTypeMeta.isReference or current.opTypeMeta.pointerLevel or not
+            if (current.opType != nullptr and (current.opMeta.isReference or current.opMeta.pointerLevel or not
                 current.opType->isPrimitive)) {
                 currentSize = Options::addressSize;
                 currentType = Type::address;
@@ -662,7 +663,7 @@ namespace x86_64 {
                 else CodeGeneratorError("Internal: unsupported data type for index get!");
             }
             break;
-            case Bytecode::Cast: {
+            case Bytecode::Convert: {
                 auto sourceOp = AsmOperand(current.op1(), context);
                 auto resultOp = AsmOperand(current.op3(), context);
 
@@ -696,7 +697,7 @@ namespace x86_64 {
                     if (current.type == Bytecode::BraceListStart) {
 
                         auto place = context.pushStack(AsmOperand(current.op3(), context), current.op1Value.i32);
-                        listStack.emplace(place.value.offset, current.opTypeMeta.pointerLevel or current.opTypeMeta.isReference ? Options::addressSize : current.opType->typeAlignment, AsmOperand(current.op3(), context), place.value.offset);
+                        listStack.emplace(place.value.offset, current.opMeta.pointerLevel or current.opMeta.isReference ? Options::addressSize : current.opType->typeAlignment, AsmOperand(current.op3(), context), place.value.offset);
                         break;
                     }
                     if (current.type == Bytecode::BraceListEnd) {
@@ -1579,6 +1580,7 @@ namespace x86_64 {
             }
         }
 
+        SetCompilationStage(CompilationStage::output);
         PrintInstructions(instructions, out, maxOffset);
     }
 }

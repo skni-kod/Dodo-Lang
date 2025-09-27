@@ -22,7 +22,7 @@ namespace Operator {
     enum Type {
         // enum order affects order of operations
         // lower code means being before the one with higher
-        Cast, Address, Dereference,
+        Convert, Address, Dereference,
         Not, BinNot,
         // first kinda like PEMDAS
         Increment, Decrement, Power, Multiply, Divide, Modulo, Add, Subtract,

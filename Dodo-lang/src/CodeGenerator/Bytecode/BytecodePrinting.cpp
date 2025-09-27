@@ -12,7 +12,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         break;
     case Bytecode::Define:
         out << "define " << code.op1() << " of type " << code.opType->typeName <<
-            std::string(code.opTypeMeta.pointerLevel, '*') << std::string(code.opTypeMeta.isReference, '&');
+            std::string(code.opMeta.pointerLevel, '*') << std::string(code.opMeta.isReference, '&');
         if (code.op3Location != Location::None) out << " using " << code.result();
         break;
     case Bytecode::AssignTo:
@@ -202,9 +202,9 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
     case Bytecode::BinNot:
         out << "binary NOT of " << code.op1();
         break;
-    case Bytecode::Cast:
+    case Bytecode::Convert:
         out << "cast " << code.op1() << " to type " << code.opType->typeName <<
-            std::string(code.opTypeMeta.pointerLevel, '*') << std::string(code.opTypeMeta.isReference, '&') <<
+            std::string(code.opMeta.pointerLevel, '*') << std::string(code.opMeta.isReference, '&') <<
             " and store the result in " << code.op3();
         break;
     case Bytecode::Label:
@@ -215,7 +215,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         break;
     case Bytecode::BraceListStart:
         out << "start of brace list of: " << code.op1Value.ui << " element(s) of type " << code.opType->typeName <<
-            std::string(code.opTypeMeta.pointerLevel, '*') << std::string(code.opTypeMeta.isReference, '&');
+            std::string(code.opMeta.pointerLevel, '*') << std::string(code.opMeta.isReference, '&');
         break;
     case Bytecode::BraceListElement:
         out << "brace list element number: " << code.op2Value.ui << " with value of: " << code.op1();

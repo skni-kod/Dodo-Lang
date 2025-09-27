@@ -12,6 +12,11 @@
 #pragma pack(1)
 #endif
 
+// adds extended checks if compiling in debug mode
+#if not defined(NDEBUG)
+#define EXTENDED_CHECKS
+#endif
+
 namespace fs = std::filesystem;
 
 namespace Options {

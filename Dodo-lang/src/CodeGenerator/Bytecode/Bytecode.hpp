@@ -8,6 +8,8 @@
 #include <TypeObject.hpp>
 #include "Options.hpp"
 
+struct VariableObject;
+
 namespace Location {
     enum Type {
         None = 0, Unknown = 0,
@@ -112,8 +114,8 @@ struct Bytecode {
         None,
         // variable manipulation
 
-        //      syntax: op1 (variable) as type op2 -> op3 / result
-        Cast,
+        //      syntax: op1 (variable) -> op3 / result
+        Convert,
         //      syntax: op1 (variable) = op3 / result
         Define,
         //      syntax: op1 (variable) = op2 (any scalar), result in op3 / result
@@ -220,7 +222,7 @@ struct Bytecode {
 #endif
     // probably 2 bits of space here
     // metadata of the used type
-    TypeMeta opTypeMeta{};
+    TypeMeta    opMeta{};
     // 4 bytes used at this point
     // 4 are free for some kind of metadata
     // variable unions
@@ -237,6 +239,10 @@ struct Bytecode {
     BytecodeOperand op3(BytecodeOperand op);
     [[nodiscard]] BytecodeOperand result() const;
     BytecodeOperand result(BytecodeOperand op);
+
+    void AssignType(VariableObject& variable);
+    void AssignType(TypeInfo info);
+    void AssignType(TypeObject* typeObject, TypeMeta meta);
 };
 
 // represents a location in memory where a thing is or is to be stored
@@ -302,12 +308,15 @@ struct Context {
     // adds another context into this one
     void merge(Context& context);
 
+    BytecodeOperand addCodeReturningResult(Bytecode code);
     // inserts a new local scope variable
-    BytecodeOperand insertVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    BytecodeOperand insertVariable(std::string* identifier, TypeInfo info);
+    BytecodeOperand insertTemporary(const TypeInfo& info);
     // inserts a new local scope temporary variable
     BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta);
     // returns requested variable and throws and exception if there is no match for name or type is wrong
     BytecodeOperand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
+    BytecodeOperand getVariable(std::string* identifier, TypeInfo typeInfo);
     // the same, not implemented
     BytecodeOperand getVariable(BytecodeOperand operand);
 

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 
+#include "ErrorHandling.hpp"
 #include "Misc/Increment.hpp"
 #include "Cli/Cli.hpp"
 #include "Parser/Parser.hpp"
@@ -77,9 +78,15 @@ int main(int argc, char* argv[]) {
     // new lexing here
     std::vector<LexerFile> lexed;
     try {
+        SetCompilationStage(CompilationStage::lexing);
         lexed = std::move(RunLexer());
     }
     catch (LexerException& e) {
+        std::cout << "Lexing has failed. Compilation aborted!\n";
+        return 1;
+    }
+    catch (CompilerException& e) {
+        std::cout << *e.what();
         std::cout << "Lexing has failed. Compilation aborted!\n";
         return 1;
     }
@@ -88,9 +95,15 @@ int main(int argc, char* argv[]) {
 
     std::cout << "INFO L1: Lexing done!\nINFO L1: Parsing:\n";
     try {
+        SetCompilationStage(CompilationStage::parsing);
         RunParsing(lexed);
     }
     catch (ParserException& e) {
+        std::cout << "Parsing has failed. Compilation aborted!\n";
+        return 1;
+    }
+    catch (CompilerException& e) {
+        std::cout << *e.what();
         std::cout << "Parsing has failed. Compilation aborted!\n";
         return 1;
     }
@@ -101,6 +114,11 @@ int main(int argc, char* argv[]) {
         GenerateCode();
     }
     catch (__CodeGeneratorException& e) {
+        std::cout << "Code generation has failed. Compilation aborted!\n";
+        return 1;
+    }
+    catch (CompilerException& e) {
+        std::cout << e.what();
         std::cout << "Code generation has failed. Compilation aborted!\n";
         return 1;
     }
