@@ -4,10 +4,21 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <concepts>
+
+#include "ErrorHandling.hpp"
 #include "LexingEnums.hpp"
 #include "Options.hpp"
 
 #include "TypeObject.hpp"
+
+
+template<typename T>
+concept TokenEnum = (std::same_as<T, Operator::Type>
+                  or std::same_as<T, Keyword::KeywordType>
+                  or std::same_as<T, Type::TypeEnum>
+                  or std::same_as<T, Token::Type>
+                  );
 
 struct LexerToken {
 #ifdef PACKED_ENUM_VARIABLES
@@ -54,20 +65,33 @@ struct LexerToken {
     // for getting operator and keyword values from the map
     LexerToken(const std::string& key, uint32_t characterNumber);
 
-    [[nodiscard]] bool MatchOperator(Operator::Type type) const;
-    [[nodiscard]] bool MatchOperator(Operator::Type type1, Operator::Type type2) const;
-    [[nodiscard]] bool MatchOperator(Operator::Type type1, Operator::Type type2, Operator::Type type3) const;
-    [[nodiscard]] bool MatchOperator(Operator::Type type1, Operator::Type type2, Operator::Type type3, Operator::Type type4) const;
-    [[nodiscard]] bool MatchOperator(Operator::Type type1, Operator::Type type2, Operator::Type type3, Operator::Type type4, Operator::Type type5) const;
-    [[nodiscard]] bool MatchOperator(Operator::Type type1, Operator::Type type2, Operator::Type type3, Operator::Type type4, Operator::Type type5, Operator::Type type6) const;
-    [[nodiscard]] bool MatchKeyword (Keyword::KeywordType type) const;
-    [[nodiscard]] bool MatchKeyword (Keyword::KeywordType type1, Keyword::KeywordType type2) const;
-    [[nodiscard]] bool MatchKeyword (Keyword::KeywordType type1, Keyword::KeywordType type2, Keyword::KeywordType type3) const;
-    [[nodiscard]] bool MatchKeyword (Keyword::KeywordType type1, Keyword::KeywordType type2, Keyword::KeywordType type3, Keyword::KeywordType type4) const;
-    [[nodiscard]] bool MatchKeyword (Keyword::KeywordType type1, Keyword::KeywordType type2, Keyword::KeywordType type3, Keyword::KeywordType type4, Keyword::KeywordType type5) const;
-    [[nodiscard]] bool MatchKeyword (Keyword::KeywordType type1, Keyword::KeywordType type2, Keyword::KeywordType type3, Keyword::KeywordType type4, Keyword::KeywordType type5, Keyword::KeywordType type6) const;
-    [[nodiscard]] bool MatchNumber (Type::TypeEnum type) const;
-    [[nodiscard]] bool MatchNumber (Type::TypeEnum type1, Type::TypeEnum type2) const;
+    /// <summary>
+    /// Checks if the token matches the given token enum
+    /// </summary>
+    /// <param name="matched">One of allowed types enums to match against</param>
+    /// <returns>True if matches</returns>
+    template <TokenEnum T>
+    [[nodiscard]] bool Match(T matched) const {
+        if (std::same_as<T, Operator::Type>)
+            return this->type == Token::Operator and this->op == static_cast<Operator::Type>(matched);
+        if (std::same_as<T, Keyword::KeywordType>)
+            return this->type == Token::Keyword and this->kw == static_cast<Keyword::KeywordType>(matched);
+        if (std::same_as<T, Type::TypeEnum>)
+            return this->type == Token::Number and this->literalType == static_cast<Type::TypeEnum>(matched);
+        if (std::same_as<T, Token::Type>)
+            return this->type == static_cast<Token::Type>(matched);
+        Unimplemented();
+    }
+
+    /// <summary>
+    /// Checks if any of provided token enums can be matched to the token
+    /// </summary>
+    /// <param name="matched">Variable amount of parameters to check</param>
+    /// <returns>True if any match</returns>
+    template <TokenEnum... Ts>
+    [[nodiscard]] bool Match (Ts... matched) const {
+        return (Match(matched) or ...);
+    }
 
     bool operator==(const LexerToken& other) const;
 

@@ -12,14 +12,14 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
 
     auto* current = generator();
 
-    if (current->MatchOperator(Operator::BracketOpen)) {
+    if (current->Match(Operator::BracketOpen)) {
         current = generator();
     }
-    while (not current->MatchOperator(Operator::BracketClose)) {
-        if (current->MatchKeyword(Keyword::Comma)) current = generator();
+    while (not current->Match(Operator::BracketClose)) {
+        if (current->Match(Keyword::Comma)) current = generator();
 
-        if (not current->MatchKeyword(Keyword::Let)) {
-            ParserError("Expected a parameter!");
+        if (not current->Match(Keyword::Let)) {
+            Error("Expected a parameter!");
         }
 
         output.parameters.emplace_back();
@@ -29,15 +29,19 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
         const auto result = ParseExpression(generator, output.parameters.back().definition, {current});
 
         current = result;
-        if (not result->MatchKeyword(Keyword::Comma) and not result->MatchOperator(Operator::BracketClose)) {
-            ParserError("Expected a comma or bracket close after parameter!");
+        if (not result->Match(Keyword::Comma) and not result->Match(Operator::BracketClose)) {
+            Error("Expected a comma or bracket close after parameter!");
         }
     }
-    if (not generator()->MatchOperator(Operator::BraceOpen)) {
-        ParserError("Expected an opening brace after function prototype!");
+
+    if (not (current = generator())->Match(Operator::BraceOpen)) {
+        if (current->Match(Keyword::Const))
+            output.isConst = false;
+        else
+            Error("Expected an opening brace after function prototype!");
     }
     uint32_t braceLevel = 0;
-    while (not (current = generator())->MatchOperator(Operator::BraceClose) or braceLevel != 0) {
+    while (not (current = generator())->Match(Operator::BraceClose) or braceLevel != 0) {
         output.instructions.emplace_back(ParseInstruction(generator, current, &braceLevel));
         if (output.instructions.back().type == Instruction::Else) {
             output.instructions.emplace_back(Instruction::BeginScope);

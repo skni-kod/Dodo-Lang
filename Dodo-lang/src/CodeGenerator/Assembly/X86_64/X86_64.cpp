@@ -41,7 +41,7 @@ namespace x86_64 {
         // TODO: can there be a case when conversions are needed with complex type moves?
         uint64_t amount = 1;
         auto lastIndex = moves.size();
-        if (s.op != Location::imm) {
+        if (s.op != Location::imm and s.op != Location::String) {
             auto content = context.getContent(s);
             if (content.op == Location::var) {
                 auto object = context.getVariableObject({content.op, content.value, s.type, s.size});

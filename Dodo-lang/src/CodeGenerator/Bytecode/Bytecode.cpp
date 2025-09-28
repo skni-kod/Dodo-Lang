@@ -14,23 +14,23 @@
 /// Throws an error if the literal can't be assigned to the given type
 /// </summary>
 /// <param name="literal">A token that contains a literal value</param>
-/// <param name="info"></param>
-void CheckLiteralMatch(LexerToken* literal, TypeInfo info) {
-    if (info.type == nullptr) return;
+/// <param name="expected"></param>
+void CheckLiteralMatch(LexerToken* literal, const TypeInfo expected) {
+    if (expected.type == nullptr) return;
 
     DebugError(literal->type != Token::Number, "Token passed to literal match check is not a literal!");
 
-    if (info.pointerLevel > 0) {
+    if (expected.pointerLevel > 0) {
         // pointers are always n bit unsigned integers
         // the literal type checks tends to go towards unsigned, then signed then floats at the end
         if (literal->literalType != Type::unsignedInteger)
             Error("Cannot set pointer with a non unsigned integer value!");
     }
     else {
-        if (not info.type->isPrimitive)
-            Error("Cannot assign literals to complex types!");
+        if (not expected.type->attributes.primitiveAssignFromLiteral)
+            Error("Type: " + expected.type->typeName + " does not support assignment from literals !");
 
-        if (info.type->primitiveType == Type::floatingPoint) {
+        if (expected.type->primitiveType == Type::floatingPoint) {
             if (literal->literalType == Type::unsignedInteger)
                 literal->_double = static_cast<double>(literal->_unsigned);
             else if (literal->literalType == Type::signedInteger)
@@ -40,7 +40,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeInfo info) {
 
             // TODO: add float size warnings
             // converting size
-            switch (info.type->typeSize) {
+            switch (expected.type->typeSize) {
             case 8:
                 break;
             case 4: {
@@ -55,7 +55,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeInfo info) {
                 Error("Unsupported floating point literal size!");
             }
         }
-        else if (info.type->primitiveType == Type::unsignedInteger) {
+        else if (expected.type->primitiveType == Type::unsignedInteger) {
             if (literal->literalType == Type::floatingPoint) {
                 if (literal->_double < 0)
                     Warning(
@@ -70,7 +70,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeInfo info) {
                 Error("Unsupported literal type for convertion to floating point!");
 
             // converting size
-            switch (info.type->typeSize) {
+            switch (expected.type->typeSize) {
             case 8:
                 break;
             case 4:
@@ -92,7 +92,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeInfo info) {
                 Error("Unsupported literal size!");
             }
         }
-        else if (info.type->primitiveType == Type::signedInteger) {
+        else if (expected.type->primitiveType == Type::signedInteger) {
             if (literal->literalType == Type::floatingPoint) {
                 literal->_signed = static_cast<int64_t>(literal->_double);
                 Warning("Conversion from floating point literal to integer will result in loss of non integer data!");
@@ -106,7 +106,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeInfo info) {
                 Error("Unsupported literal type for convertion to floating point!");
 
             // converting sizes
-            switch (info.type->typeSize) {
+            switch (expected.type->typeSize) {
             case 8:
                 break;
             case 4:
@@ -152,7 +152,7 @@ void CheckLiteralMatch(LexerToken* literal, TypeInfo info) {
         else
             Error("Invalid literal type to convert from!");
 
-        literal->literalType = info.type->primitiveType;
+        literal->literalType = expected.type->primitiveType;
     }
 }
 
@@ -204,7 +204,7 @@ BytecodeOperand CheckCompatibilityAndConvertReference(Context& context, const Ty
     if (actual.type != expected.type)
         Error("Expected expression of type: " + expected.type->typeName + " but got: " + actual.type->typeName);
 
-    if (not actual.isMutable and expected.isMutable)
+    if (not actual.isMutable and expected.isMutable and (actual.pointerLevel or actual.isReference))
         Error("Expected expression result to be mutable!");
 
     if (actual.pointerLevel != expected.pointerLevel)
@@ -218,9 +218,9 @@ BytecodeOperand CheckCompatibilityAndConvertReference(Context& context, const Ty
     return op;
 }
 
-BytecodeOperand GenerateExpressionRunner(Context& context, std::vector<ParserTreeValue>& values, const TypeInfo expected, bool isGlobal) {
+BytecodeOperand GenerateExpressionRunner(Context& context, std::vector<ParserTreeValue>& values, const TypeInfo expected, bool isGlobal, uint16_t index) {
     TypeInfo endType{};
-    auto result = GenerateExpressionBytecode(context, values, expected, endType, 0, isGlobal);
+    auto result = GenerateExpressionBytecode(context, values, expected, endType, index, isGlobal);
     return CheckCompatibilityAndConvertReference(context, expected, endType, result);
 }
 
@@ -255,36 +255,60 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
         return context.addCodeReturningResult(code);
     }
 
+    case ParserOperation::Syscall:
     case ParserOperation::Call:  {
-        Unimplemented();
-        /*
-        bool doNotStore = false;
-        if (passedOperand.location == Location::Variable) {
-            // it's a method
-            code.type = Bytecode::Method;
-            BytecodeCall(context, values, type, typeMeta, code, current, isGlobal, true, passedOperand, &doNotStore);
-        }
-        else {
-            // a normal function
-            code.type = Bytecode::Function;
-            BytecodeCall(context, values, type, typeMeta, code, current, isGlobal, false, {}, &doNotStore);
-        }
-        context.codes.push_back(code);
-        if (doNotStore)
-            context.codes.back().result({});
-        return code.result();
-        */
-    }
 
-    case ParserOperation::Syscall: {
-        Unimplemented();
-        /*
-        code.type = Bytecode::Syscall;
-        BytecodeCall(context, values, type, typeMeta, code, current, isGlobal);
-        code.op3(context.insertTemporary(&types["u" + std::to_string(8 * Options::addressSize)], {}));
-        context.codes.push_back(code);
-        return code.result();
-        */
+        std::vector <TypeInfo> arguments;
+        if (current.argument) {
+            for (auto* node = &values[current.argument]; ; node = &values[node->argument]) {
+
+                TypeInfo info;
+                GetTypes(context, values, info, node->left);
+                arguments.push_back(info);
+
+                if (not node->argument) break;
+            }
+        }
+
+        // a method
+        if (passedOperand.location != Location::None) {
+            DebugError(actual.type == nullptr, "Expected a passed type!");
+
+            bool anyFound = false;
+            for (auto& method : actual.type->methods)
+                if (*method.name == *current.identifier) {
+                    if (AddCallIfMatches(context, &method, values, current, arguments, code, passedOperand, isGlobal)) {
+                        actual.AssignType(code.opType, code.opMeta);
+                        return context.addCodeReturningResult(code);
+                    }
+                    anyFound = true;
+                }
+
+            if (anyFound)
+                Error("Could not find any viable overload of method: " + *current.identifier);
+            Error("Could not find method: " + *current.identifier);
+        }
+
+        if (current.operation == ParserOperation::Syscall) {
+            if (AddCallIfMatches(context, nullptr, values, current, arguments, code, {}, isGlobal)) {
+                actual.AssignType(code.opType, code.opMeta);
+                return context.addCodeReturningResult(code);
+            }
+            Error("How did you get here?");
+        }
+
+        bool anyFound = false;
+        for (auto& function : functions[*current.identifier]) {
+            if (AddCallIfMatches(context, &function, values, current, arguments, code, {}, isGlobal)) {
+                actual.AssignType(code.opType, code.opMeta);
+                return context.addCodeReturningResult(code);
+            }
+            anyFound = true;
+        }
+
+        if (anyFound)
+            Error("Could not find any viable overload of function: " + *current.identifier);
+        Error("Could not find function: " + *current.identifier);
     }
 
     case ParserOperation::Literal: {
@@ -297,6 +321,10 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
             Error("Literals cannot be targets of references!");
 
         CheckLiteralMatch(current.literal, actual);
+
+        if (actual.type == nullptr)
+            actual = {&types[std::to_string(Type::FirstCharacter(current.literal->literalType)) + std::to_string(8 * Options::addressSize)], {}};
+
         return {Location::Literal, current.literal->_unsigned, actual.type->primitiveType, static_cast<uint8_t>(actual.type->typeSize)};
     }
 
@@ -326,6 +354,11 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
 
 
     case ParserOperation::String:
+        if (actual.type == nullptr)
+            actual = expected;
+
+        DebugError(expected.type == nullptr, "Expected a type!");
+
         // checking if the type is valid for a string
         if (not actual.type->isPrimitive
             or actual.type->typeSize != 1
@@ -437,12 +470,15 @@ void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& 
             default:
                 break;
             }
+            result.isMutable = false;
+            result.isReference = false;
+            result.pointerLevel = 0;
         }
         else
             Unimplemented();
         return;
     case ParserOperation::String:
-        result = {1, true, false, &types["char"]};
+        result = {1, false, false, &types["char"]};
         return;
     case ParserOperation::Group:
         GetTypes(context, values, result, current.value);
@@ -653,7 +689,6 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
             }
             wasLastConditional = true;
             Bytecode code;
-            //code.type = Bytecode::While;
             code.type = Bytecode::If;
             code.opType = &types["bool"];
             code.op1(GenerateExpressionRunner(context, n.valueArray, {code.opType, {}}));
@@ -664,15 +699,9 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
             context.codes.push_back(code);
         }
         break;
-        case Instruction::Do: {
+        case Instruction::Do:
             Error("Internal: do while loop unimplemented!");
-            wasLastConditional = true;
-            context.addLoopLabel();
-            Bytecode code;
-            code.type = Bytecode::Do;
-            context.codes.push_back(code);
-        }
-        break;
+
         case Instruction::Break: {
             // break jumps 2 scope ends away
             // TODO: maybe a break with amount of scopes to break, could be useful
@@ -701,40 +730,10 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
             Error("Switch not implemented!");
         case Instruction::Case:
             Error("Case not implemented!");
-        case Instruction::For: {
+        case Instruction::For:
             Error("Internal: for loop unimplemented!");
-            wasLastConditional = true;
-            wasPushAdded = true;
-
-            Bytecode code;
-
-            // for is split into 3 codes so that they can be easily identified
-            // initial statement after the scope was pushed
-            PushScope(context);
-            // this one does not need a bytecode
-            TypeInfo actual = {code.opType, code.opMeta};
-            GetTypes(context, n.valueArray, actual, n.expression1Index);
-            GenerateExpressionRunner(context, n.valueArray, actual, n.expression1Index);
-
-            // now the after statement that needs a jump label, not sure if it will be before or after condition yet
-            context.addLoopLabel();
-            code.type = Bytecode::ForStatement;
-            GetTypes(context, n.valueArray, actual, n.expression2Index);
-            code.op1(GenerateExpressionRunner(context, n.valueArray, actual, n.expression3Index));
-            context.codes.push_back(code);
-
-            // conditional statement needs bool type and another jump label for returning here after the after statement
-            context.addLoopLabel();
-            code.type = Bytecode::ForCondition;
-            code.opType = &types["bool"];
-            code.opMeta = {};
-            code.op1(GenerateExpressionRunner(context, n.valueArray, {code.opType, {}}, n.expression2Index));
-            context.codes.push_back(code);
-        }
-        break;
         default:
             Error("Unhandled instruction type!");
-            break;
         }
     }
 
@@ -808,9 +807,10 @@ void Bytecode::AssignType(VariableObject& variable) {
     opMeta = variable.meta;
 }
 
-void Bytecode::AssignType(TypeInfo info) {
+TypeInfo Bytecode::AssignType(TypeInfo info) {
     opType = info.type;
     opMeta = info.meta();
+    return info;
 }
 
 void Bytecode::AssignType(TypeObject* typeObject, TypeMeta meta) {
@@ -1059,7 +1059,9 @@ ParserFunctionMethod& TypeObject::findMethod(std::string* identifier) {
 }
 
 TypeInfo TypeInfo::AssignType(VariableObject& variable) {
-    TypeMeta(variable.meta);
+    this->pointerLevel = variable.meta.pointerLevel;
+    this->isReference = variable.meta.isReference;
+    this->isMutable = variable.meta.isMutable;
     type = variable.type;
     return *this;
 }

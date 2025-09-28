@@ -18,6 +18,8 @@ namespace Type {
     enum TypeEnum {
         none = 0, address = 0, unsignedInteger, signedInteger, floatingPoint
     };
+
+    char FirstCharacter(TypeEnum type);
 }
 
 struct TypeMeta {
@@ -206,6 +208,7 @@ struct ParserFunctionMethod {
     bool isOperator = false;
     bool isConstructor = false;
     bool isDestructor = false;
+    bool isConst = true;
     std::vector<ParserMemberVariableParameter> parameters;
     ParserValueTypeObject returnType;
     TypeObject* parentType = nullptr;
@@ -224,6 +227,18 @@ struct TypeObject {
 #endif
     uint64_t typeAlignment : 4 = 0;
     uint64_t typeSize : 57 = 0;
+    struct {
+#define TypeAttribute_primitiveAssignFromLiteral primitiveAssignFromLiteral
+        /// <summary>
+        /// If set to true, primitive type instances can be created by simply assigning a literal
+        /// </summary>
+        bool TypeAttribute_primitiveAssignFromLiteral = false;
+#define TypeAttribute_primitiveSimplyConvert primitiveSimplyConvert
+        /// <summary>
+        /// If set to true, allows primitive to convert to other types with the same attribute using default logic
+        /// </summary>
+        bool TypeAttribute_primitiveSimplyConvert = false;
+    } attributes;
     std::vector <ParserMemberVariableParameter> members;
     std::vector <ParserFunctionMethod> methods;
 

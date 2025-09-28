@@ -12,8 +12,9 @@
 /// <param name="values">Vector of parsed values</param>
 /// <param name="expected">End type of expression to be generated, will throw an error if it can't be done</param>
 /// <param name="isGlobal">Set to true if this call is generating in global context, limitations will be applied</param>
+/// <param name="index">Index in value array to start at</param>
 /// <returns>Operand with the result of operation</returns>
-BytecodeOperand GenerateExpressionRunner(Context& context, std::vector<ParserTreeValue>& values, TypeInfo expected = {}, bool isGlobal = false);
+BytecodeOperand GenerateExpressionRunner(Context& context, std::vector<ParserTreeValue>& values, TypeInfo expected = {}, bool isGlobal = false, uint16_t index = 0);
 
 /// <summary>
 /// Checks if the actual type matches with the expected one and dereferences any references
@@ -39,10 +40,8 @@ BytecodeOperand CheckCompatibilityAndConvertReference(Context& context, TypeInfo
 /// <returns>Resulting operand with value of the expression</returns>
 BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserTreeValue>& values, TypeInfo expected, TypeInfo& actual, uint16_t index = 0, bool isGlobal = false, BytecodeOperand passedOperand = {});
 
-// only inserts default or non default operators
 BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTreeValue>& values, TypeInfo expected, TypeInfo& actual, uint16_t index = 0, bool isGlobal = false, BytecodeOperand passedOperand = {});
-// calls a function or method depending on passed arguments with overloads
-void BytecodeCall(Context& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta, Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod = false, BytecodeOperand caller = {}, bool* doNotStore = nullptr) ;
+bool AddCallIfMatches(Context& context, ParserFunctionMethod* called, std::vector<ParserTreeValue>& values, ParserTreeValue& node, std::vector<TypeInfo>& arguments, Bytecode& code, BytecodeOperand passedOperand, bool isGlobal);
 
 void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& info, uint16_t index);
 void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& info, ParserTreeValue& current);

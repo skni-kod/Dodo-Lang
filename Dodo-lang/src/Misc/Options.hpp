@@ -17,6 +17,21 @@
 #define EXTENDED_CHECKS
 #endif
 
+#define MACRO_STRING(macro) #macro
+
+// places a macro if the call has at least 1 variadic argument before, call like (__VAR_ARGS__, value)
+#define PlaceIf1Arg(arg1, macro, ...) macro
+// places a macro if the call has at least 2 variadic arguments before, call like (__VAR_ARGS__, value)
+#define PlaceIf2Arg(arg1, arg2, macro, ...) macro
+// places a macro if the call has at least 3 variadic arguments before, call like (__VAR_ARGS__, value)
+#define PlaceIf3Arg(arg1, arg2, arg3, macro, ...) macro
+// places a macro if the call has at least 4 variadic arguments before, call like (__VAR_ARGS__, value)
+#define PlaceIf4Arg(arg1, arg2, arg3, arg4, macro, ...) macro
+// places a macro if the call has at least 5 variadic arguments before, call like (__VAR_ARGS__, value)
+#define PlaceIf5Arg(arg1, arg2, arg3, arg4, arg5, macro, ...) macro
+// places a macro if the call has at least 6 variadic arguments before, call like (__VAR_ARGS__, value)
+#define PlaceIf6Arg(arg1, arg2, arg3, arg4, arg5, arg6, macro, ...) macro
+
 namespace fs = std::filesystem;
 
 namespace Options {

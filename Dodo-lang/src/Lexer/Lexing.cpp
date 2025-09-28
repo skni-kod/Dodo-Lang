@@ -407,7 +407,7 @@ LexerLine LexLine(std::string& line) {
                             output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
                         }
                         if ((output.tokens.empty()
-                                or (not output.tokens.empty() and not output.tokens.front().MatchKeyword(Keyword::Operator)))
+                                or (not output.tokens.empty() and not output.tokens.front().Match(Keyword::Operator)))
                                 and (result == "()" or result == "{}" or result == "[]")){
 
                             output.tokens.emplace_back(PushWrapper({result[0]}, n - result.size()));
@@ -440,7 +440,7 @@ LexerLine LexLine(std::string& line) {
                         continue;
                     }
                     if ((output.tokens.empty()
-                        or (not output.tokens.empty() and not output.tokens.front().MatchKeyword(Keyword::Operator)))
+                        or (not output.tokens.empty() and not output.tokens.front().Match(Keyword::Operator)))
                         and (result == "()" or result == "{}" or result == "[]")){
 
                         output.tokens.emplace_back(PushWrapper({result[0]}, n - result.size()));
@@ -776,9 +776,9 @@ LexerLine LexLine(std::string& line) {
     }
 
     if (output.tokens.size() == 3
-        and output.tokens[0].MatchKeyword(Keyword::Import)
+        and output.tokens[0].Match(Keyword::Import)
         and output.tokens[1].type == Token::String
-        and output.tokens[2].MatchKeyword(Keyword::End)) {
+        and output.tokens[2].Match(Keyword::End)) {
         if (auto pos = output.tokens[1].text->find_last_of('/'); pos == std::string::npos) {
             Options::inputFiles.emplace(*output.tokens[1].text);
         }

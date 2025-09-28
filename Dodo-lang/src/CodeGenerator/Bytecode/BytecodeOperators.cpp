@@ -1,6 +1,9 @@
 #include <complex>
 #include <GenerateCode.hpp>
 #include <iostream>
+#include <tbb/internal/_template_helpers.h>
+
+#include "Bytecode.hpp"
 #include "Lexing.hpp"
 
 #include "BytecodeInternal.hpp"
@@ -22,240 +25,230 @@ std::vector<TypeInfo> FindArgumentTypes(Context& context, std::vector<ParserTree
     return arguments;
 }
 
-bool DoesFunctionMatchAndAddCall(std::vector<TypeInfo>& arguments, Context& context,
-                                 ParserFunctionMethod& overload, std::vector<ParserTreeValue>& values,
-                                 ParserTreeValue& node, Bytecode& code, bool isGlobal) {
-    Unimplemented();
-    /*
+bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
+                    std::vector<ParserTreeValue>& values, ParserTreeValue& node, std::vector<TypeInfo>& arguments,
+                    Bytecode& code, BytecodeOperand passedOperand, bool isGlobal) {
     // TODO: change this after adding default parameters
-    if (overload.parameters.size() != arguments.size()) return false;
+    if (called != nullptr and called->parameters.size() != arguments.size()) return false;
 
-    for (auto n = 0; n < arguments.size(); n++) {
-        // pointer mismatch
-        if (arguments[n].meta.pointerLevel != overload.parameters[n].typeMeta().pointerLevel) return false;;
-        // literal reference
-        //if (not arguments[n].meta.isReference and overload.parameters[n].typeMeta().isReference and arguments[n].
-        //    isLiteral) return false;
-        //// immutable argument to mutable parameter
-        //if (not arguments[n].meta.isMutable and overload.parameters[n].typeMeta().isMutable and not arguments[n].
-        //    isLiteral and arguments[n].meta != TypeMeta(0, true, false)) return false;
+    if (called != nullptr) {
+        for (auto n = 0; n < arguments.size(); n++) {
+            auto& arg = arguments[n];
+            auto par = TypeInfo(called->parameters[n].typeObject, called->parameters[n].typeMeta());
 
-        if (overload.parameters[n].typeObject == nullptr)
-            overload.parameters[n].typeObject = &types[*overload.parameters[n].definition[0].identifier];
+            if (arg.type != par.type) return false;
+            if (arg.pointerLevel != par.pointerLevel) return false;
+            if (arg.isMutable < par.isMutable and (arg.isReference or arg.pointerLevel)) return false;
+            // TODO: allow for reference arguments somehow, maybe somehow check for lvalues or just assume that that's it
+            if (not arg.isReference and par.isReference)
+                Unimplemented();
 
-        // non-literal type mismatch
-        //if (not arguments[n].isLiteral and overload.parameters[n].typeObject != arguments[n].type) return false;
-        // TODO: add check for literal non-convertible to other types
-        // else if (...) return false;
+            // TODO: think about these checks a little more
+        }
+
+        // at this point it is a valid call and any errors mean the code is invalid
+
+        // in case of constructors we need to add a definition for the new variable
+        if (called->isConstructor) {
+            Bytecode res{};
+            res.type = Bytecode::Define;
+            res.opType = called->parentType;
+            res.opMeta = TypeMeta(0, true, false);
+            passedOperand = res.op1(context.insertTemporary(res.opType, res.opMeta));
+            context.codes.push_back(res);
+        }
     }
 
-    std::vector<Bytecode> argumentCodes;
+
+
     uint64_t numbers = 0;
+    std::vector <Bytecode> argumentCodes;
 
-    if (overload.isConstructor) {
-        Bytecode res{};
-        res.type = Bytecode::Define;
-        res.opType = overload.parentType;
-        res.opMeta = TypeMeta(0, true, false);
-        res.op1(context.insertTemporary(res.opType, res.opMeta));
-        argumentCodes.push_back(res);
+    // adding the pointer to type instance for methods, constructors and destructors
+    if (called != nullptr and called->isMethod and not called->isOperator) {
+        DebugError(passedOperand.location == Location::None, "Expected a passed operand in call!");
 
-        res.type = Bytecode::Address;
-        res.op3(context.insertTemporary(res.opType, res.opMeta.reference()));
-        argumentCodes.push_back(res);
-
-        res.type = Bytecode::Argument;
-        res.op1({});
-        res.opMeta = res.opMeta.reference();
-        argumentCodes.push_back(res);
+        Bytecode arg;
+        arg.type = Bytecode::Argument;
+        // TODO: ensure these are references
+        arg.AssignType(called->parentType, {0, not called->isConst, true});
+        arg.op3(passedOperand);
+        arg.op1Value = ++numbers;
+        argumentCodes.push_back(arg);
+    }
+    else if (node.operation == ParserOperation::Syscall) {
+        Bytecode arg;
+        arg.type = Bytecode::Argument;
+        // TODO: allow for full expressions, why the hell not
+        arg.AssignType({&types["u" + std::to_string(8 * Options::addressSize)], {}});
+        arg.op3(BytecodeOperand(Location::Literal, node.code, Type::unsignedInteger, Options::addressSize));
+        arg.op1Value = ++numbers;
+        argumentCodes.push_back(arg);
     }
 
-
-    if (node.operation == ParserOperation::Call) {
-        if (overload.parameters.size() != 0)
+    // now we can actually prepare the arguments and do the call
+    if (node.operation == ParserOperation::Call or node.operation == ParserOperation::Syscall) {
+        uint64_t index = 0;
+        if (called == nullptr or not called->parameters.empty())
             for (auto* current = &values[node.argument]; ; current = &values[current->argument]) {
                 Bytecode arg;
                 arg.type = Bytecode::Argument;
-                arg.op3(GenerateExpressionBytecode(context, values, overload.parameters[numbers].typeObject,
-                                                   overload.parameters[numbers].typeMeta(), current->left, isGlobal));
-                arg.op1Value = numbers++;
+
+                TypeInfo expected;
+                if (called != nullptr)
+                    expected = TypeInfo(called->parameters[index].typeObject, called->parameters[index].typeMeta());
+                else
+                    GetTypes(context, values, expected, current->left);
+                arg.op3(GenerateExpressionRunner(context, values,  expected, isGlobal, current->left));
+                arg.op1Value = ++numbers;
                 argumentCodes.push_back(arg);
+
+                ++index;
                 if (not current->argument) break;
             }
     }
-    else {
+    else if (called->isOperator) {
         if (node.left) {
             Bytecode arg;
             arg.type = Bytecode::Argument;
-            arg.op3(GenerateExpressionBytecode(context, values, overload.parameters[numbers].typeObject,
-                                               overload.parameters[numbers].typeMeta(), node.left, isGlobal));
-            arg.op1Value = numbers++;
+            arg.op3(GenerateExpressionRunner(context, values, {called->parameters[numbers].typeObject, called->parameters[numbers].typeMeta()}, isGlobal, node.left));
+            arg.op1Value = ++numbers;
             argumentCodes.push_back(arg);
         }
         if (node.right) {
             Bytecode arg;
             arg.type = Bytecode::Argument;
-            arg.op3(GenerateExpressionBytecode(context, values, overload.parameters[numbers].typeObject,
-                                               overload.parameters[numbers].typeMeta(), node.right, isGlobal));
-            arg.op1Value = numbers++;
+            arg.op3(GenerateExpressionRunner(context, values, {called->parameters[numbers].typeObject, called->parameters[numbers].typeMeta()}, isGlobal, node.right));
+
+            arg.op1Value = ++numbers;
             argumentCodes.push_back(arg);
         }
     }
+    else Unimplemented();
 
-
-    code.op1Location = Location::Call;
-    code.op1Value.function = &overload;
-
-    if (overload.returnType.typeName != nullptr)
-        code.result(context.insertTemporary(&types[*overload.returnType.typeName], overload.returnType.type));
-    else if (overload.isConstructor)
-        code.result(argumentCodes.front().op1());
-
-    for (auto& n : argumentCodes) {
+    for (auto& n : argumentCodes)
         context.codes.push_back(n);
+
+    if (node.operation == ParserOperation::Syscall)
+        code.type = Bytecode::Syscall;
+    else if (called->isMethod)
+        code.type = Bytecode::Method;
+    else
+        code.type = Bytecode::Function;
+
+    code.op1Value.function = called;
+
+    if (code.type != Bytecode::Syscall) {
+        if (called != nullptr and called->returnType.typeName != nullptr) {
+            if (not types.contains(*called->returnType.typeName))
+                Error("Given return type does not exist!");
+            code.result(context.insertTemporary(code.AssignType({&types[*called->returnType.typeName], called->returnType.type})));
+        }
+    }
+    else {
+        code.result(context.insertTemporary(code.AssignType({&types["u" + std::to_string(8 * Options::addressSize)], {}})));
     }
 
     return true;
-    */
-}
-
-void BytecodeCall(Context& context, std::vector<ParserTreeValue>& values, TypeObject* type, TypeMeta typeMeta,
-                  Bytecode& code, ParserTreeValue& node, bool isGlobal, bool isMethod, BytecodeOperand caller,
-                  bool* doNotStore) {
-    Unimplemented();
-    /*
-    if (code.type == Bytecode::Syscall) {
-        code.op1Location = Location::Literal;
-        code.op1Value = values[values[node.argument].left].literal->unsigned64;
-
-        if (not values[node.argument].argument) return;
-
-        std::vector<Bytecode> arguments;
-        uint64_t numbers = 0;
-        // now going through the arguments and adding them to the context
-        for (auto* current = &values[values[node.argument].argument]; ; current = &values[current->argument]) {
-            Bytecode arg;
-            arg.type = Bytecode::Argument;
-            arg.op1Value = numbers++;
-            GetTypes(context, values, arg.opType, arg.opMeta, current->left);
-            arg.op3(GenerateExpressionBytecode(context, values, arg.opType, arg.opMeta, current->left, isGlobal));
-            arguments.push_back(arg);
-            if (not current->argument) break;
-        }
-
-        for (auto& n : arguments) {
-            context.codes.push_back(n);
-        }
-
-        return;
-    }
-
-    // first off, let's get the types of the arguments
-    auto arguments = FindArgumentTypes(context, values, node);
-
-    if (isMethod or *node.identifier == type->typeName) {
-        // TODO: check if this actually works
-        for (auto& n : type->methods) {
-            if (n.name != nullptr and !n.name->empty() and *n.name == *node.identifier and !n.isDestructor) {
-                if (DoesFunctionMatchAndAddCall(arguments, context, n, values, node, code, isGlobal)) {
-                    if (doNotStore != nullptr and n.isConstructor)
-                        *doNotStore = true;
-                    return;
-                }
-            }
-        }
-
-        Error("Could not find a valid overload for method: " + *node.identifier + "!");
-    }
-    else {
-        if (not functions.contains(*node.identifier))
-            Error("Function identifier: " + *node.identifier + " not found!");
-
-        auto& overloads = functions[*node.identifier];
-        for (auto& overload : overloads) {
-            if (DoesFunctionMatchAndAddCall(arguments, context, overload, values, node, code, isGlobal)) {
-                if (doNotStore != nullptr and overload.isConstructor)
-                    *doNotStore = true;
-                return;
-            }
-        }
-
-        Error("Could not find a valid overload for function: " + *node.identifier + "!");
-    }
-
-    Error("Could not find any viable overload for: " + *node.identifier + "!");
-    */
 }
 
 // checks if the operator has been redefined for this type
 bool AssignOverloadedOperatorIfPossible(Context& context, std::vector<ParserTreeValue>& values, Bytecode& code,
                                         ParserTreeValue& node, const TypeInfo expected, TypeInfo& actual,
                                         bool isGlobal) {
-    // TODO: implement this
-    return false;
-    Unimplemented();
-    /*
     bool anyFound = false;
 
-    for (uint32_t n = 0; n < type->methods.size(); n++) {
-        // TODO: add support for overloading by arguments
-        // TODO: also a check for multiple overloads of given type could be added here
-        if (type->methods[n].overloaded != Operator::None
-            and type->methods[n].overloaded == node.operatorType
-            and type->methods[n].returnType.type.pointerLevel == typeMeta.pointerLevel) {
-            anyFound = true;
+    if (actual.type == nullptr) {
+        GetTypes(context, values, actual, node);
 
-            std::vector<TypeMetaPair> arguments;
-            if (node.left) {
-                TypeMetaPair arg;
-                GetTypes(context, values, arg.type, arg.meta, node.left);
-                arg.isLiteral = values[node.left].operation == ParserOperation::Literal;
-                arguments.emplace_back(arg);
+        DebugError(actual.type == nullptr, "Expected a type to be found!");
+    }
+
+    std::vector<TypeInfo> arguments{};
+    for (auto& method : actual.type->methods) {
+        if (method.overloaded != Operator::None
+                    and method.overloaded == node.operatorType
+                    and method.returnType.type.pointerLevel == actual.pointerLevel) {
+
+
+            if (not anyFound) {
+                anyFound = true;
+
+                if (node.left) {
+                    TypeInfo arg;
+                    GetTypes(context, values, arg, node.left);
+                    arguments.emplace_back(arg);
+                }
+                if (node.right) {
+                    TypeInfo arg;
+                    GetTypes(context, values, arg, node.right);
+                    arguments.emplace_back(arg);
+                }
             }
-            if (node.right) {
-                TypeMetaPair arg;
-                GetTypes(context, values, arg.type, arg.meta, node.right);
-                arg.isLiteral = values[node.right].operation == ParserOperation::Literal;
-                arguments.emplace_back(arg);
-            }
 
-
-            //auto arguments = FindArgumentTypes(context, values, node);
-
-            if (DoesFunctionMatchAndAddCall(arguments, context, type->methods[n], values, node, code, isGlobal)) {
+            if (AddCallIfMatches(context, &method, values, node, arguments, code, {}, isGlobal)) {
                 code.type = Bytecode::Method;
                 context.codes.push_back(code);
                 return true;
             }
+
         }
     }
 
     if (anyFound)
-        Error("Could not find any viable overload!");
+        Error("Found no viable overload for operator!");
 
     return false;
-    */
 }
 
-BytecodeOperand HandleCondition(Context& context, std::vector<ParserTreeValue>& values, uint16_t index,
-                                bool isGlobal, Bytecode::BytecodeInstruction condition) {
-    Unimplemented();
-    /*
-    Bytecode code;
-    TypeInfo found;
-    // we need to get the left side type first to know how to even compare this
 
-    GetTypes(context, values, found, values[index].left);
-    code.AssignType(found);
+void PerformTwoOperatorExpression(Context& context, std::vector<ParserTreeValue>& values, const TypeInfo expected, TypeInfo& actual, Bytecode& code, ParserTreeValue current, bool isGlobal) {
 
-    code.op1(GenerateExpressionBytecode(context, values, code.opType, code.opMeta.noReference(), values[index].left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, code.opType, code.opMeta.noReference(),
-                                        values[index].right, isGlobal));
-    code.op3(context.insertTemporary(&types["bool"], {}));
-    context.codes.push_back(code);
-    return code.op3();
-     */
+    code.op1(GenerateExpressionBytecode(context, values, expected, actual, current.left, isGlobal));
+    auto leftType = actual;
+    auto right = GenerateExpressionBytecode(context, values, leftType, actual, current.right, isGlobal);
+    code.op2(CheckCompatibilityAndConvertReference(context, leftType, actual, right));
+    actual = leftType;
+    code.AssignType(actual);
+}
+
+/// <summary>
+/// Handles a simple operation that takes 2 operands and returns a mofified R-VALUE (!) (there are checks for references)
+/// </summary>
+/// <param name="instruction">Instruction type</param>
+/// <param name="context">Context</param>
+/// <param name="values">tree value array</param>
+/// <param name="expected">Expected type</param>
+/// <param name="actual">Actual type</param>
+/// <param name="code">Current Bytecode</param>
+/// <param name="current">Current tree value</param>
+/// <param name="isGlobal">Is in global context</param>
+/// <returns></returns>
+BytecodeOperand HandleSimpleOperation(Bytecode::BytecodeInstruction instruction, Context& context, std::vector<ParserTreeValue>& values, const TypeInfo expected, TypeInfo& actual, Bytecode& code, ParserTreeValue current, bool isGlobal) {
+    code.type = instruction;
+
+    if (expected.isReference)
+        Error("Cannot generate a reference from assignment!");
+
+    PerformTwoOperatorExpression(context, values, expected, actual, code, current, isGlobal);
+
+    code.result(context.insertTemporary(actual));
+    return context.addCodeReturningResult(code);
+}
+
+BytecodeOperand HandleConditionalOperation(Bytecode::BytecodeInstruction instruction, Context& context, std::vector<ParserTreeValue>& values, const TypeInfo expected, TypeInfo& actual, Bytecode& code, ParserTreeValue current, bool isGlobal) {
+    code.type = instruction;
+
+    if (expected.isReference)
+        Error("Cannot generate a reference from assignment!");
+
+    PerformTwoOperatorExpression(context, values, expected, actual, code, current, isGlobal);
+
+    // since it's a condition we convert the resulting type to a bool
+    actual = {&types["bool"], {}};
+
+    code.result(context.insertTemporary(actual));
+    return context.addCodeReturningResult(code);
 }
 
 BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTreeValue>& values,
@@ -340,16 +333,12 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
         }
 
         // now let's finally perform the operation and check if the type can be converted
-        code.op1(GenerateExpressionBytecode(context, values, expected, actual, current.left, isGlobal));
-        if (not typeToUse.type->isPrimitive or not actual.type->isPrimitive) {
-            // if both are primitive they should be probably easy to convert
-            // thought it might be better to make an attribute to see if default conversions apply
-            // and if they do not then use constructors
+        code.op1(GenerateExpressionBytecode(context, values, typeToUse, actual, current.left, isGlobal));
+        if (not typeToUse.type->attributes.primitiveSimplyConvert or not actual.type->attributes.primitiveSimplyConvert) {
             // TODO: add default conversions type attribute
             // TODO: add a method that looks for constructors for given types to convert, like type.TryToConvert(...)
             Unimplemented();
         }
-        Warning("Conversions of primitive types are assumed as default for now, an attribute in types will be added!");
         actual = typeToUse;
 
         code.result(context.insertTemporary(actual));
@@ -358,459 +347,200 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
 
     case Operator::Assign: {
 
-        code.op1(GenerateExpressionBytecode(context, values, {}, actual, current.left, isGlobal));
+        PerformTwoOperatorExpression(context, values, {}, actual, code, current, isGlobal);
 
         DebugError(actual.type == nullptr, "Expected lvalue type to be assigned!");
         if (not actual.isMutable and not isGlobal and not current.isBeingDefined)
             Error("Assignment target is immutable!");
 
         // assigning the correct variant
-        code.AssignType(actual);
         if (actual.isReference) {
             code.type = Bytecode::AssignAt;
         }
         else
             code.type = Bytecode::AssignTo;
 
-        auto leftType = actual;
-        auto right = GenerateExpressionBytecode(context, values, leftType, actual, current.right, isGlobal);
-        code.op2(CheckCompatibilityAndConvertReference(context, leftType, actual, right));
-        actual = leftType;
-
-        code.result(context.insertTemporary(leftType));
+        code.result(context.insertTemporary(actual));
         return context.addCodeReturningResult(code);
     }
 
+    case Operator::BraceOpen: {
+        code.type = Bytecode::BeginScope;
+        return context.addCodeReturningResult(code);
+    }
+
+    case Operator::BraceClose: {
+        code.type = Bytecode::EndScope;
+        return context.addCodeReturningResult(code);
+    }
+
+    case Operator::Bracket: {
+        auto result = GenerateExpressionBytecode(context, values, expected, actual, current.value, isGlobal);
+
+        if (not current.next)
+            return result;
+
+        return GenerateExpressionBytecode(context, values, expected, actual, current.next, isGlobal, result);
+    }
+
+    case Operator::Brace: {
+        code.type = Bytecode::BraceListStart;
+
+        if (expected.pointerLevel == 0)
+            Error("Cannot assign a braced array list to a value!");
+
+        actual = expected;
+
+        auto startCodeIndex = context.codes.size();
+        actual = {actual, -1};
+        actual.isReference = false;
+        code.AssignType(actual);
+
+        context.codes.push_back(code);
+
+        uint64_t amount = 0;
+        auto* element = &current;
+        while (element->value != 0) {
+            element = &values[element->value];
+            Bytecode elementCode{};
+            elementCode.type = Bytecode::BraceListElement;
+            elementCode.AssignType(actual);
+            elementCode.op1(GenerateExpressionBytecode(context, values, actual, actual, element->left, isGlobal));
+            elementCode.op2({Location::Literal, ++amount, Type::unsignedInteger, Options::addressSize});
+            context.codes.emplace_back(elementCode);
+        }
+
+        context.codes[startCodeIndex].op1({
+            Location::Literal, amount, Type::unsignedInteger, Options::addressSize
+        });
+
+        // adding the last element with the return value passing it to the start too to set stack content
+        code.type = Bytecode::BraceListEnd;
+        context.codes[startCodeIndex].op3(code.op3(context.insertTemporary(expected)));
+        context.codes.push_back(code);
+
+        // now we need the get the address from the stack into a variable
+        code.AssignType(actual = expected);
+        code.type = Bytecode::Address;
+        code.op1(code.op3());
+        code.op3(context.insertTemporary(code.opType, code.opMeta));
+        return context.addCodeReturningResult(code);
+    }
+
+    case Operator::Index: {
+        if (expected.isReference)
+            code.type = Bytecode::GetIndexAddress;
+        else
+            code.type = Bytecode::GetIndexValue;
+
+        DebugError(passedOperand.location == Location::None, "Expected an operand to be passed!");
+        DebugError(not actual.isReference, "Expected previous value to provide a reference!");
+
+        if (actual.pointerLevel == 0)
+            Error("Cannot index in a value!");
+        actual = {actual, -1};
+
+        code.op1(passedOperand);
+        code.op2(GenerateExpressionBytecode(context, values, expected, actual, current.value, isGlobal));
+        code.op3(context.insertTemporary(actual));
+        context.codes.push_back(code);
+        if (current.next)
+            return GenerateExpressionBytecode(context, values, expected, actual, current.next, isGlobal, code.result());
+        return code.result();
+    }
+
+    // simply handled operations
+
+    case Operator::Add:
+        return HandleSimpleOperation(Bytecode::Add, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Subtract:
+        return HandleSimpleOperation(Bytecode::Subtract, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Multiply:
+        return HandleSimpleOperation(Bytecode::Multiply, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Divide:
+        return HandleSimpleOperation(Bytecode::Divide, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Modulo:
+        return HandleSimpleOperation(Bytecode::Modulo, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Power:
+        return HandleSimpleOperation(Bytecode::Power, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::And:
+        return HandleConditionalOperation(Bytecode::And, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::NAnd:
+        return HandleConditionalOperation(Bytecode::NAnd, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Or:
+        return HandleConditionalOperation(Bytecode::Or, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::NOr:
+        return HandleConditionalOperation(Bytecode::NOr, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::XOr:
+        return HandleConditionalOperation(Bytecode::XOr, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Imply:
+        return HandleConditionalOperation(Bytecode::Imply, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::NImply:
+        return HandleConditionalOperation(Bytecode::NImply, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Equals:
+        return HandleConditionalOperation(Bytecode::Equals, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::NotEqual:
+        return HandleConditionalOperation(Bytecode::NotEqual, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Greater:
+        return HandleConditionalOperation(Bytecode::Greater, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::GreaterEqual:
+        return HandleConditionalOperation(Bytecode::GreaterEqual, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::Lesser:
+        return HandleConditionalOperation(Bytecode::Lesser, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::LesserEqual:
+        return HandleConditionalOperation(Bytecode::LesserEqual, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinAnd:
+        return HandleSimpleOperation(Bytecode::BinAnd, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinNAnd:
+        return HandleSimpleOperation(Bytecode::BinNAnd, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinImply:
+        return HandleSimpleOperation(Bytecode::BinImply, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinNImply:
+        return HandleSimpleOperation(Bytecode::BinNImply, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinNOr:
+        return HandleSimpleOperation(Bytecode::BinNOr, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinNot:
+        return HandleSimpleOperation(Bytecode::BinNot, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinOr:
+        return HandleSimpleOperation(Bytecode::BinOr, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::BinXOr:
+        return HandleSimpleOperation(Bytecode::BinXOr, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::ShiftLeft:
+        return HandleSimpleOperation(Bytecode::ShiftLeft, context, values, expected, actual, code, current, isGlobal);
+
+    case Operator::ShiftRight:
+        return HandleSimpleOperation(Bytecode::ShiftRight, context, values, expected, actual, code, current, isGlobal);
+
     default:
-        Unimplemented();
+        break;
     }
-    /*
-    *case Operator::Assign:
-    if (not values[current.left].isLValued)
-        Error("Cannot assign to non-lvalues!");
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left, isGlobal));
-
-    // to handle the case when we need the address of thing in an array, seems to work correctly
-    if (context.codes.back().type == Bytecode::GetIndexValue) {
-        context.codes.back().type = Bytecode::GetIndexAddress;
-        typeMeta.isReference = true;
-        context.getVariableObject(context.codes.back().result()).meta = typeMeta;
-    }
-
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    if (typeMeta.isReference) {
-        code.type = Bytecode::AssignAt;
-        code.op3(context.insertTemporary(type, typeMeta));
-    }
-    else {
-        code.type = Bytecode::AssignTo;
-        code.op3(code.op1());
-    }
-
-    break;
-     *
-     *
-break;
-case Operator::Dereference:
-    if (typeMeta.isReference)
-        code.type = Bytecode::ToReference;
-    else code.type = Bytecode::Dereference;
-    // TODO: add the case for when the target is a reference already or something
-    code.op1(GenerateExpressionBytecode(context, values, type, {typeMeta, 1}, current.prefix, isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta));
-    break;
-case Operator::Not:
-    code.type = Bytecode::Not;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.prefix,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinNot:
-    code.type = Bytecode::BinNot;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.prefix,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Increment:
-    Error("Unfinished: increment!");
-    if (current.prefix) {
-        // create instructions like: var + 1 => temp, var = temp and give back temp
-
-        // adding
-        code.type = Bytecode::Add;
-        code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
-        code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-        code.op3(context.insertTemporary(type, typeMeta));
-        context.codes.push_back(code);
-
-        // assigning
-        code.type = Bytecode::AssignTo;
-        code.op2({});
-        context.codes.push_back(code);
-
-        return code.op3();
-    }
-    if (current.postfix) {
-        // create instructions like: var => temp1, var + 1 => temp2, var = temp2 and give back temp1
-
-        // saving the needed value into a temporary
-        code.type = Bytecode::Save;
-        code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.postfix, isGlobal));
-        auto value = code.op3(context.insertTemporary(type, typeMeta));
-
-        // adding
-        code.type = Bytecode::Add;
-        code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-        code.op3(context.insertTemporary(type, typeMeta));
-        context.codes.push_back(code);
-
-        // assigning
-        code.type = Bytecode::AssignTo;
-        code.op2({});
-        context.codes.push_back(code);
-
-        return value;
-    }
-    Error("Invalid increment!");
-case Operator::Decrement:
-    Error("Unfinished: decrement!");
-    if (current.prefix) {
-        // create instructions like: var + 1 => temp, var = temp and give back temp
-
-        // adding
-        code.type = Bytecode::Subtract;
-        code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.prefix, isGlobal));
-        code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-        code.op3(context.insertTemporary(type, typeMeta));
-        context.codes.push_back(code);
-
-        // assigning
-        code.type = Bytecode::AssignTo;
-        code.op2({});
-        context.codes.push_back(code);
-
-        return code.op3();
-    }
-    if (current.postfix) {
-        // create instructions like: var => temp1, var + 1 => temp2, var = temp2 and give back temp1
-
-        // saving the needed value into a temporary
-        code.type = Bytecode::Save;
-        code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.postfix, isGlobal));
-        auto value = code.op3(context.insertTemporary(type, typeMeta));
-
-        // adding
-        code.type = Bytecode::Subtract;
-        code.op2({Location::Literal, {1}, type->primitiveType, static_cast<uint8_t>(type->typeSize)});
-        code.op3(context.insertTemporary(type, typeMeta));
-        context.codes.push_back(code);
-
-        // assigning
-        code.type = Bytecode::AssignTo;
-        code.op2({});
-        context.codes.push_back(code);
-
-        return value;
-    }
-    Error("Invalid decrement!");
-    break;
-case Operator::Power:
-    code.type = Bytecode::Power;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Multiply:
-    code.type = Bytecode::Multiply;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Divide:
-    code.type = Bytecode::Divide;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Modulo:
-    code.type = Bytecode::Modulo;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Add:
-    code.type = Bytecode::Add;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Subtract:
-    code.type = Bytecode::Subtract;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::ShiftRight:
-    code.type = Bytecode::ShiftRight;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::ShiftLeft:
-    code.type = Bytecode::ShiftLeft;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::NAnd:
-    code.type = Bytecode::NAnd;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinNAnd:
-    code.type = Bytecode::BinNAnd;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::And:
-    code.type = Bytecode::And;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinAnd:
-    code.type = Bytecode::BinAnd;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::XOr:
-    code.type = Bytecode::XOr;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinXOr:
-    code.type = Bytecode::BinXOr;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::NOr:
-    code.type = Bytecode::NOr;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinNOr:
-    code.type = Bytecode::BinNOr;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Or:
-    code.type = Bytecode::Or;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinOr:
-    code.type = Bytecode::BinOr;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::NImply:
-    code.type = Bytecode::NImply;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Imply:
-    code.type = Bytecode::Imply;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinNImply:
-    code.type = Bytecode::BinNImply;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::BinImply:
-    code.type = Bytecode::BinImply;
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.left,
-                                        isGlobal));
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    code.op3(context.insertTemporary(type, typeMeta.noReference()));
-    break;
-case Operator::Assign:
-    if (not values[current.left].isLValued)
-        Error("Cannot assign to non-lvalues!");
-    code.op1(GenerateExpressionBytecode(context, values, type, typeMeta, current.left, isGlobal));
-
-    // to handle the case when we need the address of thing in an array, seems to work correctly
-    if (context.codes.back().type == Bytecode::GetIndexValue) {
-        context.codes.back().type = Bytecode::GetIndexAddress;
-        typeMeta.isReference = true;
-        context.getVariableObject(context.codes.back().result()).meta = typeMeta;
-    }
-
-    code.op2(GenerateExpressionBytecode(context, values, type, typeMeta.noReference(), current.right,
-                                        isGlobal));
-    if (typeMeta.isReference) {
-        code.type = Bytecode::AssignAt;
-        code.op3(context.insertTemporary(type, typeMeta));
-    }
-    else {
-        code.type = Bytecode::AssignTo;
-        code.op3(code.op1());
-    }
-
-    break;
-case Operator::Lesser:
-    return HandleCondition(context, values, index, isGlobal, Bytecode::Lesser);
-case Operator::Greater:
-    return HandleCondition(context, values, index, isGlobal, Bytecode::Greater);
-case Operator::Equals:
-    return HandleCondition(context, values, index, isGlobal, Bytecode::Equals);
-case Operator::LesserEqual:
-    return HandleCondition(context, values, index, isGlobal, Bytecode::LesserEqual);
-case Operator::GreaterEqual:
-    return HandleCondition(context, values, index, isGlobal, Bytecode::GreaterEqual);
-case Operator::NotEqual:
-    return HandleCondition(context, values, index, isGlobal, Bytecode::NotEqual);
-case Operator::BraceOpen:
-    code.type = Bytecode::BeginScope;
-    break;
-case Operator::BraceClose:
-    code.type = Bytecode::EndScope;
-    break;
-case Operator::Bracket:
-    if (not current.next)
-        return GenerateExpressionBytecode(context, values, type, typeMeta, current.value,
-                                          isGlobal);
-    Warning("Expressions grouped by brackets are serverly undertested and may not work correctly!");
-    code.result(GenerateExpressionBytecode(context, values, type, typeMeta, current.value, isGlobal));
-    // sets the meta to the result of the main code in the bracket
-    if (context.codes.size() > 1
-        && context.codes.back().result().location == Location::Variable)
-        typeMeta = context.getVariableObject(context.codes.back().result()).meta;
-    return GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal,
-                                      code.result());
-case Operator::Brace: {
-    code.type = Bytecode::BraceListStart;
-    code.opType = type;
-    code.opMeta = TypeMeta(typeMeta, -1).noReference();
-    auto startCodeIndex = context.codes.size();
-    context.codes.push_back(code);
-
-    uint64_t amount = 0;
-    auto* element = &current;
-    while (element->value != 0) {
-        element = &values[element->value];
-        Bytecode elementCode{};
-        elementCode.type = Bytecode::BraceListElement;
-        elementCode.opType = code.opType;
-        elementCode.opMeta = code.opMeta;
-        elementCode.op1(
-            GenerateExpressionBytecode(context, values, type, code.opMeta, element->left, isGlobal));
-        elementCode.op2({Location::Literal, ++amount, Type::unsignedInteger, Options::addressSize});
-        context.codes.emplace_back(elementCode);
-    }
-
-    context.codes[startCodeIndex].op1({
-        Location::Literal, amount, Type::unsignedInteger, Options::addressSize
-    });
-
-    // adding the last element with the return value passing it to the start too to set stack content
-    code.type = Bytecode::BraceListEnd;
-    context.codes[startCodeIndex].op3(code.op3(context.insertTemporary(type, code.opMeta)));
-    context.codes.push_back(code);
-
-    // now we need the get the address from the stack into a variable
-    code.opMeta = typeMeta;
-    code.type = Bytecode::Address;
-    code.op1(code.op3());
-    code.op3(context.insertTemporary(code.opType, code.opMeta));
-}
-
-break;
-case Operator::Index:
-    code.type = Bytecode::GetIndexValue;
-    code.op1(passedOperand);
-    code.op2(GenerateExpressionBytecode(context, values, type, TypeMeta(), current.value, isGlobal));
-    if (typeMeta.pointerLevel == 0)
-        Error("Internal: cannot index in a value!");
-    typeMeta.pointerLevel--;
-    code.op3(context.insertTemporary(type, typeMeta));
-    context.codes.push_back(code);
-    if (current.next)
-        return GenerateExpressionBytecode(context, values, type, typeMeta, current.next, isGlobal,
-                                          code.result());
-    return code.result();
-default:
-    Error("Invalid operator for default implementation!");
-}
-
-
-context
-.
-codes
-.
-push_back (code);
-return
-code
-.
-result();
-*/
 
     Unimplemented();
 }

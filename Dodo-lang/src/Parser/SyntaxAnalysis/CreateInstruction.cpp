@@ -52,7 +52,7 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
                 ParserError("Unexpected keyword after return!");
             }
             // return with value
-            if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->MatchKeyword(Keyword::End)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->Match(Keyword::End)) {
                 ParserError("Expected a ';' after expression!");
             }
             return std::move(output);
@@ -65,7 +65,7 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
             output.type = Instruction::If;
             // return with value
             auto result = ParseExpression(generator, output.valueArray, {});
-            if (not result->MatchOperator(Operator::BracketClose)) {
+            if (not result->Match(Operator::BracketClose)) {
                 ParserError("Expected a ')' after if expression!");
             }
             return std::move(output);
@@ -73,16 +73,16 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
 
         case Keyword::Else:
             if (keyword2 == Keyword::If) {
-                if (not current->MatchOperator(Operator::BracketOpen)) {
+                if (not current->Match(Operator::BracketOpen)) {
                     ParserError("Expected an opening bracket!");
                 }
                 output.type = Instruction::ElseIf;
-                if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+                if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->Match(Operator::BracketClose)) {
                     ParserError("Expected a closing bracket after expression!");
                 }
                 return std::move(output);
             }
-            if (not current->MatchOperator(Operator::BraceOpen)) {
+            if (not current->Match(Operator::BraceOpen)) {
                 ParserError("Expected an opening bracket!");
             }
             output.type = Instruction::Else;
@@ -90,39 +90,39 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
 
         case Keyword::Switch:
             ParserError("Due to their mind boggling mathematics switches are not implemented yet!");
-            if (keyword2 or not current->MatchOperator(Operator::BracketOpen)) {
+            if (keyword2 or not current->Match(Operator::BracketOpen)) {
                 ParserError("Expected an opening bracket!");
             }
             output.type = Instruction::Switch;
-            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->Match(Operator::BracketClose)) {
                 ParserError("Expected a closing bracket after expression!");
             }
             return std::move(output);
 
         case Keyword::While:
-            if (keyword2 or not current->MatchOperator(Operator::BracketOpen)) {
+            if (keyword2 or not current->Match(Operator::BracketOpen)) {
                 ParserError("Expected an opening bracket!");
             }
             output.type = Instruction::While;
-            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->Match(Operator::BracketClose)) {
                 ParserError("Expected a closing bracket after expression!");
             }
             return std::move(output);
 
         case Keyword::For:
-            if (keyword2 or not current->MatchOperator(Operator::BracketOpen)) {
+            if (keyword2 or not current->Match(Operator::BracketOpen)) {
                 ParserError("Expected an opening bracket!");
             }
             output.type = Instruction::For;
-            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchKeyword(Keyword::End)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->Match(Keyword::End)) {
                 ParserError("Expected a ';' after expression!");
             }
             output.expression2Index = output.valueArray.size();
-            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchKeyword(Keyword::End)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->Match(Keyword::End)) {
                 ParserError("Expected a ';' after expression!");
             }
             output.expression3Index = output.valueArray.size();
-            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->MatchOperator(Operator::BracketClose)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {}); not result->Match(Operator::BracketClose)) {
                 ParserError("Expected a closing bracket after expression!");
             }
             return std::move(output);
@@ -149,12 +149,12 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
         case Keyword::None:
         case Keyword::Let:
         case Keyword::Mut:
-        if (current->MatchOperator(Operator::BraceClose)) {
+        if (current->Match(Operator::BraceClose)) {
             output.type = Instruction::EndScope;
             (*braceCounter)--;
             return std::move(output);
         }
-        if (current->MatchOperator(Operator::BraceOpen)) {
+        if (current->Match(Operator::BraceOpen)) {
             output.type = Instruction::BeginScope;
             (*braceCounter)++;
             return std::move(output);
@@ -162,12 +162,12 @@ ParserInstructionObject ParseInstruction(Generator<LexerToken*>& generator, Lexe
         // expression
         output.type = Instruction::Expression;
         if (keyword1 == Keyword::Syscall) {
-            if (const auto result = ParseExpression(generator, output.valueArray, {aux, current}); not result->MatchKeyword(Keyword::End)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {aux, current}); not result->Match(Keyword::End)) {
                 ParserError("Expected a ';' after expression!");
             }
         }
         else {
-            if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->MatchKeyword(Keyword::End)) {
+            if (const auto result = ParseExpression(generator, output.valueArray, {current}); not result->Match(Keyword::End)) {
                 ParserError("Expected a ';' after expression!");
             }
         }

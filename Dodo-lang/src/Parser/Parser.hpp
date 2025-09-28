@@ -32,4 +32,6 @@ void PrepareFunctionArguments();
 
 void CalculateTypeSizes();
 
+void ResolveParameterTypes();
+
 #endif //DODO_LANG_PARSER_HPP

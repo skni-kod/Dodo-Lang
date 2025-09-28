@@ -8,12 +8,12 @@ std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToke
     ParserValueTypeObject output;
     LexerToken* current;
 
-    if (not first->MatchKeyword(Keyword::Void)) {
-        if (first->MatchKeyword(Keyword::Mut)) {
+    if (not first->Match(Keyword::Void)) {
+        if (first->Match(Keyword::Mut)) {
             first = generator();
             output.type.isMutable = true;
         }
-        if (first->MatchOperator(Operator::Constructor, Operator::Destructor)) {
+        if (first->Match(Operator::Constructor, Operator::Destructor)) {
             output.typeName = &voidDummy;
         }
         else if (first->type != Token::Identifier) {
@@ -24,18 +24,18 @@ std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToke
         }
 
 
-        while ((current = generator())->MatchOperator(Operator::Multiply, Operator::Dereference)) {
+        while ((current = generator())->Match(Operator::Multiply, Operator::Dereference)) {
             output.type.pointerLevel++;
         }
 
-        if (current->MatchOperator(Operator::Address)) {
+        if (current->Match(Operator::Address)) {
             output.type.isReference = true;
             current = generator();
         }
     }
     else current = generator();
 
-    if (current->type != Token::Identifier and not current->MatchKeyword(Keyword::Operator)) ParserError("Expected an identifier after function return type!");
+    if (current->type != Token::Identifier and not current->Match(Keyword::Operator)) ParserError("Expected an identifier after function return type!");
 
     return {output, current};
 }
@@ -88,10 +88,10 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
     // the compiler skips the given structure if it can in case of issues
     bool didFail = false;
     LexerToken* current = nullptr;
-    while (generator or (isInType and not current->MatchOperator(Operator::BraceClose))) {
+    while (generator or (isInType and not current->Match(Operator::BraceClose))) {
         current = generator();
         // TYPES
-        if (current->MatchKeyword(Keyword::Type) or current->MatchKeyword(Keyword::Primitive)) {
+        if (current->Match(Keyword::Type) or current->Match(Keyword::Primitive)) {
             try {
                 if (isInType) {
                     ParserError("Nested type declaration is prohibited!");
@@ -101,19 +101,19 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
             }
             catch (ParserException& e) {
                 didFail = true;
-                while (not current->MatchOperator(Operator::BraceClose) and not current->MatchKeyword(Keyword::End)) {
+                while (not current->Match(Operator::BraceClose) and not current->Match(Keyword::End)) {
                     current = generator();
                 }
                 continue;
             }
         }
 
-        if (isInType and current->MatchOperator(Operator::BraceClose)) {
+        if (isInType and current->Match(Operator::BraceClose)) {
             return didFail;
         }
 
         // variable or member
-        if (current->MatchKeyword(Keyword::Let)) {
+        if (current->Match(Keyword::Let)) {
             ParserMemberVariableParameter out;
             ParseExpression(generator, out.definition, {current});
 
@@ -128,7 +128,7 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
         else {
             if (isInType) {
                 bool isDestructor = false;
-                if (current->MatchOperator(Operator::Destructor)) {
+                if (current->Match(Operator::Destructor)) {
                     isDestructor = true;
                     current = generator();
                 }
@@ -145,7 +145,7 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
             auto [thingType, thingIdentifier] = ParseValueType(generator, current);
 
             if (isInType) {
-                if (thingIdentifier->MatchKeyword(Keyword::Operator)) {
+                if (thingIdentifier->Match(Keyword::Operator)) {
                     current = generator();
                     if (current->type != Token::Operator) {
                         ParserError("Expected an operator!");

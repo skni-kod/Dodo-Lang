@@ -241,7 +241,7 @@ struct Bytecode {
     BytecodeOperand result(BytecodeOperand op);
 
     void AssignType(VariableObject& variable);
-    void AssignType(TypeInfo info);
+    TypeInfo AssignType(TypeInfo info);
     void AssignType(TypeObject* typeObject, TypeMeta meta);
 };
 

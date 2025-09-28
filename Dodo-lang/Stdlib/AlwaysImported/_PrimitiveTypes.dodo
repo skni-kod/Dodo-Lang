@@ -1,23 +1,23 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains definitions of basic primitive types.                                  ┃
 // ┃ They behave according to base function definitions.                                       ┃
-// ┃ Last revision: 05.04.2025                                                                 ┃
+// ┃ Last revision: 28.09.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-primitive SIGNED_INTEGER   <1> type i8 ;
-primitive SIGNED_INTEGER   <2> type i16;
-primitive SIGNED_INTEGER   <4> type i32;
-primitive SIGNED_INTEGER   <8> type i64;
+primitive SIGNED_INTEGER   <1> type i8  (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive SIGNED_INTEGER   <2> type i16 (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive SIGNED_INTEGER   <4> type i32 (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive SIGNED_INTEGER   <8> type i64 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 
-primitive UNSIGNED_INTEGER <1> type u8 ;
-primitive UNSIGNED_INTEGER <2> type u16;
-primitive UNSIGNED_INTEGER <4> type u32;
-primitive UNSIGNED_INTEGER <8> type u64;
+primitive UNSIGNED_INTEGER <1> type u8  (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive UNSIGNED_INTEGER <2> type u16 (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive UNSIGNED_INTEGER <4> type u32 (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive UNSIGNED_INTEGER <8> type u64 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 
-primitive FLOATING_POINT   <2> type f16;
-primitive FLOATING_POINT   <4> type f32;
-primitive FLOATING_POINT   <8> type f64;
+primitive FLOATING_POINT   <2> type f16 (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive FLOATING_POINT   <4> type f32 (primitiveAssignFromLiteral, primitiveSimplyConvert);
+primitive FLOATING_POINT   <8> type f64 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 
-primitive UNSIGNED_INTEGER <1> type char;
+primitive UNSIGNED_INTEGER <1> type char (primitiveAssignFromLiteral, primitiveSimplyConvert);
 
-primitive UNSIGNED_INTEGER <1> type bool;
+primitive UNSIGNED_INTEGER <1> type bool (primitiveAssignFromLiteral, primitiveSimplyConvert);

@@ -56,12 +56,12 @@ bool IsSplittableOperator(const LexerToken* token) {
 uint32_t FindFirstClosed(const Operator::Type groupType, const std::pair<uint32_t, uint32_t>& range, const std::vector <LexerToken*>& tokens, uint32_t startLevel = 0) {
     for (uint32_t n = range.first; n < range.second; n++) {
         // opening
-        if (tokens[n]->MatchOperator(static_cast <Operator::Type>(groupType - 2))) {
+        if (tokens[n]->Match(static_cast <Operator::Type>(groupType - 2))) {
             startLevel++;
         }
-        else if (tokens[n]->MatchOperator(static_cast <Operator::Type>(groupType - 1))) {
+        else if (tokens[n]->Match(static_cast <Operator::Type>(groupType - 1))) {
             if (startLevel == 0) {
-                ParserError("Invalid bracket/brace/index sequence!");
+                Error("Invalid bracket/brace/index sequence!");
             }
             if (startLevel == 1) {
                 return n;
@@ -69,7 +69,7 @@ uint32_t FindFirstClosed(const Operator::Type groupType, const std::pair<uint32_
             startLevel--;
         }
     }
-    ParserError("Could not find closing bracket/brace/index!");
+    Error("Could not find closing bracket/brace/index!");
     return 0;
 }
 
@@ -80,17 +80,17 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
 
 ParserTreeValue ParseExpressionCast(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range, std::vector <LexerToken*>& tokens) {
     auto [start, end] = range;
-    if (tokens[start]->type != Token::Identifier) ParserError("Expected a type identifier!");
+    if (tokens[start]->type != Token::Identifier) Error("Expected a type identifier!");
     ParserTreeValue out;
     out.operation = ParserOperation::TypeIdentifier;
     out.identifier = tokens[start]->text;
     for (uint32_t n = start + 1; n < end; n++) {
-        if (tokens[n]->MatchOperator(Operator::Multiply, Operator::Dereference)) out.typeMeta.pointerLevel++;
-        else if (tokens[n]->MatchOperator(Operator::Address)) {
-            if (n != end - 1) ParserError("Reference operator must be the last!");
+        if (tokens[n]->Match(Operator::Multiply, Operator::Dereference)) out.typeMeta.pointerLevel++;
+        else if (tokens[n]->Match(Operator::Address)) {
+            if (n != end - 1) Error("Reference operator must be the last!");
             out.typeMeta.isReference = true;
         }
-        else ParserError("Invalid type modifier!");
+        else Error("Invalid type modifier!");
     }
     valueArray.push_back(out);
     return out;
@@ -103,7 +103,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
 
     uint32_t length = end - start;
     if (length == 0) {
-        ParserError("Internal bug: Empty expression step!");
+        Error("Internal bug: Empty expression step!");
     }
 
     LexerToken* mostImportant = nullptr;
@@ -125,19 +125,19 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 continue;
                 case Operator::BraceClose:
                     if (braceLevel == 0) {
-                        ParserError("Invalid braces!");
+                        Error("Invalid braces!");
                     }
                 braceLevel--;
                 continue;
                 case Operator::BracketClose:
                     if (bracketLevel == 0) {
-                        ParserError("Invalid brackets!");
+                        Error("Invalid brackets!");
                     }
                 bracketLevel--;
                 continue;
                 case Operator::IndexClose:
                     if (indexLevel == 0) {
-                        ParserError("Invalid index brackets!");
+                        Error("Invalid index brackets!");
                     }
                 indexLevel--;
                 continue;
@@ -162,10 +162,10 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
 
     // now we have found (or not) the most important splitting operand and can construct something out of it
     if (mostImportant != nullptr and mostImportant->op != Operator::Address and mostImportant->op != Operator::Dereference
-        and not tokens[end - 1]->MatchOperator(Operator::Increment, Operator::Decrement)
-        and not tokens[start]->MatchOperator(Operator::Increment, Operator::Decrement)) {
+        and not tokens[end - 1]->Match(Operator::Increment, Operator::Decrement)
+        and not tokens[start]->Match(Operator::Increment, Operator::Decrement)) {
         if (length < 3) {
-            ParserError("Invalid expression!");
+            Error("Invalid expression!");
         }
 
         out.operation = ParserOperation::Operator;
@@ -210,13 +210,13 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 out.literal = tokens[start];
             }
             else if (tokens[start]->type == Token::Keyword) {
-                ParserError("Are keywords valid in expressions? Null maybe?");
+                Error("Are keywords valid in expressions? Null maybe?");
             }
             else {
-                ParserError("Invalid single token remained in expression!");
+                Error("Invalid single token remained in expression!");
             }
         }
-        else if (tokens[start]->MatchOperator(Operator::BracketOpen)) {
+        else if (tokens[start]->Match(Operator::BracketOpen)) {
             auto closing = FindFirstClosed(Operator::Bracket, {start + 1, end}, tokens, 1);
             // bracket
             if (previousOperation == ParserOperation::Variable or previousOperation == ParserOperation::Member and auxToken != nullptr) {
@@ -231,16 +231,16 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             }
             else if (auxToken != nullptr and previousOperation == ParserOperation::None) {
                 // probably syscall
-                if (not auxToken->MatchKeyword(Keyword::Syscall)) {
-                    ParserError("Internal bug: Called syscall from non syscall expression!");
+                if (not auxToken->Match(Keyword::Syscall)) {
+                    Error("Internal bug: Called syscall from non syscall expression!");
                 }
                 if (length < 3) {
-                    ParserError("Syscall MUST have a number!");
+                    Error("Syscall MUST have a number!");
                 }
                 out.operation = ParserOperation::Syscall;
                 out.argument = ParserArgumentsStep(valueArray, {start + 1, closing}, tokens);
-                if (valueArray[valueArray[out.argument].left].operation != ParserOperation::Literal or not valueArray[valueArray[out.argument].left].literal->MatchNumber(Type::unsignedInteger)) {
-                    ParserError("First argument of syscall needs to be an unsigned constant!");
+                if (valueArray[valueArray[out.argument].left].operation != ParserOperation::Literal or not valueArray[valueArray[out.argument].left].literal->Match(Type::unsignedInteger)) {
+                    Error("First argument of syscall needs to be an unsigned constant!");
                 }
                 out.code = valueArray[valueArray[out.argument].left].literal->_unsigned;
             }
@@ -258,7 +258,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 out.next = valueArray.size() - 1;
             }
         }
-        else if (tokens[start]->MatchOperator(Operator::BraceOpen)) {
+        else if (tokens[start]->Match(Operator::BraceOpen)) {
             auto closing = FindFirstClosed(Operator::Brace, {start + 1, end}, tokens, 1);
             // brace
             out.operation = ParserOperation::Group;
@@ -270,7 +270,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 out.next = valueArray.size() - 1;
             }
         }
-        else if (tokens[start]->MatchOperator(Operator::IndexOpen)) {
+        else if (tokens[start]->Match(Operator::IndexOpen)) {
             auto closing = FindFirstClosed(Operator::Index, {start + 1, end}, tokens, 1);
             // index
             out.operation = ParserOperation::Group;
@@ -283,7 +283,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 out.next = valueArray.size() - 1;
             }
         }
-        else if (tokens[start]->type == Token::Identifier and not tokens[end - 1]->MatchOperator(Operator::Increment, Operator::Decrement)) {
+        else if (tokens[start]->type == Token::Identifier and not tokens[end - 1]->Match(Operator::Increment, Operator::Decrement)) {
             // a variable with members or call
             out.operation = ParserOperation::Variable;
             out.identifier = tokens[start]->text;
@@ -299,7 +299,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             out.isLValued = true;
 
         }
-        else if (tokens[start]->MatchKeyword(Keyword::Dot) and tokens[start + 1]->type == Token::Identifier) {
+        else if (tokens[start]->Match(Keyword::Dot) and tokens[start + 1]->type == Token::Identifier) {
             out.operation = ParserOperation::Member;
             out.identifier = tokens[start + 1]->text;
             if (length > 2) {
@@ -316,13 +316,13 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
                 out.isLValued = true;
             }
         }
-        else if (tokens[start]->MatchKeyword(Keyword::Syscall)) {
+        else if (tokens[start]->Match(Keyword::Syscall)) {
             if (length < 4) {
-                ParserError("Invalid syscall!");
+                Error("Invalid syscall!");
             }
             out = ParseExpressionStep(valueArray, {start + 1, end}, tokens, ParserOperation::None, tokens[start]);
         }
-        else if (tokens[start]->MatchOperator(Operator::Dereference, Operator::Address, Operator::Increment, Operator::Decrement, Operator::Not, Operator::BinNot)) {
+        else if (tokens[start]->Match(Operator::Dereference, Operator::Address, Operator::Increment, Operator::Decrement, Operator::Not, Operator::BinNot)) {
             out.operation = ParserOperation::SingleOperator;
             out.operatorType = tokens[start]->op;
             valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end}, tokens));
@@ -330,7 +330,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             // TODO: lvalue at this point is probably  useless
             out.isLValued = true;
         }
-        else if (tokens[end - 1]->MatchOperator(Operator::Increment, Operator::Decrement)) {
+        else if (tokens[end - 1]->Match(Operator::Increment, Operator::Decrement)) {
             out.operation = ParserOperation::SingleOperator;
             out.operatorType = tokens[end - 1]->op;
             valueArray.push_back(ParseExpressionStep(valueArray, {start, end - 1}, tokens));
@@ -339,11 +339,11 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             out.isLValued = true;
         }
         else
-            ParserError("Unsupported expression step!");
+            Error("Unsupported expression step!");
     }
 
-    if (auxToken != nullptr and auxToken->MatchKeyword(Keyword::Syscall) and out.operation != ParserOperation::Syscall) {
-        ParserError("Expected a syscall after syscall keyword!");
+    if (auxToken != nullptr and auxToken->Match(Keyword::Syscall) and out.operation != ParserOperation::Syscall) {
+        Error("Expected a syscall after syscall keyword!");
     }
     
     return out;
@@ -371,21 +371,21 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
                 continue;
                 case Operator::BraceClose:
                     if (braceLevel == 0) {
-                        ParserError("Invalid braces!");
+                        Error("Invalid braces!");
                     }
                 braceLevel--;
                 //continue;
                 break;
                 case Operator::BracketClose:
                     if (bracketLevel == 0) {
-                        ParserError("Invalid brackets!");
+                        Error("Invalid brackets!");
                     }
                 bracketLevel--;
                 //continue;
                 break;
                 case Operator::IndexClose:
                     if (indexLevel == 0) {
-                        ParserError("Invalid index brackets!");
+                        Error("Invalid index brackets!");
                     }
                 indexLevel--;
                 //continue;
@@ -394,7 +394,7 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
                     break;
             }
         }
-        if (braceLevel == 0 and bracketLevel == 0 and indexLevel == 0 and (tokens[n]->MatchKeyword(Keyword::Comma) or (n == end - 1 and n++))) {
+        if (braceLevel == 0 and bracketLevel == 0 and indexLevel == 0 and (tokens[n]->Match(Keyword::Comma) or (n == end - 1 and n++))) {
             ParserTreeValue out;
 
             out.operation = operationType;
@@ -489,10 +489,10 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         }
 
         if ((bracketLevel == 0 and braceLevel == 0 and indexLevel == 0 and IsExpressionEndToken(tokens[n])
-                and not tokens[n]->MatchOperator(Operator::BraceClose, Operator::BracketClose, Operator::IndexClose))
+                and not tokens[n]->Match(Operator::BraceClose, Operator::BracketClose, Operator::IndexClose))
             or braceLevel == -1 or bracketLevel == -1 or indexLevel == -1) {
             if (n != tokens.size() - 1) {
-                ParserError("Invalid expression!");
+                Error("Invalid expression!");
             }
             last = tokens.back();
             tokens.pop_back();
@@ -504,12 +504,12 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
     }
 
     if (tokens.empty()) {
-        ParserError("Empty expression!");
+        Error("Empty expression!");
     }
 
     // finding dereference operators
     for (int32_t n = 0; n < tokens.size(); n++) {
-        if (tokens[n]->MatchOperator(Operator::Multiply)) {
+        if (tokens[n]->Match(Operator::Multiply)) {
             if ((n >= 1 and tokens[n - 1]->type == Token::Operator and tokens.size() > n - 2) or n == 0) {
                 tokens[n]->op = Operator::Dereference;
             }
@@ -517,10 +517,10 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
     }
 
     // detecting if it's a declaration, if it is then some structure must be built
-    if (tokens.size() >= 3 and tokens[0]->MatchKeyword(Keyword::Let)) {
+    if (tokens.size() >= 3 and tokens[0]->Match(Keyword::Let)) {
         uint32_t first = 0;
 
-        if (tokens[1]->MatchKeyword(Keyword::Mut)) {
+        if (tokens[1]->Match(Keyword::Mut)) {
             first = 2;
         }
         else {
@@ -528,23 +528,23 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         }
 
         if (tokens[first]->type != Token::Identifier) {
-            ParserError("Expected an identifier after declaration!");
+            Error("Expected an identifier after declaration!");
         }
 
         uint8_t pointerLevel = 0;
         bool isReference = false;
         uint32_t name = 0;
         for (uint32_t n = first + 1; n < tokens.size(); n++) {
-            if (tokens[n]->MatchOperator(Operator::Multiply, Operator::Dereference)) {
-                if (isReference) ParserError("Cannot make a pointer to reference!");
+            if (tokens[n]->Match(Operator::Multiply, Operator::Dereference)) {
+                if (isReference) Error("Cannot make a pointer to reference!");
                 pointerLevel++;
             }
             else if (tokens[n]->type == Token::Identifier) {
                 name = n;
                 break;
             }
-            else if (tokens[n]->MatchOperator(Operator::Address)) {
-                if (isReference) ParserError("Cannot create a double reference!");
+            else if (tokens[n]->Match(Operator::Address)) {
+                if (isReference) Error("Cannot create a double reference!");
                 isReference = true;
             }
             else {
@@ -553,7 +553,7 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         }
 
         if (name == 0) {
-            ParserError("Expected name identifier after type!");
+            Error("Expected name identifier after type!");
         }
 
         valueArray.reserve(valueArray.size() + tokens.size());
@@ -575,8 +575,8 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
         valueArray.emplace_back(var);
 
         if (name != tokens.size() - 1) {
-            if (not tokens[name + 1]->MatchOperator(Operator::Assign)) {
-                ParserError("Invalid use of newly declared variable!");
+            if (not tokens[name + 1]->Match(Operator::Assign)) {
+                Error("Invalid use of newly declared variable!");
             }
             valueArray[startIndex].value = valueArray.size();
             valueArray.emplace_back();

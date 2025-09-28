@@ -80,6 +80,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
 
     // Step 2: processing type sizes, alignments and names
     CalculateTypeSizes();
+    ResolveParameterTypes();
 
     if (Options::informationLevel > Options::InformationLevel::minimal) {
         std::cout << "INFO L2: Finished type parsing with: " << types.size() << " type definition(s)\n";

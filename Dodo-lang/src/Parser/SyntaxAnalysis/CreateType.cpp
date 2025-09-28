@@ -1,4 +1,5 @@
 #include "AnalysisInternal.hpp"
+#include "ErrorHandling.hpp"
 #include "SyntaxAnalysis.hpp"
 #include "TypeObject.hpp"
 
@@ -7,92 +8,130 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
     TypeObject type;
 
     // check if it's primitive
-    if (firstToken->MatchKeyword(Keyword::Primitive)) {
+    if (firstToken->Match(Keyword::Primitive)) {
        type.isPrimitive = true;
         // format:
         // primitive (SIGNED_INTEGER/UNSIGNED_INTEGER)<1/2/4/8>/FLOATING_POINT<2/4/8>
 
         if (not generator) {
-            ParserError("Expected primitive type identifier!");
+            Error("Expected primitive type identifier!");
         }
         auto current = generator();
 
-        if (current->MatchKeyword(Keyword::TypeSI)) {
+        if (current->Match(Keyword::TypeSI)) {
             type.primitiveType = Type::signedInteger;
         }
-        else if (current->MatchKeyword(Keyword::TypeUI)) {
+        else if (current->Match(Keyword::TypeUI)) {
             type.primitiveType = Type::unsignedInteger;
         }
-        else if (current->MatchKeyword(Keyword::TypeFP)) {
+        else if (current->Match(Keyword::TypeFP)) {
             type.primitiveType = Type::floatingPoint;
         }
         else {
-            ParserError("Invalid primitive type identifier!");
+            Error("Invalid primitive type identifier!");
         }
 
         current = generator();
 
-        if (not generator or not current->MatchOperator(Operator::Lesser)) {
-            ParserError("Expected an opening triangle bracket after primitive type identifier!");
+        if (not generator or not current->Match(Operator::Lesser)) {
+            Error("Expected an opening triangle bracket after primitive type identifier!");
         }
 
         current = generator();
-        if (not current->MatchNumber(Type::unsignedInteger)) {
-            ParserError("Expected primitive size after bracket opening!");
+        if (not current->Match(Type::unsignedInteger)) {
+            Error("Expected primitive size after bracket opening!");
         }
         type.typeAlignment = type.typeSize = current->_unsigned;
         if (type.primitiveType == Type::floatingPoint) {
             if (type.typeSize != 2 and type.typeSize != 4 and type.typeSize != 8) {
-                ParserError("Only sizes of 2, 4 and 8 bytes are accepted for float primitives!");
+                Error("Only sizes of 2, 4 and 8 bytes are accepted for float primitives!");
             }
         }
         else {
             if (type.typeSize != 1 and type.typeSize != 2 and
                 type.typeSize != 4 and type.typeSize != 8) {
-                ParserError("Only sizes of 1, 2, 4 and 8 bytes are accepted for integer primitives!");
+                Error("Only sizes of 1, 2, 4 and 8 bytes are accepted for integer primitives!");
             }
         }
 
-        if (not generator or not generator()->MatchOperator(Operator::Greater)) {
-            ParserError("Expected a closing bracket after primitive type identifier!");
+        if (not generator or not generator()->Match(Operator::Greater)) {
+            Error("Expected a closing bracket after primitive type identifier!");
         }
 
-        if (not generator or not generator()->MatchKeyword(Keyword::Type)) {
-            ParserError("Expected \"type\" keyword after primitive type identifier!");
+        if (not generator or not generator()->Match(Keyword::Type)) {
+            Error("Expected \"type\" keyword after primitive type identifier!");
         }
     }
 
     // now actual type name, etc.
     if (not generator) {
-        ParserError("Expected type name after type keyword!");
+        Error("Expected type name after type keyword!");
     }
     auto current = generator();
-    if (current->type != Token::Identifier) {
-        ParserError("Expected type name identifier after type keyword!");
+    if (not current->Match(Token::Identifier)) {
+        Error("Expected type name identifier after type keyword!");
 
     }
     if (types.contains(*current->text)) {
-        ParserError("Type name duplication: \"" + *current->text + "\"!");
+        Error("Type name duplication: \"" + *current->text + "\"!");
     }
     type.typeName = *current->text;
 
     if (not generator) {
-        ParserError("Expected an opening bracket or block end after type name!");
+        Error("Expected an opening bracket or block end after type name!");
     }
     current = generator();
-    if (current->MatchKeyword(Keyword::End)) {
+
+    // type attributes
+    if (current->Match(Operator::BracketOpen)) {
+
+#define AssignTypeAttributeError(condition, error) if (condition) Error(error);
+
+        /// <summary>
+        /// Checks if current identifier matches the attribute names,
+        /// varadic arguments are the condition and text for an additional constraint error
+        /// </summary>
+        /// <param name="attribute">Attribute to assign</param>
+#define AssignTypeAttribute(attribute, ...) if (*current->text == MACRO_STRING(attribute)) { \
+        PlaceIf2Arg(__VA_ARGS__, AssignTypeAttributeError(__VA_ARGS__),) \
+        type.attributes.attribute = true; continue; }
+
+        do {
+            current = generator();
+            if (not current->Match(Token::Identifier))
+                Error("Expected an attribute identifier!");
+
+            AssignTypeAttribute(TypeAttribute_primitiveAssignFromLiteral,
+                not type.isPrimitive, std::string("Cannot assign attribute: ") +
+                MACRO_STRING(TypeAttribute_primitiveAssignFromLiteral) + " to a compound type!")
+
+            AssignTypeAttribute(TypeAttribute_primitiveSimplyConvert,
+                not type.isPrimitive, std::string("Cannot assign attribute: ") +
+                MACRO_STRING(TypeAttribute_primitiveSimplyConvert) + " to a compound type!")
+
+            Error("Unknown type attribute: " + *current->text);
+        }
+        while ((current = generator())->Match(Keyword::Comma));
+#undef  AssignTypeAttribute
+#undef  AssignTypeAttributeError
+        if (not current->Match(Operator::BracketClose))
+            Error("Expected an attribute identifier!");
+        current = generator();
+    }
+
+    if (current->Match(Keyword::End)) {
         types.emplace(type.typeName, std::move(type));
         return;
     }
-    if (not current->MatchOperator(Operator::BraceOpen)) {
-        ParserError("Expected an opening bracket or block end after type name!");
+    if (not current->Match(Operator::BraceOpen)) {
+        Error("Expected an opening bracket or block end after type name!");
     }
 
     // since members and methods are very similar to variables and functions they can use the same functions
     RunSyntaxAnalysis(generator, true, &type);
 
     if (not type.isPrimitive and type.members.empty()) {
-        ParserError("Member-less complex types are prohibited!");
+        Error("Member-less complex types are prohibited!");
     }
 
     types.emplace(type.typeName, std::move(type));
@@ -151,8 +190,26 @@ void CalculateTypeSizes() {
             break;
         }
         if (currentCount == lastCount) {
-            ParserError("Type size calculation deadlock!");
+            Error("Type size calculation deadlock!");
         }
         lastCount = currentCount;
     }
+}
+
+void ResolveCallParameterTypes(ParserFunctionMethod& called) {
+    for (auto& n : called.parameters) {
+        if (not types.contains(n.typeName()))
+            Error("Type: " + n.typeName() + " used in parameter not found!");
+        n.typeObject = &types[n.typeName()];
+    }
+}
+
+void ResolveParameterTypes() {
+    for (auto& n : types)
+        for (auto& m : n.second.methods)
+            ResolveCallParameterTypes(m);
+
+    for (auto& n : functions)
+        for (auto& m : n.second)
+            ResolveCallParameterTypes(m);
 }

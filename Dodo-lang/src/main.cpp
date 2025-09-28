@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     catch (CompilerException& e) {
-        std::cout << *e.what();
+        std::cout << e.what();
         std::cout << "Lexing has failed. Compilation aborted!\n";
         return 1;
     }
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     catch (CompilerException& e) {
-        std::cout << *e.what();
+        std::cout << e.what();
         std::cout << "Parsing has failed. Compilation aborted!\n";
         return 1;
     }

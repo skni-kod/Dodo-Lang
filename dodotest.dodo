@@ -1,4 +1,6 @@
+import "Print.dodo";
+
 i32 Main() {
-    let i32 test = 5;
-    return test;
+    let i32* test = {1, 2};
+    return test[1];
 }

@@ -18,8 +18,8 @@ TypeInfo::TypeInfo(TypeMeta meta, TypeObject* type) : TypeMeta(meta) {
 
 TypeInfo::TypeInfo(TypeObject* type, TypeMeta meta) : TypeInfo(meta, type) {}
 
-TypeInfo::TypeInfo(const TypeInfo& old, int8_t pointerLevelDifference) : TypeMeta(old, pointerLevelDifference) {
-    type = old.type;
+TypeInfo::TypeInfo(const TypeInfo& old, int8_t pointerLevelDifference) {
+    *this = TypeInfo(TypeMeta(old, pointerLevelDifference), old.type);
 }
 
 TypeMeta TypeInfo::meta() const {
@@ -93,7 +93,7 @@ TypeMeta::TypeMeta(const TypeMeta& old, const int8_t pointerLevelDifference) {
     if (pointerLevelDifference == +1 and old.pointerLevel == 0x7F) {
         Error("Maximum pointer level reached!");
     }
-    TypeMeta(old.pointerLevel + pointerLevelDifference, old.isMutable, old.isReference);
+    *this = TypeMeta(old.pointerLevel + pointerLevelDifference, old.isMutable, old.isReference);
 }
 
 TypeMeta TypeMeta::noReference() const {
@@ -105,6 +105,16 @@ TypeMeta TypeMeta::reference() const {
     TypeMeta t = *this;
     t.isReference = true;
     return t;
+}
+
+char Type::FirstCharacter(TypeEnum type) {
+    switch (type) {
+    case unsignedInteger: return 'u';
+    case signedInteger: return 'i';
+    case floatingPoint: return 'f';
+    case address: return 'u';
+    }
+    Unimplemented();
 }
 
 uint8_t TypeMeta::variableSize(TypeObject& type) const {
