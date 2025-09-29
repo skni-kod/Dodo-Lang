@@ -792,11 +792,6 @@ namespace x86_64 {
 
                 // now doing the call itself and setting return value
                 if (context.codes[index].type == Bytecode::Syscall) {
-                    instructions.emplace_back(mov,
-                                              AsmOperand(Location::reg, Type::unsignedInteger, false, 8, RAX),
-                                              AsmOperand(Location::Literal, Type::unsignedInteger, false, 8,
-                                                         context.codes[index].op1Value.ui)
-                    );
                     instructions.emplace_back(syscall);
                 }
                 else {

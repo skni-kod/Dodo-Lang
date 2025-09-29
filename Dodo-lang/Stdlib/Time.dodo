@@ -1,20 +1,19 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains functions for manipulating time.                                       ┃
-// ┃ Last revision: 25.04.2025                                                                 ┃
+// ┃ Last revision: 29.09.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 type Timespec {
     let mut u64 s;
     let mut u64 ns;
 
-    // TODO: change this when RAII is added
-    void operator=(let mut Timespec& spec, let u64 seconds) {
-        spec.s = seconds;
-        spec.ns = 0;
+    Timespec(let mut u64 seconds, let mut u64 nanoseconds) {
+        this.s = seconds;
+        this.ns = nanoseconds;
         return;
     }
 }
 
 i32 Sleep(let mut Timespec* duration, let mut Timespec* remaining) {
-    return (syscall(35, duration, remaining)) cast i32;
+    return (syscall(35, duration, remaining)) convert i32;
 }

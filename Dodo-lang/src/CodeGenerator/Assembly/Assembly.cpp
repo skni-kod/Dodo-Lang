@@ -141,7 +141,7 @@ AsmOperand Context::getLocationStackBias(AsmOperand& op) {
                 return n.content.copyTo(Location::sta, temp);
             }
         }
-        for (uint16_t n = 0; n < registers.size(); n++) {
+        for (auto n = 0; n < registers.size(); n++) {
             if (registers[n].content == op) {
                 return op.copyTo(Location::reg, n);
             }
@@ -481,7 +481,7 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(Context& context, std::vector<As
     if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
     // TODO: there was something to improve with counting here
     auto& content = op == Location::reg ? context.registers[value.reg].content : context.getContentRefAtOffset(value.offset);
-    if (content.op == Location::None or content.op == Location::Literal) return *this;
+    if (content.op != Location::Var) return *this;
     auto& obj = content.object(context);
     if (obj.lastUse < index) return *this;
     auto locations = content.getAllLocations(context);
@@ -625,7 +625,7 @@ void Context::assignVariable(AsmOperand variable, AsmOperand source, std::vector
         for (auto& n : stack) if (n.content == variable) n.content = {};
         AddConversionsToMove(move, *this, instructions, variable, nullptr);
     }
-    else CodeGeneratorError("Internal: unimplemented assignment source!");
+    else Error("Internal: unimplemented assignment source!");
 }
 
 void Context::cleanUnusedVariables() {

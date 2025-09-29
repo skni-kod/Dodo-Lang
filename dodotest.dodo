@@ -1,6 +1,9 @@
-import "Print.dodo";
+import "Time.dodo";
 
 i32 Main() {
-    let i32* test = {1, 2};
-    return test[1];
+    let mut Timespec toSleep = Timespec(1, 0);
+    let mut Timespec test = toSleep;
+    let mut Timespec* remaining = 0;
+    Sleep(&test, remaining);
+    return 0;
 }

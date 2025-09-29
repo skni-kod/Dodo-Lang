@@ -12,7 +12,7 @@ struct VariableObject;
 
 namespace Location {
     enum Type {
-        None = 0, Unknown = 0,
+        Unknown = 0, None = 0,
         Variable = 1, Var = 1, var = 1,
         Literal = 2, Immediate = 2, Imm = 2, imm = 2,
         String = 3,
@@ -490,6 +490,9 @@ inline std::vector <VariableObject> globalVariableObjects;
 Context GenerateGlobalVariablesBytecode();
 Context GenerateFunctionBytecode(ParserFunctionMethod& function);
 void OptimizeBytecode(std::vector<Bytecode>& bytecode);
+
+BytecodeOperand Dereference(Context& context, BytecodeOperand op, TypeInfo target);
+BytecodeOperand GetAddress(Context& context, BytecodeOperand op, TypeInfo target);
 
 // printing functions
 

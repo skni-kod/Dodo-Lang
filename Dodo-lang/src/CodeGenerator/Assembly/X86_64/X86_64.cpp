@@ -3,6 +3,8 @@
 
 #include <GenerateCode.hpp>
 
+#include "ErrorHandling.hpp"
+
 namespace x86_64 {
     bool IsIntegerOperationRegister(uint8_t number) {
         if (number <= RDI) return true;
@@ -27,7 +29,7 @@ namespace x86_64 {
         return op.op == Location::reg and (op.value.reg >= ZMM0 and op.value.reg <= ZMM31);
     }
 
-    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
+    void AddConversionsToMoveInternal(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
 
         // assumes every move contains known locations only, since we need to know which one exactly to move
         // so those can be: registers, stack offsets, literals, labels and addresses
@@ -35,28 +37,6 @@ namespace x86_64 {
         // easier to access
         auto& s = move.source;
         auto& t = move.target;
-
-        // getting the size for complex types
-
-        // TODO: can there be a case when conversions are needed with complex type moves?
-        uint64_t amount = 1;
-        auto lastIndex = moves.size();
-        if (s.op != Location::imm and s.op != Location::String) {
-            auto content = context.getContent(s);
-            if (content.op == Location::var) {
-                auto object = context.getVariableObject({content.op, content.value, s.type, s.size});
-                if (not object.type->isPrimitive and not object.meta.isReference and object.meta.pointerLevel == 0) {
-                    amount = object.type->typeSize;
-                    if (amount % object.type->typeAlignment != 0)
-                        amount = amount / object.type->typeAlignment + 1;
-                    else amount = amount / object.type->typeAlignment;
-                    s.size = object.type->typeAlignment;
-                }
-            }
-        }
-
-
-
 
         if (s == t) {
             if (contentToSet.op == Location::reg or contentToSet.op == Location::sta or contentToSet.op == Location::mem) context.getContentRef(t) = context.getContent(contentToSet);
@@ -98,11 +78,11 @@ namespace x86_64 {
                     else CodeGeneratorError("Internal: Invalid address stack target!");
                 }
                 else if (s.op == Location::reg) {
-                    if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
+                    if (t.op == Location::reg or t.op == Location::sta or t.op == Location::off) moves.emplace_back(mov, t, s);
                     else CodeGeneratorError("Internal: Invalid address register target!");
                 }
                 else if (s.op == Location::mem) {
-                    if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
+                    if (t.op == Location::reg or t.op == Location::sta or t.op == Location::off) moves.emplace_back(mov, t, s);
                     else CodeGeneratorError("Internal: Invalid address memory target!");
                 }
                 else if (s.op == Location::String) {
@@ -211,22 +191,37 @@ namespace x86_64 {
         }
         else CodeGeneratorError("Internal: address to address move!");
 
-        auto lastSize = moves.size();
-        // add more moves for complex types
-        for (auto n = 1; n < amount; ++n)
-            for (auto m = lastIndex; m < lastSize; ++m) {
-                auto move = moves[m];
-                if (m == lastIndex and move.op2.op == Location::sta)
-                    move.op2.value.offset += n * s.size;
-                if (m == lastSize - 1 and move.op1.op == Location::sta)
-                    move.op1.value.offset += n * s.size;
-                moves.push_back(move);
-            }
-
-
-
         if (setContent)
             context.getContentRef(t) = contentToSet;
+    }
+
+    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
+        if (move.source.op != Location::sta)
+            return AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, setContent);
+
+        auto var = context.getContent(move.source).object(context);
+        if (not var.meta.isReference and not var.meta.pointerLevel and var.type->members.size() > 1) {
+            // if it's a complex type value move it's going to be more annoying
+            if (move.source.op != Location::Sta or move.target.op != Location::Sta)
+                Unimplemented();
+
+            auto size = var.type->typeSize;
+            auto alignment = var.type->typeAlignment;
+            auto sourceOffset = move.source.value.offset;
+            auto targetOffset = move.target.value.offset;
+            for (auto current = 0; current < size; current += alignment) {
+                OperandValue regOff;
+                regOff.regOff.addressRegister = RBP;
+                regOff.regOff.offset = int32_t(sourceOffset) + current;
+                move.source = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
+                regOff.regOff.offset = int32_t(targetOffset) + current;
+                move.target = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
+                AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, false);
+            }
+            if (setContent)
+                context.getContentRefAtOffset(targetOffset) = contentToSet;
+        }
+        else AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, setContent);
     }
 
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target) {
@@ -236,7 +231,7 @@ namespace x86_64 {
 
         // first off preparing the correct table of places
         if (Options::targetSystem == "LINUX") {
-            std::array <uint8_t, 6> integersPointers = {RDI, RSI, RDX, RDX, R8, R9};
+            std::array <uint8_t, 6> integersPointers = {RDI, RSI, RDX, RCX, R8, R9};
             std::array <uint8_t, 8> floats = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
             uint16_t intPointerCounter = 0, floatCounter = 0;
 
@@ -315,13 +310,15 @@ namespace x86_64 {
         return {result, stackOffset};
     }
 
+    // for syscalls only
     std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, Context& context) {
         std::vector <AsmOperand> result;
         int32_t stackOffset = 0;
 
         // first off preparing the correct table of places
         if (Options::targetSystem == "LINUX") {
-            std::array <uint8_t, 6> integersPointers = {RDI, RSI, RDX, RDX, R8, R9};
+            // first is for syscall number
+            std::array <uint8_t, 7> integersPointers = {RAX, RDI, RSI, RDX, RCX, R8, R9};
             std::array <uint8_t, 8> floats = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
             uint16_t intPointerCounter = 0, floatCounter = 0;
 
@@ -348,7 +345,7 @@ namespace x86_64 {
                         result.emplace_back(Location::reg, Type::floatingPoint, false, typeSize, floats[floatCounter++]);
                         result.back().isArgumentMove = true;
                     }
-                    else if (intPointerCounter != 6 and primitiveType != Type::floatingPoint){
+                    else if (intPointerCounter != integersPointers.size() and primitiveType != Type::floatingPoint){
                         // integers into normal registers
                         result.emplace_back(Location::reg, primitiveType, false, typeSize, integersPointers[intPointerCounter++]);
                         result.back().isArgumentMove = true;

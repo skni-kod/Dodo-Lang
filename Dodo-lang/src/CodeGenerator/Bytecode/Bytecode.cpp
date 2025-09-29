@@ -288,6 +288,25 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
                 Error("Could not find any viable overload of method: " + *current.identifier);
             Error("Could not find method: " + *current.identifier);
         }
+        if (actual.type != nullptr and current.operation == ParserOperation::Call and actual.type->typeName == *current.identifier) {
+            // a constructor
+            bool anyFound = false;
+            for (auto& method : actual.type->methods)
+                if (method.isConstructor) {
+                    if (AddCallIfMatches(context, &method, values, current, arguments, code, passedOperand, isGlobal)) {
+                        code.AssignType(actual);
+                        auto result = code.op3();
+                        code.op3({});
+                        context.codes.push_back(code);
+                        return result;
+                    }
+                    anyFound = true;
+                }
+
+            if (anyFound)
+                Error("Could not find any viable overload of method: " + *current.identifier);
+            Error("Could not find method: " + *current.identifier);
+        }
 
         if (current.operation == ParserOperation::Syscall) {
             if (AddCallIfMatches(context, nullptr, values, current, arguments, code, {}, isGlobal)) {
@@ -339,7 +358,7 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
         auto varCode = context.getVariable(current.identifier, actual);
 
         // if we need a reference and don't have one then let's get the address of the variable
-        if ((not actual.isReference and expected.isReference) or current.next) {
+        if (not actual.isReference and (expected.isReference or current.next)) {
             actual.isReference = true;
             varCode = GetAddress(context, varCode, actual);
         }
@@ -474,6 +493,11 @@ void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& 
             result.isReference = false;
             result.pointerLevel = 0;
         }
+        else if (result.type->isPrimitive) {
+            if (not result.type->attributes.primitiveAssignFromLiteral)
+                Error("This type is not assignable via literals!");
+            result = {result.type, result.meta()};
+        }
         else
             Unimplemented();
         return;
@@ -482,10 +506,12 @@ void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& 
         return;
     case ParserOperation::Group:
         GetTypes(context, values, result, current.value);
+        if (current.operatorType == Operator::Index)
+            result = {result, -1};
         return;
     case ParserOperation::Syscall:
-        result.type = &types["i" + std::to_string(Options::addressSize * 8)];
         result = {};
+        result.type = &types["i" + std::to_string(Options::addressSize * 8)];
         return;
     default:
         Error("Invalid operation in type negotiation!");
@@ -534,7 +560,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
     if (function.isMethod and function.overloaded == Operator::None) {
         Bytecode code;
         code.opType = function.parentType;
-        code.opMeta = TypeMeta();
+        code.opMeta = TypeMeta(0, not function.isConst, true);
         code.type = Bytecode::Define;
         code.op1(context.insertVariable(&ThisDummy, {function.parentType, {0, context.isMutable, true}}));
         code.op3({Location::Argument, {0}, Type::none, 0});

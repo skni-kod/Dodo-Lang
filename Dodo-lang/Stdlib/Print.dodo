@@ -1,6 +1,6 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains printing functions for standard types.                                 ┃
-// ┃ Last revision: 28.09.2025                                                                 ┃
+// ┃ Last revision: 29.09.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 void Print(let u64 length, let char* message) {
@@ -32,7 +32,7 @@ void Print(let mut i32 number) {
         let mut i32 base = 1000000000;
 
         while (base > 0) {
-            if (base < number) {
+            if (base <= number) {
                 let mut char digit = (number / base) convert auto;
                 digit += '0';
                 syscall(1, 0, &digit, 1);

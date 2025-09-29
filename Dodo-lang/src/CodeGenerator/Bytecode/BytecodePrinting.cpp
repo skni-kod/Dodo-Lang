@@ -54,7 +54,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         if (code.op3Location != Location::None) out << " and store result to " << code.result();
         break;
     case Bytecode::Syscall:
-        out << "syscall ";
+        out << "syscall";
         if (code.op3Location != Location::None) out << " and store result to " << code.result();
         break;
     case Bytecode::Argument:
@@ -203,7 +203,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         out << "binary NOT of " << code.op1();
         break;
     case Bytecode::Convert:
-        out << "cast " << code.op1() << " to type " << code.opType->typeName <<
+        out << "convert " << code.op1() << " to type " << code.opType->typeName <<
             std::string(code.opMeta.pointerLevel, '*') << std::string(code.opMeta.isReference, '&') <<
             " and store the result in " << code.op3();
         break;
@@ -318,13 +318,13 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
         return out << "label: " << op.value.ui;
     case Location::Call:
         out << "call: ";
-        if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
         if (op.value.function->isConstructor)
             return out << "constructor(...)";
         if (op.value.function->isDestructor)
             return out << "destructor(...)";
         if (op.value.function->isOperator)
             return PrintOperatorSymbol(op.value.function->overloaded, out << "operator ");
+        if (op.value.function->isMethod) out << op.value.function->parentType->typeName << "::";
         return out << op.value.function->getFullName();
     case Location::Argument:
         return out << "argument number: " << op.value.ui;

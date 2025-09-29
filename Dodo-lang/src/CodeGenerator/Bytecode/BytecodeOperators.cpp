@@ -31,6 +31,7 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
     // TODO: change this after adding default parameters
     if (called != nullptr and called->parameters.size() != arguments.size()) return false;
 
+    auto secondaryPassedOperand = passedOperand;
     if (called != nullptr) {
         for (auto n = 0; n < arguments.size(); n++) {
             auto& arg = arguments[n];
@@ -54,7 +55,7 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
             res.type = Bytecode::Define;
             res.opType = called->parentType;
             res.opMeta = TypeMeta(0, true, false);
-            passedOperand = res.op1(context.insertTemporary(res.opType, res.opMeta));
+            secondaryPassedOperand = passedOperand = res.op1(context.insertTemporary(res.opType, res.opMeta));
             context.codes.push_back(res);
         }
     }
@@ -66,22 +67,15 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
 
     // adding the pointer to type instance for methods, constructors and destructors
     if (called != nullptr and called->isMethod and not called->isOperator) {
-        DebugError(passedOperand.location == Location::None, "Expected a passed operand in call!");
+        DebugError(passedOperand.location != Location::Var, "Expected a variable passed in call!");
+
 
         Bytecode arg;
         arg.type = Bytecode::Argument;
-        // TODO: ensure these are references
         arg.AssignType(called->parentType, {0, not called->isConst, true});
+        if (not context.getVariableObject(passedOperand).meta.isReference)
+            passedOperand = GetAddress(context, passedOperand, {called->parentType, {0, not called->isConst, true}});
         arg.op3(passedOperand);
-        arg.op1Value = ++numbers;
-        argumentCodes.push_back(arg);
-    }
-    else if (node.operation == ParserOperation::Syscall) {
-        Bytecode arg;
-        arg.type = Bytecode::Argument;
-        // TODO: allow for full expressions, why the hell not
-        arg.AssignType({&types["u" + std::to_string(8 * Options::addressSize)], {}});
-        arg.op3(BytecodeOperand(Location::Literal, node.code, Type::unsignedInteger, Options::addressSize));
         arg.op1Value = ++numbers;
         argumentCodes.push_back(arg);
     }
@@ -144,6 +138,8 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
                 Error("Given return type does not exist!");
             code.result(context.insertTemporary(code.AssignType({&types[*called->returnType.typeName], called->returnType.type})));
         }
+        else if (called != nullptr and called->isConstructor)
+            code.result(secondaryPassedOperand);
     }
     else {
         code.result(context.insertTemporary(code.AssignType({&types["u" + std::to_string(8 * Options::addressSize)], {}})));
@@ -206,8 +202,10 @@ void PerformTwoOperatorExpression(Context& context, std::vector<ParserTreeValue>
 
     code.op1(GenerateExpressionBytecode(context, values, expected, actual, current.left, isGlobal));
     auto leftType = actual;
-    auto right = GenerateExpressionBytecode(context, values, leftType, actual, current.right, isGlobal);
-    code.op2(CheckCompatibilityAndConvertReference(context, leftType, actual, right));
+    auto rightExpected = actual;
+    rightExpected.isReference = false;
+    auto right = GenerateExpressionBytecode(context, values, rightExpected, actual, current.right, isGlobal);
+    code.op2(CheckCompatibilityAndConvertReference(context, rightExpected, actual, right));
     actual = leftType;
     code.AssignType(actual);
 }
@@ -342,6 +340,7 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
         actual = typeToUse;
 
         code.result(context.insertTemporary(actual));
+        code.AssignType(actual);
         return context.addCodeReturningResult(code);
     }
 
@@ -428,13 +427,18 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
     }
 
     case Operator::Index: {
-        if (expected.isReference)
-            code.type = Bytecode::GetIndexAddress;
-        else
-            code.type = Bytecode::GetIndexValue;
-
         DebugError(passedOperand.location == Location::None, "Expected an operand to be passed!");
         DebugError(not actual.isReference, "Expected previous value to provide a reference!");
+
+        if (expected.isReference)
+            code.type = Bytecode::GetIndexAddress;
+        else {
+            code.type = Bytecode::GetIndexValue;
+            if (actual.isReference) {
+                actual.isReference = false;
+                passedOperand = Dereference(context, passedOperand, actual);
+            }
+        }
 
         if (actual.pointerLevel == 0)
             Error("Cannot index in a value!");
