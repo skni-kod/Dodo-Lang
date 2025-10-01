@@ -36,6 +36,7 @@ std::ostream& operator<<(std::ostream& out, const Bytecode& code) {
         out << "take " << code.op1() << " and offset it by " << code.op2Value.offset <<
             " for member access, storing result in " << code.result();
         break;
+
     case Bytecode::Save:
         out << "save the value in  " << code.op1() << " to " << code.result();
         break;
@@ -251,7 +252,10 @@ std::ostream& operator<<(std::ostream& out, const BytecodeOperand& op) {
     case Location::None:
         return out << "none";
     case Location::Variable:
-        return out << "variable: " << op.value.variable;
+        out << "variable: ";
+        DebugError(currentContext == nullptr, "Unassigned context");
+        if (currentContext->getVariableObject(op).identifier != nullptr) return out << *currentContext->getVariableObject(op).identifier;
+        return out << op.value.variable;
     case Location::Literal:
         switch (op.literalType) {
         case Type::address:

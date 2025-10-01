@@ -43,7 +43,7 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
 BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTreeValue>& values, TypeInfo expected, TypeInfo& actual, uint16_t index = 0, bool isGlobal = false, BytecodeOperand passedOperand = {});
 bool AddCallIfMatches(Context& context, ParserFunctionMethod* called, std::vector<ParserTreeValue>& values, ParserTreeValue& node, std::vector<TypeInfo>& arguments, Bytecode& code, BytecodeOperand passedOperand, bool isGlobal);
 
-void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& info, uint16_t index);
-void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& info, ParserTreeValue& current);
+void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& result, uint16_t index);
+void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& result, ParserTreeValue& current);
 
 #endif //BYTECODE_INTERNAL_HPP

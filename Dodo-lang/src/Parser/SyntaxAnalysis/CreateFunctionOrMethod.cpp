@@ -1,11 +1,12 @@
 #include "AnalysisInternal.hpp"
 
 ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
-    const ParserValueTypeObject& type, LexerToken* identifier, bool isMethod, Operator::Type operatorType) {
+    const ParserValueTypeObject& type, LexerToken* identifier, bool isMethod, Operator::Type operatorType, bool isExtern) {
 
     ParserFunctionMethod output;
     output.returnType = type;
     output.isMethod = isMethod;
+    output.isExtern = isExtern;
     output.isConstructor = operatorType == Operator::Constructor;
     output.isDestructor = operatorType == Operator::Destructor;
     output.isOperator = operatorType != Operator::None and not output.isConstructor and not output.isDestructor;
@@ -35,17 +36,26 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
     }
 
     if (not (current = generator())->Match(Operator::BraceOpen)) {
-        if (current->Match(Keyword::Const))
-            output.isConst = false;
-        else
+        if (current->Match(Keyword::Const)) {
+            output.isConst = true;
+            current = generator();
+        }
+        if (current->Match(Keyword::End)) {
+            if (not isExtern)
+                Error("Only external functions do not contain a function body!");
+        }
+        else if (not (current)->Match(Operator::BraceOpen))
             Error("Expected an opening brace after function prototype!");
     }
-    uint32_t braceLevel = 0;
-    while (not (current = generator())->Match(Operator::BraceClose) or braceLevel != 0) {
-        output.instructions.emplace_back(ParseInstruction(generator, current, &braceLevel));
-        if (output.instructions.back().type == Instruction::Else) {
-            output.instructions.emplace_back(Instruction::BeginScope);
-            braceLevel++;
+
+    if (not isExtern) {
+        uint32_t braceLevel = 0;
+        while (not (current = generator())->Match(Operator::BraceClose) or braceLevel != 0) {
+            output.instructions.emplace_back(ParseInstruction(generator, current, &braceLevel));
+            if (output.instructions.back().type == Instruction::Else) {
+                output.instructions.emplace_back(Instruction::BeginScope);
+                braceLevel++;
+            }
         }
     }
 

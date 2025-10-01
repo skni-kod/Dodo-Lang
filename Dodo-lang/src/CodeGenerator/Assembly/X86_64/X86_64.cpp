@@ -29,6 +29,19 @@ namespace x86_64 {
         return op.op == Location::reg and (op.value.reg >= ZMM0 and op.value.reg <= ZMM31);
     }
 
+    void AddMoveWithRegisterNeededBetweenCheck(Context& context, std::vector <AsmInstruction>& moves, AsmOperand s, AsmOperand t, InstructionCode firstMove = mov, InstructionCode actualMove = mov) {
+        if (s.anyOf(Location::Sta, Location::Mem, Location::Off) and t.anyOf(Location::Sta, Location::Mem, Location::Off)) {
+            auto reg = context.getFreeRegister(s.type, s.size);
+            moves.emplace_back(firstMove, reg, s);
+            moves.emplace_back(actualMove, t, reg);
+        }
+        else if (s.anyOf(Location::Sta, Location::Mem, Location::Off, Location::Literal, Location::reg) and t.is(Location::reg)
+            or s.anyOf(Location::reg, Location::Literal) and t.anyOf(Location::Sta, Location::Mem, Location::Off)){
+            moves.emplace_back(actualMove, t, s);
+        }
+        else Error("Unimplemented type of move!");
+    }
+
     void AddConversionsToMoveInternal(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
 
         // assumes every move contains known locations only, since we need to know which one exactly to move
@@ -50,110 +63,98 @@ namespace x86_64 {
         // Here it is rewritten to be based on types and not where stiff is moved from
 
         if (s.useAddress and not t.useAddress) {
-            CodeGeneratorError("Internal: address to non address not implemented!");
+            Error("Internal: address to non address not implemented!");
         }
         else if (t.useAddress and not s.useAddress) {
-            CodeGeneratorError("Internal: non address to address not implemented!");
+            Error("Internal: non address to address not implemented!");
         }
         else if (not t.useAddress and not s.useAddress) {
             if (s.type == Type::address) {
                 // addresses can be only moved if not used, so that's simple
                 // TODO: make this possible for things like printing addresses
-                if (t.type != Type::address) CodeGeneratorError("Internal: address to non address move!");
-                //if ((s.size != 8 and not (s.op == Location::imm and ((s.size = 8)))) or t.size != 8) CodeGeneratorError("Internal: wrong address operand size!");
-                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: invalid register for address storage!");
+                if (t.type != Type::address) Error("Internal: address to non address move!");
+                //if ((s.size != 8 and not (s.op == Location::imm and ((s.size = 8)))) or t.size != 8) Error("Internal: wrong address operand size!");
+                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) Error("Internal: invalid register for address storage!");
 
                 // now actually moving it
                 if (s.op == Location::imm) {
                     if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
-                    else CodeGeneratorError("Internal: Invalid address immediate target!");
+                    else Error("Internal: Invalid address immediate target!");
                 }
                 else if (s.op == Location::sta or s.op == Location::off) {
                     if (t.op == Location::reg) moves.emplace_back(mov, t, s);
-                    else if (t.op == Location::sta or s.op == Location::off) {
+                    else if (t.op == Location::sta or t.op == Location::off) {
                         auto reg = context.getFreeRegister(s.type, s.size);
                         moves.emplace_back(mov, reg, s);
                         moves.emplace_back(mov, t, reg);
                     }
-                    else CodeGeneratorError("Internal: Invalid address stack target!");
+                    else Error("Internal: Invalid address stack target!");
                 }
                 else if (s.op == Location::reg) {
                     if (t.op == Location::reg or t.op == Location::sta or t.op == Location::off) moves.emplace_back(mov, t, s);
-                    else CodeGeneratorError("Internal: Invalid address register target!");
+                    else Error("Internal: Invalid address register target!");
                 }
                 else if (s.op == Location::mem) {
                     if (t.op == Location::reg or t.op == Location::sta or t.op == Location::off) moves.emplace_back(mov, t, s);
-                    else CodeGeneratorError("Internal: Invalid address memory target!");
+                    else Error("Internal: Invalid address memory target!");
                 }
                 else if (s.op == Location::String) {
                     if (t.op == Location::reg or t.op == Location::sta) moves.emplace_back(mov, t, s);
-                    else CodeGeneratorError("Internal: Invalid address string target!");
+                    else Error("Internal: Invalid address string target!");
                 }
-                else CodeGeneratorError("Internal: invalid address source!");
+                else Error("Internal: invalid address source!");
             }
             else if (t.type == Type::address) {
-                if (s.op == Location::imm) moves.emplace_back(mov, s.copyTo(t.op, t.value), s);
-                else if (s.op == Location::reg) moves.emplace_back(mov, s.copyTo(t.op, t.value), s);
-                else CodeGeneratorError("Internal: unimplemented value to address move!");
+                if (s.anyOf(Location::imm, Location::reg))
+                    AddMoveWithRegisterNeededBetweenCheck(context, moves, s, s.copyTo(t.op, t.value));
+                else if (s.op == Location::Sta or s.op == Location::off) {
+                    AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t);
+                }
+                else Error("Internal: unimplemented value to address move!");
             }
             else if (s.type != Type::floatingPoint and t.type == Type::unsignedInteger) {
                 // in case of unsigned target we treat the integer source as an unsigned too
                 s.type = Type::unsignedInteger;
-                if (s.op == t.op and s.op == Location::sta) CodeGeneratorError("Internal: stack to stack move unimplemented!");
-                if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) CodeGeneratorError("Internal: non integer register source!");
-                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: non integer register target!");
-                if (s.op == Location::imm) moves.emplace_back(mov, t, s);
-                else if ((s.op == Location::reg and (t.op == Location::sta or t.op == Location::off))
-                    or ((s.op == Location::sta or s.op == Location::off) and t.op == Location::reg)
-                    or (s.op == Location::reg and t.op == Location::reg)) {
-                    if (s.size == t.size) moves.emplace_back(mov, t, s);
-                    else if (s.size > t.size) {
-                        s.size = t.size;
-                        moves.emplace_back(mov, t, s);
-                    }
+                if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) Error("Internal: non integer register source!");
+                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) Error("Internal: non integer register target!");
+                if (s.size == t.size) moves.emplace_back(mov, t, s);
+                else if (s.size > t.size) {
+                    s.size = t.size;
+                    AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t);
+                }
+                else {
+                    if (s.size != 4 or t.size != 8)  AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t, mov, movzx);
                     else {
-                        if (s.size != 4 or t.size != 8)  moves.emplace_back(movzx, t, s);
-                        else {
-                            // 4 -> 8 byte is a special case where movzx does not apply and we need to split it
-                            moves.emplace_back(mov, t, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0));
-                            moves.emplace_back(movzx, t, s);
-                        }
+                        // 4 -> 8 byte is a special case where movzx does not apply and we need to split it
+                        AddMoveWithRegisterNeededBetweenCheck(context, moves, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0), t);
+                        AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t, mov, movzx);
                     }
                 }
-                else CodeGeneratorError("Internal: unimplemented unsigned conversion!");
             }
             else if (s.type != Type::floatingPoint and t.type == Type::signedInteger) {
                 // in case of signed target we treat the integer source as a signed too
                 s.type = Type::signedInteger;
-                if (s.op == t.op and s.op == Location::sta) CodeGeneratorError("Internal: stack to stack move unimplemented!");
-                if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) CodeGeneratorError("Internal: non integer register source!");
-                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) CodeGeneratorError("Internal: non integer register target!");
-                if (s.op == Location::imm) moves.emplace_back(mov, t, s);
-                else if ((s.op == Location::reg and t.op == Location::sta)
-                    or (s.op == Location::sta and t.op == Location::reg)
-                    or (s.op == Location::off and t.op == Location::reg)
-                    or (s.op == Location::reg and t.op == Location::reg)) {
-                    if (s.size == t.size) moves.emplace_back(mov, t, s);
-                    else if (s.size > t.size) {
-                        s.size = t.size;
-                        moves.emplace_back(mov, t, s);
-                    }
-                    else moves.emplace_back(movsx, t, s);
+                if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) Error("Internal: non integer register source!");
+                if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) Error("Internal: non integer register target!");
+                if (s.size >= t.size) {
+                    s.size = t.size;
+                    AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t);
                 }
-                else CodeGeneratorError("Internal: unimplemented signed conversion!");
+                else
+                    AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t, mov, movsx);
             }
             else if (s.type != Type::floatingPoint and t.type == Type::floatingPoint) {
                 // converting to floating point can only start from a 32-bit or 64-bit integer register or memory location
                 if (    (s.op != Location::reg or not IsIntegerOperationRegister(s.value.reg) or s.size < 4)
-                    and ((s.op != Location::sta or s.op != Location::mem) or s.size < 4)) CodeGeneratorError("Internal: invalid source for conversion into float!");
-                if (not IsFloatOperationRegister(t)) CodeGeneratorError("Internal: non SSE/AVX register as float from int target!");
+                    and ((s.op != Location::sta or s.op != Location::mem) or s.size < 4)) Error("Internal: invalid source for conversion into float!");
+                if (not IsFloatOperationRegister(t)) Error("Internal: non SSE/AVX register as float from int target!");
 
                 if (t.size == 4) moves.emplace_back(cvtsi2ss, t, s);
                 else moves.emplace_back(cvtsi2sd, t, s);
             }
             else if (s.type == Type::floatingPoint and t.type != Type::floatingPoint) {
-                if (not IsFloatOperationRegister(s) and (s.op != Location::sta or s.size < 4)) CodeGeneratorError("Internal: invalid source for float into int!");
-                if (not IsIntegerOperationRegister(t) or t.size < 4) CodeGeneratorError("Internal: invalid target for float into int!");
+                if (not IsFloatOperationRegister(s) and (s.op != Location::sta or s.size < 4)) Error("Internal: invalid source for float into int!");
+                if (not IsIntegerOperationRegister(t) or t.size < 4) Error("Internal: invalid target for float into int!");
 
                 if (s.size == 4) moves.emplace_back(cvtss2si, t, s);
                 else moves.emplace_back(cvtsd2si, t, s);
@@ -165,31 +166,31 @@ namespace x86_64 {
                             if (s.size == 4) moves.emplace_back(movss, t, s);
                             else moves.emplace_back(movsd, t, s);
                         }
-                        else CodeGeneratorError("Internal: invalid target in float move!");
+                        else Error("Internal: invalid target in float move!");
                     }
                     else if (s.op == Location::sta or s.op == Location::mem) {
                         if (IsFloatOperationRegister(t)) {
                             if (s.size == 4) moves.emplace_back(movss, t, s);
                             else moves.emplace_back(movsd, t, s);
                         }
-                        else CodeGeneratorError("Internal: invalid target in float move!");
+                        else Error("Internal: invalid target in float move!");
                     }
                     else if (s.op == Location::imm) {
                         if (t.op == Location::sta) {
                             moves.emplace_back(mov, t, s);
                         }
-                        else CodeGeneratorError("Internal: invalid target in float move!");
+                        else Error("Internal: invalid target in float move!");
                     }
                 }
                 else {
-                    if (not IsFloatOperationRegister(t) and ((s.op != Location::sta and s.op != Location::mem) or s.size < 4)) CodeGeneratorError("Internal: invalid source for float size conversion!");
-                    if (not IsFloatOperationRegister(t)) CodeGeneratorError("Internal: invalid target for float size conversion!");
+                    if (not IsFloatOperationRegister(t) and ((s.op != Location::sta and s.op != Location::mem) or s.size < 4)) Error("Internal: invalid source for float size conversion!");
+                    if (not IsFloatOperationRegister(t)) Error("Internal: invalid target for float size conversion!");
                     if (s.size == 4) moves.emplace_back(cvtss2sd, t, s);
                     else moves.emplace_back(cvtsd2ss, t, s);
                 }
             }
         }
-        else CodeGeneratorError("Internal: address to address move!");
+        else Error("Internal: address to address move!");
 
         if (setContent)
             context.getContentRef(t) = contentToSet;
@@ -202,24 +203,29 @@ namespace x86_64 {
         auto var = context.getContent(move.source).object(context);
         if (not var.meta.isReference and not var.meta.pointerLevel and var.type->members.size() > 1) {
             // if it's a complex type value move it's going to be more annoying
-            if (move.source.op != Location::Sta or move.target.op != Location::Sta)
+            if ((move.source.op != Location::Sta and move.source.op != Location::Off) or (move.target.op != Location::Sta and move.target.op != Location::Off))
                 Unimplemented();
 
             auto size = var.type->typeSize;
             auto alignment = var.type->typeAlignment;
-            auto sourceOffset = move.source.value.offset;
-            auto targetOffset = move.target.value.offset;
+            auto sourceOffset = move.source.op == Location::Sta ? move.source.value.offset : move.source.value.regOff.offset;
+            auto targetOffset = move.target.op == Location::Sta ? move.target.value.offset : move.target.value.regOff.offset;
             for (auto current = 0; current < size; current += alignment) {
                 OperandValue regOff;
-                regOff.regOff.addressRegister = RBP;
+                regOff.regOff.addressRegister = move.source.op == Location::Sta ? RBP : move.source.value.regOff.addressRegister;
                 regOff.regOff.offset = int32_t(sourceOffset) + current;
                 move.source = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
+                regOff.regOff.addressRegister = move.target.op == Location::Sta ? RBP : move.target.value.regOff.addressRegister;
                 regOff.regOff.offset = int32_t(targetOffset) + current;
                 move.target = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
                 AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, false);
             }
-            if (setContent)
-                context.getContentRefAtOffset(targetOffset) = contentToSet;
+            if (setContent) {
+                if (move.target.value.regOff.addressRegister == RBP)
+                    context.getContentRefAtOffset(targetOffset) = contentToSet;
+                else
+                    Warning("Did not set content to non-stack location, as it is unknown!");
+            }
         }
         else AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, setContent);
     }
@@ -268,7 +274,7 @@ namespace x86_64 {
                     }
                     else {
                         // move the value onto the stack
-                        CodeGeneratorError("Internal: stack arguments not supported!");
+                        Error("Internal: stack arguments not supported!");
 
                         // ensure it's aligned properly and added
                         if (stackOffset % n.typeObject->typeAlignment) stackOffset = (stackOffset / n.typeObject->typeAlignment + 2) * n.typeObject->typeAlignment;
@@ -282,8 +288,8 @@ namespace x86_64 {
                 }
                 else {
                     // it's a complex type
-                    CodeGeneratorError("Internal: complex type arguments unimplemented!");
-                    CodeGeneratorError("Internal: stack arguments not supported!");
+                    Error("Internal: complex type arguments unimplemented!");
+                    Error("Internal: stack arguments not supported!");
                     if (stackOffset % 8) stackOffset = (stackOffset / 8 + 2) * 8;
                     else stackOffset += 8;
 
@@ -304,9 +310,9 @@ namespace x86_64 {
             }
         }
         else if (Options::targetSystem == "WINDOWS") {
-            CodeGeneratorError("Microsoft x86-64 calling convention is not supported, linux's is though!");
+            Error("Microsoft x86-64 calling convention is not supported, linux's is though!");
         }
-        else CodeGeneratorError("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
+        else Error("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
         return {result, stackOffset};
     }
 
@@ -352,7 +358,7 @@ namespace x86_64 {
                     }
                     else {
                         // move the value onto the stack
-                        CodeGeneratorError("Internal: stack arguments not supported!");
+                        Error("Internal: stack arguments not supported!");
 
                         // ensure it's aligned properly and added
                         if (stackOffset % thing.size) stackOffset = (stackOffset / thing.size + 2) * thing.size;
@@ -366,8 +372,8 @@ namespace x86_64 {
                 }
                 else {
                     // it's a complex type
-                    CodeGeneratorError("Internal: complex type arguments unimplemented!");
-                    CodeGeneratorError("Internal: stack arguments not supported!");
+                    Error("Internal: complex type arguments unimplemented!");
+                    Error("Internal: stack arguments not supported!");
                     if (stackOffset % 8) stackOffset = (stackOffset / 8 + 2) * 8;
                     else stackOffset += 8;
 
@@ -388,9 +394,9 @@ namespace x86_64 {
             }
         }
         else if (Options::targetSystem == "WINDOWS") {
-            CodeGeneratorError("Microsoft x86-64 calling convention is not supported, linux's is though!");
+            Error("Microsoft x86-64 calling convention is not supported, linux's is though!");
         }
-        else CodeGeneratorError("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
+        else Error("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
         return {result, stackOffset};
     }
 

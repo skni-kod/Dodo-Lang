@@ -24,7 +24,7 @@ Place Context::get(AsmOperand& op) {
         }
         return {static_cast <StackEntry*>(nullptr), Location::sta};
     }
-    CodeGeneratorError("Internal: invalid context location 1!");
+    Error("Internal: invalid context location 1!");
     return {};
 }
 
@@ -58,9 +58,9 @@ AsmOperand& Context::getContentRef(AsmOperand& op) {
 
         stack.emplace(stack.begin() + index, StackEntry({}, op.value.offset, op.size));
         return stack[index].content;
-        //CodeGeneratorError("Internal: invalid context location for reference!");
+        //Error("Internal: invalid context location for reference!");
     }
-    CodeGeneratorError("Internal: invalid context location 3!");
+    Error("Internal: invalid context location 3!");
     return emptyContent;
 }
 
@@ -79,7 +79,7 @@ AsmOperand Context::getContent(AsmOperand& op) {
         }
         return {};
     }
-    CodeGeneratorError("Internal: invalid context location 2!");
+    Error("Internal: invalid context location 2!");
     return {};
 }
 
@@ -91,7 +91,7 @@ AsmOperand Context::getContentAtOffset(int32_t offset) {
 AsmOperand& Context::getContentRefAtOffset(int32_t offset) {
     for (auto& n : stack) if (n.offset == offset) return n.content;
     // in that case it does not exist
-    CodeGeneratorError("Internal: cannot get content in stack!");
+    Error("Internal: cannot get content in stack!");
     return stack[0].content;
 }
 
@@ -109,7 +109,7 @@ AsmOperand Context::getLocation(AsmOperand& op) {
                 return n.content.copyTo(Location::sta, temp);
             }
         }
-        CodeGeneratorError("Internal: variable not found in memory!");
+        Error("Internal: variable not found in memory!");
     }
     return op;
 }
@@ -146,7 +146,7 @@ AsmOperand Context::getLocationStackBias(AsmOperand& op) {
                 return op.copyTo(Location::reg, n);
             }
         }
-        CodeGeneratorError("Internal: variable not found in memory!");
+        Error("Internal: variable not found in memory!");
     }
     return op;
 }
@@ -175,7 +175,7 @@ AsmOperand Context::pushStack(BytecodeOperand value, int32_t amount) {
         }
         return {stack.back().offset};
     }
-    CodeGeneratorError("Internal: unsupported stack push!");
+    Error("Internal: unsupported stack push!");
     return {};
 }
 
@@ -201,7 +201,7 @@ AsmOperand Context::pushStack(AsmOperand value, int32_t amount) {
         off.offset = stack.back().offset;
         return {value.copyTo(Location::sta, off)};
     }
-    CodeGeneratorError("Internal: unsupported stack push!");
+    Error("Internal: unsupported stack push!");
     return {};
 }
 
@@ -223,7 +223,7 @@ AsmOperand Context::tempStack(uint8_t size, uint8_t alignment) {
         else if (size % alignment != 0) location.value.offset = (-(size / alignment) - 1) * alignment;
         else location.value.offset = -size;
     }
-    else CodeGeneratorError("Internal: somehow can't find a stack location!");
+    else Error("Internal: somehow can't find a stack location!");
     return location;
 }
 
@@ -257,7 +257,7 @@ AsmOperand Context::getFreeRegister(Type::TypeEnum valueType, uint16_t size) con
         }
         if (valid) return AsmOperand(Location::reg, valueType, false, size, n.number);
     }
-    CodeGeneratorError("Internal: could not find a valid register in first pass!");
+    Error("Internal: could not find a valid register in first pass!");
     return {};
 }
 
@@ -305,11 +305,15 @@ AsmOperand::AsmOperand(BytecodeOperand op, Context& context) {
     else if (op.location == Location::None) {
         return;
     }
-    else CodeGeneratorError("Unsupported operand type!");
+    else Error("Unsupported operand type!");
 }
 
 bool AsmOperand::operator==(const AsmOperand& target) const {
     return target.op == op and target.type == type and target.useAddress == useAddress and target.value.ui == value.ui and target.size == size;
+}
+
+bool AsmOperand::is(Location::Type location) const {
+    return op == location;
 }
 
 AsmOperand::AsmOperand(BytecodeOperand op, Context& context, Location::Type location, OperandValue value) {
@@ -332,7 +336,7 @@ AsmOperand::AsmOperand(BytecodeOperand op, Context& context, Location::Type loca
         type = op.literalType;
         this->value = value;
     }
-    else CodeGeneratorError("Unsupported operand type!");
+    else Error("Unsupported operand type!");
 }
 
 AsmOperand::AsmOperand(ParserFunctionMethod* functionMethod) {
@@ -353,13 +357,13 @@ VariableObject& AsmOperand::object(Context& context) const {
     if (op != Location::Variable) {
         if (op == Location::reg or op == Location::sta or op == Location::mem) {
             location = context.getContentRef(location);
-            if (location.op != Location::Variable) CodeGeneratorError("Internal: non variable object get!");
+            if (location.op != Location::Variable) Error("Internal: non variable object get!");
         }
-        else CodeGeneratorError("Internal: non variable object get!");
+        else Error("Internal: non variable object get!");
     }
     switch (value.variable.type) {
         case VariableLocation::None:
-            CodeGeneratorError("Internal: invalid variable type in object get!");
+            Error("Internal: invalid variable type in object get!");
         case VariableLocation::Global:
             return globalVariableObjects[value.variable.number];
         case VariableLocation::Local:
@@ -367,7 +371,7 @@ VariableObject& AsmOperand::object(Context& context) const {
         case VariableLocation::Temporary:
             return context.temporaries[value.variable.number];
         default:
-            CodeGeneratorError("Internal: could not find a variable object!");
+            Error("Internal: could not find a variable object!");
         return globalVariableObjects[0];
     }
 }
@@ -405,7 +409,7 @@ void AsmOperand::print(std::ostream& out, Context& context) {
                 case Type::floatingPoint:
                     switch (size) {
                         case 2:
-                            CodeGeneratorError("16 bit floats not supported in printing!");
+                            Error("16 bit floats not supported in printing!");
                             break;
                         case 4:
                             out << "floating point literal: " << value.f32 << " ";
@@ -473,12 +477,55 @@ void AsmOperand::print(std::ostream& out, Context& context) {
             out << "Register: " << std::to_string(value.reg) << " ";
         break;
         default:
-            CodeGeneratorError("Internal: unhandled operand print case!");
+            Error("Internal: unhandled operand print case!");
     }
 }
 
 AsmOperand AsmOperand::moveAwayOrGetNewLocation(Context& context, std::vector<AsmInstruction>& instructions, uint32_t index, std::vector <AsmOperand>* forbiddenLocations, bool stackOnly) {
-    if (op != Location::reg and op != Location::sta) CodeGeneratorError("Internal: cannot move away a non-location!");
+    if (op != Location::reg and op != Location::sta) Error("Internal: cannot move away a non-location!");
+    // rewritten code since the old one is buggy
+
+    // first of all let's see what we have here
+    auto content = context.getContent(*this);
+    // if it's not a variable then we can return
+    if (content.op != Location::Var) return *this;
+    auto& obj = content.object(context);
+    // if the variable's last use is in the past then we can also return
+    if (obj.lastUse < index) return *this;
+
+    // now let's get the places where this thing actually is
+    auto locations = content.getAllLocations(context);
+    uint16_t otherPlaces = 0;
+    for (auto& location : locations) {
+        if (location == *this or not location.is(Location::Stack))
+            continue;
+
+        bool isValid = true;
+        if (forbiddenLocations != nullptr)
+            for (auto& m : *forbiddenLocations)
+                if (m == location) {isValid = false; break;}
+        if (not isValid)
+            continue;
+
+        ++otherPlaces;
+    }
+
+    if (otherPlaces == 0) {
+        auto move = MoveInfo(*this, {});
+
+        if (is(Location::reg) and not stackOnly)
+            move.target = context.getFreeRegister(type, size);
+        else
+            move.target = context.pushStack(content);
+
+        AddConversionsToMove(move, context, instructions, content, forbiddenLocations);
+        if (is(Location::Sta))
+            return move.target;
+    }
+
+    return *this;
+
+    /*
     // TODO: there was something to improve with counting here
     auto& content = op == Location::reg ? context.registers[value.reg].content : context.getContentRefAtOffset(value.offset);
     if (content.op != Location::Var) return *this;
@@ -502,6 +549,7 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(Context& context, std::vector<As
         AddConversionsToMove(move, context, instructions, content, forbiddenLocations);
     }
     return *this;
+    */
 }
 
 std::vector<AsmOperand> AsmOperand::getAllLocations(Context& context) {

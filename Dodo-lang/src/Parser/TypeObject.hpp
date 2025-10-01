@@ -16,7 +16,7 @@ struct LexerToken;
 
 namespace Type {
     enum TypeEnum {
-        none = 0, address = 0, unsignedInteger, signedInteger, floatingPoint
+        address = 0, none = 0, unsignedInteger, signedInteger, floatingPoint
     };
 
     char FirstCharacter(TypeEnum type);
@@ -208,7 +208,8 @@ struct ParserFunctionMethod {
     bool isOperator = false;
     bool isConstructor = false;
     bool isDestructor = false;
-    bool isConst = true;
+    bool isConst = false;
+    bool isExtern = false;
     std::vector<ParserMemberVariableParameter> parameters;
     ParserValueTypeObject returnType;
     TypeObject* parentType = nullptr;

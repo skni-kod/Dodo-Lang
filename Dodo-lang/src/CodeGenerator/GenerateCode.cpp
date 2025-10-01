@@ -130,15 +130,9 @@ void GenerateCode() {
     for (auto& n : types) {
         for (auto& m : n.second.methods) {
             SetCompilationStage(CompilationStage::bytecode);
+
             auto context = GenerateFunctionBytecode(m);
             x86_64::PrepareProcessor(context);
-            if (Options::informationLevel >= 2) {
-                // TODO: add waaaay more printing functions
-                std::cout << "INFO L3: Bytecodes for method <something>(...):\n";
-                for (uint64_t k = 0; k < context.codes.size(); k++) {
-                    std::cout << "INFO L3: (" << k << ") " << context.codes[k];
-                }
-            }
             CalculateLifetimes(context);
             SetCompilationStage(CompilationStage::output);
             auto label = AsmInstruction(x86_64::label, AsmOperand(&m));
@@ -152,16 +146,12 @@ void GenerateCode() {
     // functions
     for (auto& n : functions) {
         for (auto& m : n.second) {
+            if (m.isExtern) continue;
+
             SetCompilationStage(CompilationStage::bytecode);
+
             auto context = GenerateFunctionBytecode(m);
             x86_64::PrepareProcessor(context);
-            if (Options::informationLevel >= 2) {
-                // TODO: add waaaay more printing functions
-                std::cout << "INFO L3: Bytecodes for function " << *m.name << "(...):\n";
-                for (uint64_t k = 0; k < context.codes.size(); k++) {
-                    std::cout << "INFO L3: (" << k << ") " << context.codes[k];
-                }
-            }
             CalculateLifetimes(context);
             SetCompilationStage(CompilationStage::output);
             auto label = AsmInstruction(x86_64::label, AsmOperand(&m));

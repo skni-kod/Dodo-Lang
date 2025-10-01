@@ -140,6 +140,14 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
                 }
             }
 
+            bool isExtern = false;
+            if (current->Match(Keyword::Extern)) {
+                if (isInType)
+                    Error("External functions can only be declared in global scope!");
+
+                isExtern = true;
+                current = generator();
+            }
 
             // TODO: somehow unify type interpolation into 1 function with math parser
             auto [thingType, thingIdentifier] = ParseValueType(generator, current);
@@ -161,8 +169,8 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
                 }
             }
             else {
-                if (functions.contains(*thingIdentifier->text)) functions[*thingIdentifier->text].emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None)));
-                else functions.emplace(*thingIdentifier->text, std::vector({std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None))}));
+                if (functions.contains(*thingIdentifier->text)) functions[*thingIdentifier->text].emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None, isExtern)));
+                else functions.emplace(*thingIdentifier->text, std::vector({std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None, isExtern))}));
             }
         }
     }

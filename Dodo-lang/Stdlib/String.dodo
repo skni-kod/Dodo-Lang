@@ -1,0 +1,42 @@
+// ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+// ┃ This file contains the standard string type used in Dodo Lang.                            ┃
+// ┃ Last revision: 30.09.2025                                                                 ┃
+// ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+extern mut i32* malloc (let i64 __size);
+
+type String {
+    let mut char* _text = 0;
+    let mut i32 reserved = 0;
+    let mut i32 length = 0;
+
+    String() {
+        this._text = 0;
+        this.reserved = 0;
+        this.length = 0;
+        return;
+    }
+
+    // accepts a null terminated string
+    String(let char* text) {
+        this.length = 0;
+        while (text[this.length] != 0) {
+            this.length = this.length + 1;
+        }
+        let i64 size = this.length convert i64 + 1;
+        this._text = malloc(size) convert mut char*;
+        this.reserved = size convert i32;
+        let mut i64 index = 0;
+        while (index < size) {
+            this._text[index] = text[index];
+            index = index + 1;
+        }
+
+        return;
+    }
+
+    ~String() {
+        // TODO: add freeing here later
+        return;
+    }
+}

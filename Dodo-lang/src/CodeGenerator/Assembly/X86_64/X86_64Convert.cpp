@@ -157,19 +157,13 @@ namespace x86_64 {
 
                 bool assignResult = false;
 
-                assignResult = resultOp.object(context).lastUse > index;
+                assignResult = not resultOp.is(Location::Unknown) and resultOp.object(context).lastUse > index;
 
                 if (valueOp.op == Location::Variable) {
-                    if (assignResult and sourceOp.object(context).lastUse > index) {
-                        // assigning result but the value is here
-                        CodeGeneratorError("Internal: assign at result not implemented!");
-                    }
-                    else if (assignResult) {
-                        CodeGeneratorError("Internal: assign at result not implemented!");
-                    }
-                    valueOp = context.getLocation(valueOp);
+                        valueOp = context.getLocation(valueOp);
                 }
 
+                auto sourceContent = sourceOp;
                 sourceOp = context.getLocation(sourceOp);
 
                 // now we need to generate a move from the value to the address in source
@@ -181,10 +175,31 @@ namespace x86_64 {
                     sourceOp.type = Type::address;
                     sourceOp.size = Options::addressSize;
                 }
-                else if (sourceOp.op != Location::off) CodeGeneratorError("Internal: non-register address!");
+                else if (sourceOp.op != Location::off and sourceOp.op != Location::sta) Error("Internal: non-register address!");
+                else {
+                    // since the value is on stack we need to move the address into a register and move the value to it
+                    auto reg = context.getFreeRegister(Type::address, Options::addressSize);
+                    MoveInfo move = {sourceOp, reg};
+                    x86_64::AddConversionsToMove(move, context, instructions, sourceContent, nullptr);
+                    sourceOp.op = Location::off;
+                    sourceOp.value.regOff.addressRegister = reg.value.reg;
+                    sourceOp.value.regOff.offset = 0;
+                    sourceOp.value.regOff.indexScale = 0;
+                    sourceOp.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
+                    sourceOp.value.regOff.isPrefixLabel = false;
+                    sourceOp.value.regOff.isNStringLabel = false;
+                    sourceOp.type = Type::address;
+                    sourceOp.size = Options::addressSize;
+                }
 
                 MoveInfo move = {valueOp, sourceOp};
                 x86_64::AddConversionsToMove(move, context, instructions, {}, nullptr);
+
+                if (assignResult and resultOp.object(context).lastUse > index) {
+                    // assigning result but the value is here
+                    MoveInfo move = {sourceOp, context.pushStack(resultOp)};
+                    x86_64::AddConversionsToMove(move, context, instructions, resultOp, nullptr);
+                }
             }
             break;
             case Bytecode::Jump:
@@ -252,7 +267,7 @@ namespace x86_64 {
                 auto right = AsmOperand(current.op2(), context);
                 auto result = AsmOperand(current.op3(), context);
 
-                if (left.type != right.type) CodeGeneratorError("Internal: incompatible type comparison!");
+                if (left.type != right.type) Error("Internal: incompatible type comparison!");
                 if (left.type == Type::floatingPoint and left.size == 4) {
                     // for now this will be the unoptimized version that returns a 0 or 1
                     AsmInstructionInfo instruction = {
@@ -447,7 +462,7 @@ namespace x86_64 {
                     instructions.emplace_back(setne, reg);
                     break;
                 default:
-                    CodeGeneratorError("Internal: forgot to add setcc for condition!");
+                    Error("Internal: forgot to add setcc for condition!");
                 }
                 context.registers[reg.value.reg].content = result;
             }
@@ -468,7 +483,7 @@ namespace x86_64 {
                     sourceLocation = temp;
                 }
 
-                //CodeGeneratorError("Internal: non-stack pointer places not supported!");
+                //Error("Internal: non-stack pointer places not supported!");
                 AsmOperand reg = context.getFreeRegister(Type::address, 8);
 
                 AsmInstructionInfo instruction = {
@@ -548,7 +563,7 @@ namespace x86_64 {
 
                 auto arrayLocation = context.getLocationStackBias(arrayOp);
                 //if (arrayLocation.op == Location::reg) {
-                //    CodeGeneratorError("Getting indexes from arrays in registers unsupported!");
+                //    Error("Getting indexes from arrays in registers unsupported!");
                 //}
 
                 // now getting a register to put the extracted data into
@@ -583,12 +598,12 @@ namespace x86_64 {
                         src.value.regOff.addressRegister = arrayLocation.value.reg;
                         src.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
                     }
-                    else CodeGeneratorError("Internal: Unimplemented array location!");
+                    else Error("Internal: Unimplemented array location!");
 
                     src.value.regOff.indexRegister = indexLocation.value.reg;
                     src.value.regOff.indexScale = resultOp.size;
                 }
-                else CodeGeneratorError("Internal: unsupported data type for index get!");
+                else Error("Internal: unsupported data type for index get!");
 
                 AsmInstruction ins{};
                 ins.code = lea;
@@ -652,7 +667,7 @@ namespace x86_64 {
                         src.value.regOff.addressRegister = arrayLocation.value.reg;
                         src.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
                     }
-                    else CodeGeneratorError("Internal: Unimplemented array location!");
+                    else Error("Internal: Unimplemented array location!");
 
                     src.value.regOff.indexRegister = indexLocation.value.reg;
                     src.value.regOff.indexScale = resultOp.size;
@@ -660,7 +675,7 @@ namespace x86_64 {
                     auto move = MoveInfo(src, resultLocation);
                     x86_64::AddConversionsToMove(move, context, instructions, resultOp);
                 }
-                else CodeGeneratorError("Internal: unsupported data type for index get!");
+                else Error("Internal: unsupported data type for index get!");
             }
             break;
             case Bytecode::Convert: {
@@ -742,7 +757,7 @@ namespace x86_64 {
                     argumentOffset = off;
                 }
                 break;
-                default: CodeGeneratorError("Internal: somehow a non-callable has arguments!");
+                default: Error("Internal: somehow a non-callable has arguments!");
                 }
 
                 // now we have the argument places ready and can move then there
@@ -826,7 +841,7 @@ namespace x86_64 {
                 // if it's a register
                 // TODO: add more checks
                 if (sourceOp.op == Location::reg) {
-                    //if (not sourceOp.useAddress) CodeGeneratorError("Using register address not marked as used!");
+                    //if (not sourceOp.useAddress) Error("Using register address not marked as used!");
                     sourceOp.op = Location::off;
                     sourceOp.value.regOff.addressRegister = sourceOp.value.reg;
                     sourceOp.value.regOff.offset = offset;
@@ -959,7 +974,7 @@ namespace x86_64 {
                     ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
-                    CodeGeneratorError("Unsigned and floating point multiplication is not supported yet!");
+                    Error("Unsigned and floating point multiplication is not supported yet!");
                 }
                 break;
             case Bytecode::Divide:
@@ -1025,7 +1040,7 @@ namespace x86_64 {
                         break;
                     case 8: instructions.back() = AsmInstruction(cqo);
                         break;
-                    default: CodeGeneratorError("Internal: invalid signed division size!");
+                    default: Error("Internal: invalid signed division size!");
                     }
                     instructions.push_back(generated);
                 }
@@ -1096,7 +1111,7 @@ namespace x86_64 {
                     ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
-                    CodeGeneratorError("Floating point division is not yet supported!");
+                    Error("Floating point division is not yet supported!");
                 }
                 break;
             case Bytecode::Modulo:
@@ -1162,7 +1177,7 @@ namespace x86_64 {
                         break;
                     case 8: instructions.back() = AsmInstruction(cqo);
                         break;
-                    default: CodeGeneratorError("Internal: invalid signed division size!");
+                    default: Error("Internal: invalid signed division size!");
                     }
                     instructions.push_back(generated);
                 }
@@ -1233,7 +1248,7 @@ namespace x86_64 {
                     ExecuteInstruction(context, instruction, instructions, index);
                 }
                 else {
-                    CodeGeneratorError("Floating point modulo is not yet supported!");
+                    Error("Floating point modulo is not yet supported!");
                 }
                 break;
             case Bytecode::Add:
@@ -1537,7 +1552,7 @@ namespace x86_64 {
                 }
                 break;
             default:
-                CodeGeneratorError("Unhandled bytecode type in x86-64 converter!");
+                Error("Unhandled bytecode type in x86-64 converter!");
             }
 
             // checking stack offset before clearing to not remove very short-lived variables

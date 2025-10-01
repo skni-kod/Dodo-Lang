@@ -47,6 +47,7 @@ bool IsSplittableOperator(const LexerToken* token) {
         case Operator::Macro:
         case Operator::Address:
         case Operator::Dereference:
+        case Operator::Pointer:
             return false;
         default:
             return true;
@@ -80,12 +81,16 @@ uint16_t ParserArgumentsStep(std::vector <ParserTreeValue>& valueArray, std::pai
 
 ParserTreeValue ParseExpressionCast(std::vector <ParserTreeValue>& valueArray, std::pair<uint32_t, uint32_t> range, std::vector <LexerToken*>& tokens) {
     auto [start, end] = range;
-    if (tokens[start]->type != Token::Identifier) Error("Expected a type identifier!");
     ParserTreeValue out;
+    if (tokens[start]->Match(Keyword::Mut)) {
+        start++;
+        out.typeMeta.isMutable = true;
+    }
+    if (not tokens[start]->Match(Token::Identifier)) Error("Expected a type identifier!");
     out.operation = ParserOperation::TypeIdentifier;
     out.identifier = tokens[start]->text;
     for (uint32_t n = start + 1; n < end; n++) {
-        if (tokens[n]->Match(Operator::Multiply, Operator::Dereference)) out.typeMeta.pointerLevel++;
+        if (tokens[n]->Match(Operator::Multiply, Operator::Dereference, Operator::Pointer)) out.typeMeta.pointerLevel++;
         else if (tokens[n]->Match(Operator::Address)) {
             if (n != end - 1) Error("Reference operator must be the last!");
             out.typeMeta.isReference = true;
@@ -513,6 +518,10 @@ LexerToken* ParseExpression(Generator <LexerToken*>& generator, std::vector <Par
             if ((n >= 1 and tokens[n - 1]->type == Token::Operator and tokens.size() > n - 2) or n == 0) {
                 tokens[n]->op = Operator::Dereference;
             }
+            else if (n >= 1 and tokens[n - 1]->Match(Token::Identifier)
+                and (tokens.size() == n + 1
+                    or (tokens.size() >= n + 1 and not tokens[n + 1]->Match(Token::Identifier, Token::Number))))
+                tokens[n]->op = Operator::Pointer;
         }
     }
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.27)
-project(Dodo_Lang)
+project(dodoc)
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -15,11 +15,10 @@ list (REMOVE_DUPLICATES INCLUDE_DIRS)
 
 include_directories(${INCLUDE_DIRS})
 
-add_executable(Dodo_Lang ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 add_custom_command(
         OUTPUT Dodo-lang/src/Misc/Increment.hpp
-        PRE_BUILD
         COMMAND ./increment.sh
         COMMAND echo running
         DEPENDS BuildNumberCache.txt
@@ -27,10 +26,12 @@ add_custom_command(
 
 add_custom_target(IncrementBuildNumber ALL DEPENDS Dodo-lang/src/Misc/Increment.hpp)
 
-add_dependencies(Dodo_Lang IncrementBuildNumber)
+add_dependencies(${PROJECT_NAME} IncrementBuildNumber)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "dodoc")
 
 # run this in build folder to create the executable and get the return value
-# as out.s -o out.o && ld out.o -o out && ./out || echo $?
+# as out.s -o out.o && gcc -nostdlib -o out out.o -lc && ./out || echo $?
 
 # example compilation cli arguments
 # dodoc dodotest.dodo -o dodotest -l3 -import=../

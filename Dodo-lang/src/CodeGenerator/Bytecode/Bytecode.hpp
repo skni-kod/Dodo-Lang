@@ -131,7 +131,7 @@ struct Bytecode {
         ToReference,
         //      syntax: op1 (source), op2 (offset) => op3 / result
         Member,
-        //      syntax: op1 => op3 / result
+        //      syntax: op1 (source), op2 (offset) => op3 / result
         Save,
         //      syntax: value at op1 + op2 * type size => op3 / result
         GetIndexValue,
@@ -271,6 +271,7 @@ struct VariableObject {
     uint32_t lastUse = 0;
     uint32_t uses = 0;
     bool isPointedTo = false;
+    bool isReservedForArray = false;
 
     uint8_t variableSize();
     void use(uint32_t index);
@@ -311,9 +312,9 @@ struct Context {
     BytecodeOperand addCodeReturningResult(Bytecode code);
     // inserts a new local scope variable
     BytecodeOperand insertVariable(std::string* identifier, TypeInfo info);
-    BytecodeOperand insertTemporary(const TypeInfo& info);
+    BytecodeOperand insertTemporary(const TypeInfo& info, bool reserveForArray = false);
     // inserts a new local scope temporary variable
-    BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta);
+    BytecodeOperand insertTemporary(TypeObject* type, TypeMeta meta, bool reserveForArray = false);
     // returns requested variable and throws and exception if there is no match for name or type is wrong
     BytecodeOperand getVariable(std::string* identifier, TypeObject* type, TypeMeta meta);
     BytecodeOperand getVariable(std::string* identifier, TypeInfo typeInfo);
@@ -355,6 +356,11 @@ struct Context {
     void addLoopLabel();
 };
 
+template <typename G, typename T>
+concept IsType = std::same_as<G, T>;
+
+template <typename G, typename... T>
+concept IsAnyOfTypes = (IsType<G, T> or ...);
 
 struct AsmOperand {
     #ifdef PACKED_ENUM_VARIABLES
@@ -398,6 +404,14 @@ struct AsmOperand {
     std::vector<AsmOperand> getAllLocations(Context& context);
 
     bool operator==(const AsmOperand& target) const;
+
+    // matching
+    [[nodiscard]] bool is(Location::Type location) const;
+
+    template<IsType<Location::Type>... T>
+    [[nodiscard]] bool anyOf(T... location) const {
+        return (is(location) or ...);
+    }
 };
 
 struct MemorySnapshotEntry {
@@ -481,14 +495,14 @@ struct Place {
     Place(StackEntry* sta, Location::Type where);
 };
 
-
+inline Context* currentContext = nullptr;
 
 inline std::vector <VariableObject> globalVariableObjects;
 
 // export functions
 
 Context GenerateGlobalVariablesBytecode();
-Context GenerateFunctionBytecode(ParserFunctionMethod& function);
+Context GenerateFunctionBytecode(ParserFunctionMethod& callable);
 void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 
 BytecodeOperand Dereference(Context& context, BytecodeOperand op, TypeInfo target);

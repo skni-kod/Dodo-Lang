@@ -106,6 +106,9 @@ void CalculateLifetimes(Context& context) {
 
     // extending the lifetime of things that got their address taken to the end of function
     for (auto& n : context.codes)
-        if (n.type == Bytecode::Address)
-            context.getVariableObject(n.op1()).lastUse = context.codes.size() - 1;
+        if (n.type == Bytecode::Address) {
+            auto var = context.getVariableObject(n.op1());
+            if (var.identifier != nullptr or var.isReservedForArray)
+                var.lastUse = context.codes.size() - 1;
+        }
 }

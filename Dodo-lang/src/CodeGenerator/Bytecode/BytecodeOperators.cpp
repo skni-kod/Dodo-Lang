@@ -157,7 +157,9 @@ bool AssignOverloadedOperatorIfPossible(Context& context, std::vector<ParserTree
     if (actual.type == nullptr) {
         GetTypes(context, values, actual, node);
 
-        DebugError(actual.type == nullptr, "Expected a type to be found!");
+        if (actual.type == nullptr) {
+            Unimplemented();
+        }
     }
 
     std::vector<TypeInfo> arguments{};
@@ -204,6 +206,7 @@ void PerformTwoOperatorExpression(Context& context, std::vector<ParserTreeValue>
     auto leftType = actual;
     auto rightExpected = actual;
     rightExpected.isReference = false;
+    actual = {};
     auto right = GenerateExpressionBytecode(context, values, rightExpected, actual, current.right, isGlobal);
     code.op2(CheckCompatibilityAndConvertReference(context, rightExpected, actual, right));
     actual = leftType;
@@ -327,11 +330,16 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
             if (not types.contains(*assumedType.identifier))
                 Error("Type: " + *assumedType.identifier + " does not exist!");
             auto& type = types[*assumedType.identifier];
-            actual = typeToUse = {&type, current.typeMeta};
+            actual = typeToUse = {&type, assumedType.typeMeta};
         }
 
         // now let's finally perform the operation and check if the type can be converted
         code.op1(GenerateExpressionBytecode(context, values, typeToUse, actual, current.left, isGlobal));
+        if (actual.isReference) {
+            actual.isReference = false;
+            code.op1(Dereference(context, code.op1(), actual));
+        }
+
         if (not typeToUse.type->attributes.primitiveSimplyConvert or not actual.type->attributes.primitiveSimplyConvert) {
             // TODO: add default conversions type attribute
             // TODO: add a method that looks for constructors for given types to convert, like type.TryToConvert(...)
@@ -346,7 +354,7 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
 
     case Operator::Assign: {
 
-        PerformTwoOperatorExpression(context, values, {}, actual, code, current, isGlobal);
+        PerformTwoOperatorExpression(context, values, {nullptr, {0, 0, true}}, actual, code, current, isGlobal);
 
         DebugError(actual.type == nullptr, "Expected lvalue type to be assigned!");
         if (not actual.isMutable and not isGlobal and not current.isBeingDefined)
@@ -355,11 +363,17 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
         // assigning the correct variant
         if (actual.isReference) {
             code.type = Bytecode::AssignAt;
+            if (not expected.isReference) {
+                actual.isReference = false;
+                code.result(context.insertTemporary(actual));
+            }
         }
-        else
+        else {
             code.type = Bytecode::AssignTo;
+            code.result(context.insertTemporary(actual));
+        }
 
-        code.result(context.insertTemporary(actual));
+
         return context.addCodeReturningResult(code);
     }
 
@@ -422,7 +436,7 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
         code.AssignType(actual = expected);
         code.type = Bytecode::Address;
         code.op1(code.op3());
-        code.op3(context.insertTemporary(code.opType, code.opMeta));
+        code.op3(context.insertTemporary(code.opType, code.opMeta, true));
         return context.addCodeReturningResult(code);
     }
 
@@ -445,7 +459,8 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
         actual = {actual, -1};
 
         code.op1(passedOperand);
-        code.op2(GenerateExpressionBytecode(context, values, expected, actual, current.value, isGlobal));
+        TypeInfo indexInfo;
+        code.op2(GenerateExpressionBytecode(context, values, {&types["i32"], {}}, indexInfo, current.value, isGlobal));
         code.op3(context.insertTemporary(actual));
         context.codes.push_back(code);
         if (current.next)

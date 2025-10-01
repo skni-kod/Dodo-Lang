@@ -130,6 +130,13 @@ bool TypeMeta::operator==(const TypeMeta& other) const {
 }
 
 std::string ParserFunctionMethod::getFullName() const {
+
+
+    if (isExtern) {
+        DebugError(this->name == nullptr, "Expected a name for function!");
+        return *this->name;
+    }
+
     std::string name;
 
     if (isConstructor) name = "constructor$";

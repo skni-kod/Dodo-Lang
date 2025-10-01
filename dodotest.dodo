@@ -1,9 +1,8 @@
-import "Time.dodo";
+import "String.dodo";
+import "Print.dodo";
 
 i32 Main() {
-    let mut Timespec toSleep = Timespec(1, 0);
-    let mut Timespec test = toSleep;
-    let mut Timespec* remaining = 0;
-    Sleep(&test, remaining);
-    return 0;
+    let mut String string = String("");
+    Println(string.length);
+    return string.length;
 }

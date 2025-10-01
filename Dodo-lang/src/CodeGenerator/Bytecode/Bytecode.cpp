@@ -194,6 +194,44 @@ BytecodeOperand GetAddress(Context& context, BytecodeOperand op, TypeInfo target
     return context.addCodeReturningResult(code);
 }
 
+void CallDestructor(Context& context, BytecodeOperand var, bool isGlobal) {
+
+    std::vector<ParserTreeValue> values{};
+    std::vector<TypeInfo> arguments{};
+    Bytecode code;
+    ParserTreeValue value;
+
+    DebugError(var.location != Location::Var, "Cannot call a destructor on a non-variable!");
+    auto obj = context.getVariableObject(var);
+
+    for (auto& n : obj.type->methods)
+        if (n.isDestructor) {
+            auto result = AddCallIfMatches(context, &n, values, value, arguments, code, {}, isGlobal);;
+            if (result == false)
+                Error("Could not call destructor!");
+            return;
+        }
+
+    TypeInfo actual = {obj.type, obj.meta};
+
+    if (not actual.isReference) {
+        // if no destructor was defined then do one for each member
+        actual.isReference = true;
+        var = GetAddress(context, var, actual);
+    }
+
+    for (auto& member : actual.type->members) {
+        Bytecode get;
+        get.AssignType(member.typeObject, member.typeMeta());
+        get.type = Bytecode::Member;
+        get.op1(var);
+        get.op2Value.u64 = member.offset;
+        get.result(context.insertTemporary(member.typeObject, member.typeMeta()));
+        context.codes.push_back(get);
+        CallDestructor(context, get.result(), isGlobal);
+    }
+}
+
 BytecodeOperand CheckCompatibilityAndConvertReference(Context& context, const TypeInfo expected, const TypeInfo actual, BytecodeOperand op) {
     if (expected.type == nullptr)
         return op;
@@ -252,7 +290,22 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
         code.AssignType(actual);
 
         code.result(context.insertTemporary(actual));
-        return context.addCodeReturningResult(code);
+
+        context.codes.push_back(code);
+
+        // if there is nothing after this variable we can return it
+        if (not current.next) {
+            if (not expected.isReference) {
+                actual.isReference = false;
+                return Dereference(context, code.result(), actual);
+            }
+
+            return code.result();
+        }
+
+        context.codes.push_back(code);
+        // welp, now we need to actually handle the next expression
+        return GenerateExpressionBytecode(context, values, expected, actual, current.next, isGlobal, code.result());
     }
 
     case ParserOperation::Syscall:
@@ -288,7 +341,7 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
                 Error("Could not find any viable overload of method: " + *current.identifier);
             Error("Could not find method: " + *current.identifier);
         }
-        if (actual.type != nullptr and current.operation == ParserOperation::Call and actual.type->typeName == *current.identifier) {
+        if (((actual.type != nullptr or (actual = expected).type != nullptr) and current.operation == ParserOperation::Call and actual.type->typeName == *current.identifier)) {
             // a constructor
             bool anyFound = false;
             for (auto& method : actual.type->methods)
@@ -338,6 +391,8 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
 
         if (expected.isReference)
             Error("Literals cannot be targets of references!");
+
+        actual.isReference = false;
 
         CheckLiteralMatch(current.literal, actual);
 
@@ -447,6 +502,13 @@ Context GenerateGlobalVariablesBytecode() {
 void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& result, ParserTreeValue& current) {
     switch (current.operation) {
     case ParserOperation::Operator:
+        if (current.operatorType == Operator::Convert) {
+            if (not types.contains(*values[current.value].identifier))
+                Error("Type: " + *values[current.value].identifier + " does not exist!");
+            result = {&types[*values[current.value].identifier], values[current.value].typeMeta};
+            return;
+        }
+
         GetTypes(context, values, result, current.left);
         return;
     case ParserOperation::SingleOperator:
@@ -464,7 +526,8 @@ void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& 
         auto& var = context.getVariableObject(current.identifier);
         result = {var.meta, var.type};
 
-        if (current.next) GetTypes(context, values, result, current.next);
+        if (current.next)
+            GetTypes(context, values, result, current.next);
         return;
     }
     case ParserOperation::Member:
@@ -505,11 +568,19 @@ void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& 
         result = {1, false, false, &types["char"]};
         return;
     case ParserOperation::Group:
-        GetTypes(context, values, result, current.value);
-        if (current.operatorType == Operator::Index)
+        if (current.operatorType == Operator::Index) {
             result = {result, -1};
+            return;
+        }
+        if (current.value)
+            return GetTypes(context, values, result, current.value);
+
         return;
     case ParserOperation::Syscall:
+        result = {};
+        result.type = &types["i" + std::to_string(Options::addressSize * 8)];
+        return;
+    case ParserOperation::Call:
         result = {};
         result.type = &types["i" + std::to_string(Options::addressSize * 8)];
         return;
@@ -550,32 +621,33 @@ struct ConditionalInfo {
 
 uint64_t labelCounter = 0;
 
-Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
+Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
     std::vector<ConditionalInfo> conditions;
     Context context;
+    currentContext = &context;
     context.codes.reserve(
-        function.instructions.size() + function.parameters.size() + (function.isMethod and not function.isOperator));
+        callable.instructions.size() + callable.parameters.size() + (callable.isMethod and not callable.isOperator));
 
     // adding the pointer to object in methods
-    if (function.isMethod and function.overloaded == Operator::None) {
+    if (callable.isMethod and callable.overloaded == Operator::None) {
         Bytecode code;
-        code.opType = function.parentType;
-        code.opMeta = TypeMeta(0, not function.isConst, true);
+        code.opType = callable.parentType;
+        code.opMeta = TypeMeta(0, not callable.isConst, true);
         code.type = Bytecode::Define;
-        code.op1(context.insertVariable(&ThisDummy, {function.parentType, {0, context.isMutable, true}}));
+        code.op1(context.insertVariable(&ThisDummy, {callable.parentType, {0, context.isMutable, true}}));
         code.op3({Location::Argument, {0}, Type::none, 0});
 
         context.codes.push_back(code);
     }
 
     // adding parameters
-    for (uint64_t n = 0; n < function.parameters.size(); n++) {
+    for (uint64_t n = 0; n < callable.parameters.size(); n++) {
         Bytecode code;
-        code.opType = &types[*function.parameters[n].definition[0].identifier];
-        code.opMeta = function.parameters[n].typeMeta();
+        code.opType = &types[*callable.parameters[n].definition[0].identifier];
+        code.opMeta = callable.parameters[n].typeMeta();
         code.type = Bytecode::Define;
-        code.op1(context.insertVariable(&function.parameters[n].name(), {code.opType, function.parameters[n].typeMeta()}));
-        code.op3({ Location::Argument, {n + (function.isMethod and function.overloaded == Operator::None)}, Type::none, 0});
+        code.op1(context.insertVariable(&callable.parameters[n].name(), {code.opType, callable.parameters[n].typeMeta()}));
+        code.op3({ Location::Argument, {n + (callable.isMethod and callable.overloaded == Operator::None)}, Type::none, 0});
         context.codes.push_back(code);
     }
 
@@ -586,10 +658,12 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
     ConditionalInfo currentCondition;
 
     if (Options::informationLevel == Options::InformationLevel::full)
-        std::cout << "INFO L3: Generating function with code: " << function.getFullName() <<
+        std::cout << "INFO L3: Generating callable: " << callable.getFullName() <<
             " with following instructions:\n";
 
-    for (auto& n : function.instructions) {
+    size_t printIndex = 0;
+
+    for (auto& n : callable.instructions) {
         if (wasLastConditional and n.type != Instruction::BeginScope)
             Error("Conditional statement without scope begin right after!");
         switch (n.type) {
@@ -597,8 +671,8 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
             switch (n.valueArray[0].operation) {
             case ParserOperation::Definition: {
                 if (not types.contains(*n.valueArray[0].identifier))
-                    Error("Type: " + *n.valueArray[0].identifier + " does not exist!")
-;                GenerateExpressionRunner(context, n.valueArray, {&types[*n.valueArray[0].identifier], n.valueArray[0].typeMeta});
+                    Error("Type: " + *n.valueArray[0].identifier + " does not exist!");
+                GenerateExpressionRunner(context, n.valueArray, {/*&types[*n.valueArray[0].identifier], n.valueArray[0].typeMeta*/});
                 break;
             }
             case ParserOperation::Operator: {
@@ -626,11 +700,16 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
         case Instruction::Return: {
             Bytecode code;
             code.type = Bytecode::Return;
-            if (function.returnType.typeName != nullptr) {
-                code.opType = &types[*function.returnType.typeName];
-                code.opMeta = function.returnType.type;
+            if (callable.returnType.typeName != nullptr) {
+                code.opType = &types[*callable.returnType.typeName];
+                code.opMeta = callable.returnType.type;
                 code.op1(GenerateExpressionRunner(context, n.valueArray, {code.opType, code.opMeta}));
             }
+            // TODO: resolving what should actually have it's destructor called here
+            //for (auto level : context.activeLevels)
+            //    for (auto& var : context.localVariables[level])
+            //        CallDestructor(context, var, false);
+
             context.codes.push_back(code);
             break;
         }
@@ -644,7 +723,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
         case Instruction::EndScope:
             PopScope(context);
             if (conditions.back().type == Instruction::If) {
-                if (&function.instructions.back() != &n) {
+                if (&callable.instructions.back() != &n) {
                     if ((&n + 1)->type == Instruction::Else or (&n + 1)->type == Instruction::ElseIf) {
                         currentCondition.afterLabel = ++labelCounter;
                         Bytecode code;
@@ -655,7 +734,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
                 }
             }
             if (conditions.back().type == Instruction::ElseIf) {
-                if (&function.instructions.back() != &n) {
+                if (&callable.instructions.back() != &n) {
                     if ((&n + 1)->type == Instruction::Else or (&n + 1)->type == Instruction::ElseIf) {
                         currentCondition.afterLabel = conditions.back().afterLabel;
                         conditions.back().afterLabel = 0;
@@ -760,6 +839,10 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& function) {
             Error("Internal: for loop unimplemented!");
         default:
             Error("Unhandled instruction type!");
+        }
+
+        for (; printIndex < context.codes.size(); printIndex++) {
+            std::cout << "INFO L3: (" << printIndex << ") " << context.codes[printIndex];
         }
     }
 
@@ -898,21 +981,21 @@ BytecodeOperand Context::addCodeReturningResult(Bytecode code) {
 BytecodeOperand Context::insertVariable(std::string* identifier, TypeInfo info) {
     VariableLocation location;
     location.type = VariableLocation::Local;
-    location.level = localVariables.size() - 1;
+    location.level = activeLevels.back();
     location.number = localVariables[location.level].size();
     localVariables[location.level].emplace_back(info.type, identifier, info.meta());
     return {Location::Variable, {location}, info.type->primitiveType, info.variableSize(*info.type)};
 }
 
-BytecodeOperand Context::insertTemporary(const TypeInfo& info) {
+BytecodeOperand Context::insertTemporary(const TypeInfo& info, bool reserveForArray) {
     return insertTemporary(info.type, info.meta());
 }
 
-BytecodeOperand Context::insertTemporary(TypeObject* type, TypeMeta meta) {
+BytecodeOperand Context::insertTemporary(TypeObject* type, TypeMeta meta, bool reserveForArray) {
     VariableLocation location;
     location.type = VariableLocation::Temporary;
     location.number = temporaries.size();
-    temporaries.emplace_back(type, nullptr, meta);
+    temporaries.emplace_back(type, nullptr, meta, 0, 0, 0, false, reserveForArray);
     return {Location::Variable, {location}, type->primitiveType, meta.variableSize(*type)};
 }
 

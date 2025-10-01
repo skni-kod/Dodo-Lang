@@ -174,12 +174,17 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
         auto& source = moves[k].source;
         auto& target = moves[k].target;
         // if it's a variable get it's location
-        if (source.op == Location::Variable) source = context.getLocation(source);
+        if (source.op == Location::Variable)
+            source = context.getLocation(source);
 
         if (target.op == Location::op) {
             // if it's an operand we need to check if it is in the correct place
             AsmOperand& op = ops[target.value.ui - 1];
             AsmOpDefinition& def = GetOpDefinition(selected, target.value.ui);
+
+            // if the input operand is also used as output we might need to copy it
+            if (def.isOutput and source.anyOf(Location::var, Location::sta, Location::mem, Location::off))
+                source = source.moveAwayOrGetNewLocation(context, instructions, index);
 
             // now that we have references we can nicely check where this operand should be
             if (source.op == Location::imm) {
@@ -293,7 +298,6 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
     // now all the moves should be in the vectors and can be executed, though I probably forgot about something
     // let's get their actual instruction representations
     // the possibility of these moves needing to use occupied locations needs to be taken into consideration
-    std::vector <std::vector <AsmInstruction>> actualMoves;
 
     for (auto& n : moves) {
         auto content = n.source;
@@ -313,7 +317,7 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
 
     for (auto& n : results) {
         if (n.source.op == Location::Variable and n.source.object(context).lastUse <= index) continue;
-        if (n.target.op == Location::Variable) {
+        if (n.target.op == Location::Variable or context.getContent(n.target).is(Location::Variable)) {
             auto loc = n.target.moveAwayOrGetNewLocation(context, instructions, index, nullptr);
             context.getContentRef(loc) = n.source;
         }

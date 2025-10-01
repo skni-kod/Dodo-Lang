@@ -563,10 +563,21 @@ namespace x86_64 {
         return "";
     }
 
+    std::string GASPrefix(const AsmOperand& op1, const AsmOperand& op2) {
+        switch (op1.size < op2.size ? op1.size : op2.size) {
+        case 8: return "q";
+        case 4: return "l";
+        case 2: return "w";
+        case 1: return "b";
+        default: CodeGeneratorError("Internal: invalid GAS prefix size!");
+        }
+        return "";
+    }
+
     std::string GetMnemonic(const AsmInstruction& ins) {
         switch (ins.code) {
         case InstructionCode::mov:
-            return "mov" + GASPrefix(ins.op1);
+            return "mov" + GASPrefix(ins.op1, ins.op2);
         case InstructionCode::movss:
             return "movss";
         case InstructionCode::vmovss:
