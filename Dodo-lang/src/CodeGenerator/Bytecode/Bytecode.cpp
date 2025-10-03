@@ -303,7 +303,6 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
             return code.result();
         }
 
-        context.codes.push_back(code);
         // welp, now we need to actually handle the next expression
         return GenerateExpressionBytecode(context, values, expected, actual, current.next, isGlobal, code.result());
     }
@@ -476,7 +475,6 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
     default:
         Error("Unimplemented parser tree node passed to generator!");
     }
-    return {};
 }
 
 Context GenerateGlobalVariablesBytecode() {

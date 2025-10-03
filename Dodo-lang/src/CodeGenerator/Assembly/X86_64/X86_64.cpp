@@ -117,7 +117,7 @@ namespace x86_64 {
                 s.type = Type::unsignedInteger;
                 if (s.op == Location::reg and not IsIntegerOperationRegister(s.value.reg)) Error("Internal: non integer register source!");
                 if (t.op == Location::reg and not IsIntegerOperationRegister(t.value.reg)) Error("Internal: non integer register target!");
-                if (s.size == t.size) moves.emplace_back(mov, t, s);
+                if (s.size == t.size) AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t);
                 else if (s.size > t.size) {
                     s.size = t.size;
                     AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t);
@@ -196,207 +196,169 @@ namespace x86_64 {
             context.getContentRef(t) = contentToSet;
     }
 
-    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
+    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent, bool intendedComplexSingleMove) {
         if (move.source.op != Location::sta)
             return AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, setContent);
 
-        auto var = context.getContent(move.source).object(context);
-        if (not var.meta.isReference and not var.meta.pointerLevel and var.type->members.size() > 1) {
-            // if it's a complex type value move it's going to be more annoying
-            if ((move.source.op != Location::Sta and move.source.op != Location::Off) or (move.target.op != Location::Sta and move.target.op != Location::Off))
-                Unimplemented();
+        if (not intendedComplexSingleMove) {
+            auto var = context.getContent(move.source).object(context);
+            if (not var.meta.isReference and not var.meta.pointerLevel and var.type->members.size() > 1) {
+                // if it's a complex type value move it's going to be more annoying
+                if ((move.source.op != Location::Sta and move.source.op != Location::Off) or (move.target.op != Location::Sta and move.target.op != Location::Off))
+                    Unimplemented();
 
-            auto size = var.type->typeSize;
-            auto alignment = var.type->typeAlignment;
-            auto sourceOffset = move.source.op == Location::Sta ? move.source.value.offset : move.source.value.regOff.offset;
-            auto targetOffset = move.target.op == Location::Sta ? move.target.value.offset : move.target.value.regOff.offset;
-            for (auto current = 0; current < size; current += alignment) {
-                OperandValue regOff;
-                regOff.regOff.addressRegister = move.source.op == Location::Sta ? RBP : move.source.value.regOff.addressRegister;
-                regOff.regOff.offset = int32_t(sourceOffset) + current;
-                move.source = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
-                regOff.regOff.addressRegister = move.target.op == Location::Sta ? RBP : move.target.value.regOff.addressRegister;
-                regOff.regOff.offset = int32_t(targetOffset) + current;
-                move.target = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
-                AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, false);
-            }
-            if (setContent) {
-                if (move.target.value.regOff.addressRegister == RBP)
-                    context.getContentRefAtOffset(targetOffset) = contentToSet;
-                else
-                    Warning("Did not set content to non-stack location, as it is unknown!");
+                auto size = var.type->typeSize;
+                auto alignment = var.type->typeAlignment;
+                auto sourceOffset = move.source.op == Location::Sta ? move.source.value.offset : move.source.value.regOff.offset;
+                auto targetOffset = move.target.op == Location::Sta ? move.target.value.offset : move.target.value.regOff.offset;
+                for (auto current = 0; current < size; current += alignment) {
+                    OperandValue regOff;
+                    regOff.regOff.addressRegister = move.source.op == Location::Sta ? RBP : move.source.value.regOff.addressRegister;
+                    regOff.regOff.offset = int32_t(sourceOffset) + current;
+                    move.source = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
+                    regOff.regOff.addressRegister = move.target.op == Location::Sta ? RBP : move.target.value.regOff.addressRegister;
+                    regOff.regOff.offset = int32_t(targetOffset) + current;
+                    move.target = AsmOperand(Location::off, move.target.type, false, uint8_t(alignment), regOff);
+                    AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, false);
+                }
+                if (setContent) {
+                    if (move.target.value.regOff.addressRegister == RBP)
+                        context.getContentRefAtOffset(targetOffset) = contentToSet;
+                    else
+                        Warning("Did not set content to non-stack location, as it is unknown!");
+                }
+                return;
             }
         }
-        else AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, setContent);
+        AddConversionsToMoveInternal(move, context, moves, contentToSet, forbiddenRegisters, setContent);
     }
 
-    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target) {
-        std::vector <AsmOperand> result;
+    ArgumentLocation::ArgumentLocation(bool passStructAddress, uint16_t argNumber, uint32_t size, bool isSplit,
+       int32_t memberOffset):
+       passStructAddress(passStructAddress), argumentNumber(argNumber), size(size), isSplit(isSplit), memberOffset(memberOffset) {}
+
+
+    struct ArgumentContext {
+        std::vector <uint8_t> integerRegisters;
+        std::vector <uint8_t> floatRegisters;
+        std::stack <ArgumentLocation> stack{};
+        std::vector <ArgumentLocation>& result;
+        int32_t& offset;
+
+        ArgumentContext(std::vector <uint8_t> integers, std::vector <uint8_t> floats, std::vector <ArgumentLocation>& result, int32_t& offset) :
+            integerRegisters(std::move(integers)), floatRegisters(std::move(floats)), result(result), offset(offset) {}
+
+        void addStack(ArgumentLocation toAdd) {
+            toAdd.isStack = true;
+            stack.emplace(toAdd);
+        }
+
+        void addInteger(ArgumentLocation&& toAdd) {
+            if (integerRegisters.empty())
+                return addStack(toAdd);
+
+            toAdd.regNumber = integerRegisters.back();
+            integerRegisters.pop_back();
+            result.emplace_back(toAdd);
+        }
+
+        void addFloat(ArgumentLocation&& toAdd) {
+            if (floatRegisters.empty())
+                return addStack(toAdd);
+
+            toAdd.regNumber = floatRegisters.back();
+            floatRegisters.pop_back();
+            result.emplace_back(toAdd);
+        }
+
+        void addStackToResult() {
+            while (not stack.empty()) {
+                offset += stack.top().size;
+                stack.top().offset = -offset;
+                result.emplace_back(std::move(stack.top()));
+                stack.pop();
+
+                if (offset % 8 == 0)
+                    continue;;
+
+                offset = (offset / 8 + 1) * 8;
+            }
+            offset *= -1;
+        }
+    };
+
+    void GetArgumentLocationsLinux(std::vector<TypeInfo>& parameters, std::vector <ArgumentLocation>& result, int32_t& offset, bool addRaxForSyscall = false) {
+        ArgumentContext context =
+            addRaxForSyscall ?
+            ArgumentContext{{R9, R8, RCX, RDX, RSI, RDI, RAX}, {XMM7, XMM6, XMM5, XMM4, XMM3, XMM2, XMM1, XMM0}, result, offset}
+          : ArgumentContext{{R9, R8, RCX, RDX, RSI, RDI}, {XMM7, XMM6, XMM5, XMM4, XMM3, XMM2, XMM1, XMM0}, result, offset};
+
+        uint16_t argNumber = 0;
+        for (const auto& n : parameters) {
+
+            // first off all pointers are passed simply
+            if (n.isReference or n.pointerLevel)
+                context.addInteger({false, argNumber, 8});
+            else if (n.type->isPrimitive) {
+                if (n.type->isPrimitive != Type::floatingPoint)
+                    context.addInteger({false, argNumber, uint32_t(n.type->typeSize)});
+                else
+                    context.addFloat({false, argNumber, uint32_t(n.type->typeSize)});
+            }
+            // now it's time for complex types
+            // TODO: somehow implement XMM register passing with float-only types, might be rarely used thankfully
+            else if (n.type->typeSize <= 8)
+                context.addInteger({false, argNumber, uint32_t(n.type->typeSize > 4 ? 8 : n.type->typeSize > 2 ? 4 : n.type->typeSize > 1 ? 2 : 1)});
+            else if (n.type->typeSize <= 16) {
+                // here we need to split it into 2 different arguments, yay!
+                context.addInteger({false, argNumber, 8, true});
+                context.addInteger({false, argNumber, uint32_t(n.type->typeSize > 12 ? 8 : n.type->typeSize > 10 ? 4 : n.type->typeSize > 9 ? 2 : 1), true, 8});
+            }
+            else {
+                // here we get a pointer and are done with it
+                context.addInteger({true, argNumber, 8});
+            }
+
+            argNumber++;
+        }
+
+        context.addStackToResult();
+    }
+
+    std::pair<std::vector<ArgumentLocation>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target) {
+        std::vector <ArgumentLocation> result;
         int32_t stackOffset = 0;
 
+        std::vector <TypeInfo> types;
+        types.reserve(target.parameters.size() + target.isMethod and not target.isOperator);
+        if (target.isMethod and not target.isOperator)
+            types.emplace_back(target.parentType, TypeMeta(0, true, true));
+        for (auto& n : target.parameters)
+            types.emplace_back(n.typeObject, n.typeMeta());
 
-        // first off preparing the correct table of places
-        if (Options::targetSystem == "LINUX") {
-            std::array <uint8_t, 6> integersPointers = {RDI, RSI, RDX, RCX, R8, R9};
-            std::array <uint8_t, 8> floats = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
-            uint16_t intPointerCounter = 0, floatCounter = 0;
+        if (Options::targetSystem == "LINUX")
+            GetArgumentLocationsLinux(types, result, stackOffset);
+        else
+            Error("Non-linux argument place preparation not implemented!");
 
-            // static chain pointer is probably not going to be used since it's for parent function in lambdas and such
-
-            if (target.isMethod and not target.isOperator) {
-                // add the "this" argument if it applies
-                intPointerCounter++;
-                result.emplace_back(Location::reg, Type::address, false, Options::addressSize, integersPointers[0]);
-            }
-
-            // TODO: add "eightbytes" for structures, mostly for syscalls/c calls
-            for (auto& n : target.parameters) {
-                if (n.typeObject == nullptr) {
-                    n.typeObject = &types[n.typeName()];
-                }
-                if (n.typeObject->isPrimitive or n.typeMeta().isReference or n.typeMeta().pointerLevel) {
-                    // a primitive
-                    auto primitiveType = n.typeObject->primitiveType;
-                    auto typeSize = n.typeObject->typeSize;
-                    if (floatCounter != 8 and primitiveType == Type::floatingPoint) {
-                        // floats into SSE/AVX registers
-                        result.emplace_back(Location::reg, Type::floatingPoint, false, typeSize, floats[floatCounter++]);
-                        result.back().isArgumentMove = true;
-                    }
-                    else if (intPointerCounter != 6 and primitiveType != Type::floatingPoint){
-                        // integers into normal registers
-                        result.emplace_back(Location::reg, primitiveType, false, typeSize, integersPointers[intPointerCounter++]);
-                        result.back().isArgumentMove = true;
-                        if (n.typeMeta().isReference or n.typeMeta().pointerLevel) {
-                            result.back().type = Type::address;
-                            result.back().size = 8;
-                        }
-                    }
-                    else {
-                        // move the value onto the stack
-                        Error("Internal: stack arguments not supported!");
-
-                        // ensure it's aligned properly and added
-                        if (stackOffset % n.typeObject->typeAlignment) stackOffset = (stackOffset / n.typeObject->typeAlignment + 2) * n.typeObject->typeAlignment;
-                        else stackOffset += n.typeObject->typeSize;
-
-                        OperandValue offset;
-                        offset.offset = stackOffset;
-                        result.emplace_back(Location::sta, primitiveType, false, typeSize, offset);
-                        result.back().isArgumentMove = true;
-                    }
-                }
-                else {
-                    // it's a complex type
-                    Error("Internal: complex type arguments unimplemented!");
-                    Error("Internal: stack arguments not supported!");
-                    if (stackOffset % 8) stackOffset = (stackOffset / 8 + 2) * 8;
-                    else stackOffset += 8;
-
-                    OperandValue offset;
-                    offset.offset = stackOffset;
-                    auto typeSize = n.typeObject->typeSize;
-                    result.emplace_back(Location::sta, Type::address, false, typeSize, offset);
-                    result.back().isArgumentMove = true;
-                }
-            }
-            if (stackOffset % 16) {
-                stackOffset = (stackOffset / 16 + 1) * 16;
-            }
-            for (auto& n : result) {
-                if (n.op == Location::sta) {
-                    n.value.offset = 16 + stackOffset - n.value.offset;
-                }
-            }
-        }
-        else if (Options::targetSystem == "WINDOWS") {
-            Error("Microsoft x86-64 calling convention is not supported, linux's is though!");
-        }
-        else Error("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
         return {result, stackOffset};
     }
 
     // for syscalls only
-    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, Context& context) {
-        std::vector <AsmOperand> result;
+    std::pair<std::vector <ArgumentLocation>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target) {
+        std::vector <ArgumentLocation> result;
         int32_t stackOffset = 0;
 
-        // first off preparing the correct table of places
-        if (Options::targetSystem == "LINUX") {
-            // first is for syscall number
-            std::array <uint8_t, 7> integersPointers = {RAX, RDI, RSI, RDX, RCX, R8, R9};
-            std::array <uint8_t, 8> floats = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
-            uint16_t intPointerCounter = 0, floatCounter = 0;
+        std::vector <TypeInfo> types{};
+        types.reserve(target.size());
+        for (auto& n : target)
+            types.emplace_back(n->opType, n->opMeta);
 
-            // static chain pointer is probably not going to be used since it's for parent function in lambdas and such
+        if (Options::targetSystem == "LINUX")
+            GetArgumentLocationsLinux(types, result, stackOffset, true);
+        else
+            Error("Non-linux argument place preparation not implemented!");
 
-            // TODO: add "eightbytes" for structures, mostly for syscalls/c calls
-            for (auto& n : target) {
-                // now we know the type and size
-                auto thing = AsmOperand(n->op3(), context);
-
-                bool isSimple = true;
-                VariableObject* obj = nullptr;
-                if (thing.op == Location::Variable) {
-                    obj = &thing.object(context);
-                    if (not obj->type->isPrimitive and (not obj->meta.isReference and obj->meta.pointerLevel == 0)) isSimple = false;
-                }
-
-                if (isSimple) {
-                    // a primitive
-                    auto primitiveType = thing.type;
-                    auto typeSize = thing.size;
-                    if (floatCounter != 8 and primitiveType == Type::floatingPoint) {
-                        // floats into SSE/AVX registers
-                        result.emplace_back(Location::reg, Type::floatingPoint, false, typeSize, floats[floatCounter++]);
-                        result.back().isArgumentMove = true;
-                    }
-                    else if (intPointerCounter != integersPointers.size() and primitiveType != Type::floatingPoint){
-                        // integers into normal registers
-                        result.emplace_back(Location::reg, primitiveType, false, typeSize, integersPointers[intPointerCounter++]);
-                        result.back().isArgumentMove = true;
-                    }
-                    else {
-                        // move the value onto the stack
-                        Error("Internal: stack arguments not supported!");
-
-                        // ensure it's aligned properly and added
-                        if (stackOffset % thing.size) stackOffset = (stackOffset / thing.size + 2) * thing.size;
-                        else stackOffset += thing.size;
-
-                        OperandValue offset;
-                        offset.offset = stackOffset;
-                        result.emplace_back(Location::sta, primitiveType, false, typeSize, offset);
-                        result.back().isArgumentMove = true;
-                    }
-                }
-                else {
-                    // it's a complex type
-                    Error("Internal: complex type arguments unimplemented!");
-                    Error("Internal: stack arguments not supported!");
-                    if (stackOffset % 8) stackOffset = (stackOffset / 8 + 2) * 8;
-                    else stackOffset += 8;
-
-                    OperandValue offset;
-                    offset.offset = stackOffset;
-                    auto typeSize = obj->type->typeSize;
-                    result.emplace_back(Location::sta, Type::address, false, typeSize, offset);
-                    result.back().isArgumentMove = true;
-                }
-            }
-            if (stackOffset % 16) {
-                stackOffset = (stackOffset / 16 + 1) * 16;
-            }
-            for (auto& n : result) {
-                if (n.op == Location::sta) {
-                    n.value.offset = 16 + stackOffset - n.value.offset;
-                }
-            }
-        }
-        else if (Options::targetSystem == "WINDOWS") {
-            Error("Microsoft x86-64 calling convention is not supported, linux's is though!");
-        }
-        else Error("x86-64 calling convention for: " + Options::targetSystem + "if undefined!");
         return {result, stackOffset};
     }
 

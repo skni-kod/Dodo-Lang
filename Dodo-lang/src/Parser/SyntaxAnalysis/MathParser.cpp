@@ -71,7 +71,49 @@ uint32_t FindFirstClosed(const Operator::Type groupType, const std::pair<uint32_
         }
     }
     Error("Could not find closing bracket/brace/index!");
-    return 0;
+}
+
+// start with the first dot, bracket, index of member, etc
+uint32_t FindEndOfNextValues(const std::pair<uint32_t, uint32_t>& range, const std::vector <LexerToken*>& tokens) {
+    uint32_t bracketLevel = 0;
+    uint32_t indexLevel = 0;
+    bool isStarting = true;
+    for (uint32_t n = range.first; n < range.second; n++) {
+        auto& current = *tokens[n];
+
+        if (isStarting) {
+            isStarting = false;
+            if (current.Match(Keyword::Dot))
+                continue;
+            if (current.Match(Operator::IndexOpen))
+                indexLevel++;
+            else if (current.Match(Operator::BracketOpen))
+                bracketLevel++;
+            else return n;
+        }
+        else {
+            if (current.Match(Token::Identifier)) {
+                isStarting = true;
+                continue;
+            }
+            else if (current.Match(Operator::IndexClose)) {
+                if (indexLevel == 0)
+                    Error("Invalid indexes!");
+                indexLevel--;
+                if (indexLevel == 0)
+                    isStarting = true;
+            }
+            else if (current.Match(Operator::BracketClose)) {
+                if (bracketLevel == 0)
+                    Error("Invalid brackets!");
+                bracketLevel--;
+                if (bracketLevel == 0)
+                    isStarting = true;
+            }
+        }
+
+    }
+    return range.second;
 }
 
 // takes a range where arguments should be and returns the number the first one is at

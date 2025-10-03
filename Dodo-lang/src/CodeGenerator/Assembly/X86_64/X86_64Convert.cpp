@@ -8,10 +8,27 @@
 #include "X86_64Enums.hpp"
 
 namespace x86_64 {
+    bool isCallerSaved(uint8_t reg) {
+        switch (reg) {
+        case RBX:
+        case RSP:
+        case RBP:
+        case R12:
+        case R13:
+        case R14:
+        case R15:
+            return false;
+        default:
+            return true;
+        }
+    }
+
     void ConvertBytecode(Context& context, ParserFunctionMethod* source,
                          std::ofstream& out) {
-        std::vector<AsmInstruction> instructions;
-        std::vector<AsmOperand> argumentPlaces;
+        std::vector<AsmInstruction> instructions{};
+        std::vector<ArgumentLocation> argumentPlaces{};
+        std::vector<AsmOperand> forbiddenCallRegisters{};
+
         int32_t argumentOffset = 0;
         int32_t maxOffset = 0;
         // first is offset, second is amount to move by, third is content, fourth is original offset
@@ -41,7 +58,7 @@ namespace x86_64 {
                         PrintRegisterName(n.number, n.content.size, std::cout);
                         std::cout << ": ";
                         n.content.print(std::cout, context);
-                        std::cout << "\n";
+                        std::cout  << " (value size: " << n.content.size * 1 << ")\n";
                     }
                 }
                 std::cout << "INFO L3: Stack:\n";
@@ -58,24 +75,71 @@ namespace x86_64 {
 
             switch (current.type) {
             case Bytecode::Define:
-                // TODO: make the variables appear not on stack
                 if (current.op3().location == Location::Argument) {
                     if (current.op3Value.ui == 0) {
                         auto [args, off] = GetFunctionMethodArgumentLocations(*source);
                         argumentPlaces = std::move(args);
                         argumentOffset = off;
-                    }
-                    if (argumentPlaces[current.op3Value.ui].op == Location::sta)
-                        context.stack.emplace_back(AsmOperand(current.op1(), context),
-                                                     argumentPlaces[current.op3Value.ui].value.offset,
-                                                     argumentPlaces[current.op3Value.ui].size);
 
-                    context.getContentRef(argumentPlaces[current.op3Value.ui]) = AsmOperand(current.op1(), context);
+                        forbiddenCallRegisters = {};
+                        for (auto& n : argumentPlaces)
+                            if (not n.isStack)
+                                forbiddenCallRegisters.emplace_back(Location::reg, Type::unsignedInteger, true, uint8_t(Options::addressSize), OperandValue(n.regNumber));
+                    }
+
+                    // TODO: rewrite this to support non 1:1 argument place to bytecode projection, so search for a match
+
+                    // first off let's find the place(s) where we have this argument, since it can be split
+
+                    bool foundAny = false;
+                    AsmOperand target{};
+                    for (auto& place : argumentPlaces) {
+                        if (place.argumentNumber != current.op3Value.ui)
+                            continue;
+
+                        if (place.passStructAddress) {
+                            Error("Structure address arguments unsupported!");
+                        }
+                        if (not place.isSplit) {
+                            // now we have a place
+                            if (place.isStack) {
+                                Error("Positive offset stack arguments not implemented!");
+                            }
+                            else
+                                context.registers[place.regNumber].content = AsmOperand(current.op1(), context);
+                            break;
+                        }
+                        else {
+                            if (not foundAny) {
+                                foundAny = true;
+                                target = context.pushStack(current.op1());
+                            }
+
+                            AsmOperand modifiedTarget = target;
+                            modifiedTarget.size = place.size;
+                            modifiedTarget.value.offset += place.memberOffset;
+
+                            AsmOperand s;
+                            if (place.isStack) {
+                                s.op = Location::sta;
+                                s.value.offset = place.offset;
+                            }
+                            else {
+                                s.op = Location::reg;
+                                s.value.reg = place.regNumber;
+                            }
+                            s.size = place.size;
+                            s.type = Type::unsignedInteger;
+
+                            MoveInfo move{s, modifiedTarget};
+                            x86_64::AddConversionsToMove(move, context, instructions, {}, &forbiddenCallRegisters, false);
+                        }
+                    }
                 }
-                else {
+                else
                     context.pushStack(current.op1());
-                }
                 break;
+
             case Bytecode::Return: {
                 AsmInstructionInfo instruction;
                 if (source->returnType.typeName != nullptr) {
@@ -266,6 +330,16 @@ namespace x86_64 {
                 auto left = AsmOperand(current.op1(), context);
                 auto right = AsmOperand(current.op2(), context);
                 auto result = AsmOperand(current.op3(), context);
+
+                if (left.is(Location::Literal) and left.type == Type::unsignedInteger and right.type == Type::address) {
+                    left.type = Type::address;
+                    left.size = right.size;
+
+                }
+                if (right.is(Location::Literal) and right.type == Type::unsignedInteger and left.type == Type::address) {
+                    right.type = Type::address;
+                    right.size = left.size;
+                }
 
                 if (left.type != right.type) Error("Internal: incompatible type comparison!");
                 if (left.type == Type::floatingPoint and left.size == 4) {
@@ -575,6 +649,13 @@ namespace x86_64 {
                 src.type = resultOp.type;
                 src.size = resultOp.size;
 
+                DebugError(not arrayOp.is(Location::var), "Array should be a variable");
+                auto arrayVar = context.getVariableObject(BytecodeOperand(arrayOp.op, arrayOp.value, arrayOp.type, arrayOp.size));
+                if (arrayVar.meta.pointerLevel > 1)
+                    src.value.regOff.indexScale = Options::addressSize;
+                else
+                    src.value.regOff.indexScale = arrayVar.type->typeSize;
+
                 if (indexOp.op == Location::imm) {
                     src.value.regOff.addressRegister = arrayLocation.value.reg;
                     src.value.regOff.offset = resultOp.size * indexOp.value.u32;
@@ -601,7 +682,6 @@ namespace x86_64 {
                     else Error("Internal: Unimplemented array location!");
 
                     src.value.regOff.indexRegister = indexLocation.value.reg;
-                    src.value.regOff.indexScale = resultOp.size;
                 }
                 else Error("Internal: unsupported data type for index get!");
 
@@ -745,7 +825,7 @@ namespace x86_64 {
                 // now we have arguments gathered, so let's get the call itself
                 switch (context.codes[index].type) {
                 case Bytecode::Syscall: {
-                    auto [args, off] = GetFunctionMethodArgumentLocations(arguments, context);
+                    auto [args, off] = GetFunctionMethodArgumentLocations(arguments);
                     argumentPlaces = std::move(args);
                     argumentOffset = off;
                 }
@@ -762,15 +842,58 @@ namespace x86_64 {
 
                 // now we have the argument places ready and can move then there
                 // first let's place the arguments in correct places
-                for (uint32_t n = 0; n < arguments.size(); n++) {
-                    auto s = AsmOperand(arguments[n]->op3(), context);
+                for (auto & place : argumentPlaces) {
+                    auto s = AsmOperand(arguments[place.argumentNumber]->op3(), context);
+
+                    if (place.passStructAddress)
+                        Error("Getting type pointers in arguments unimplemented!");
+
                     // TODO: add forbidden locations
-                    MoveInfo move = {
-                        context.getLocation(s),
-                        argumentPlaces[n].moveAwayOrGetNewLocation(context, instructions, firstIndex,
-                                                                   nullptr, true)
-                    };
-                    x86_64::AddConversionsToMove(move, context, instructions, s, nullptr);
+                    // TODO: add getting address
+                    if (not place.isSplit) {
+                        AsmOperand target;
+                        if (place.isStack)
+                            target = AsmOperand(Location::sta, s.type, false, s.size, place.offset);
+                        else
+                            target = AsmOperand(Location::reg, s.type, false, s.size, place.regNumber);
+
+                        MoveInfo move = {
+                            context.getLocation(s),
+                            target.moveAwayOrGetNewLocation(context, instructions, firstIndex,
+                                                                       nullptr, true)
+                        };
+                        x86_64::AddConversionsToMove(move, context, instructions, s, nullptr);
+                    }
+                    else {
+                        AsmOperand target;
+                        s = context.getLocation(s);
+                        if (place.isStack)
+                            target = AsmOperand(Location::sta, s.type, false, s.size, place.offset + place.memberOffset);
+                        else {
+                            target = AsmOperand(Location::reg, s.type, false, s.size, place.regNumber);
+                            if (place.memberOffset != 0) {
+                                if (s.is(Location::sta))
+                                    s.value.offset += place.memberOffset;
+                                else if (s.is(Location::reg)) {
+                                    s.op = Location::off;
+                                    s.value.regOff.addressRegister = s.value.reg;
+                                    s.value.regOff.indexScale = 0;
+                                    s.value.regOff.indexRegister = NO_REGISTER_IN_OFFSET;
+                                    s.value.regOff.isNStringLabel = false;
+                                    s.value.regOff.isPrefixLabel = false;
+                                    s.value.regOff.offset = place.memberOffset;
+                                }
+                                else Error("Internal: Invalid split argument!");
+                            }
+                        }
+
+                        MoveInfo move = {
+                            context.getLocation(s),
+                            target.moveAwayOrGetNewLocation(context, instructions, firstIndex,
+                                                                       nullptr, true)
+                        };
+                        x86_64::AddConversionsToMove(move, context, instructions, {}, nullptr, true, true);
+                    }
                 }
 
                 // now that the arguments are in place, we need to move away the ones that would get overwritten
@@ -784,7 +907,7 @@ namespace x86_64 {
 
                     bool evacuate = true;
                     for (auto& m : argumentPlaces) {
-                        if (m.op == Location::reg and m.value.reg == n.number) {
+                        if (not m.isStack and isCallerSaved(m.regNumber) and  m.regNumber == n.number) {
                             evacuate = false;
                             break;
                         }
@@ -817,7 +940,7 @@ namespace x86_64 {
 
                 // removing saved values from argument registers
                 for (auto& n : argumentPlaces) {
-                    if (n.op == Location::reg) context.registers[n.value.reg].content = {};
+                    if (not n.isStack) context.registers[n.regNumber].content = {};
                 }
 
                 auto result = AsmOperand(context.codes[index].op3(), context);
@@ -834,6 +957,8 @@ namespace x86_64 {
                 auto resultOp = AsmOperand(current.op3(), context);
 
                 if (sourceOp.op == Location::Variable) sourceOp = context.getLocation(sourceOp);
+
+
 
                 // let's get a free register for the pointer for lea
                 AsmOperand reg = context.getFreeRegister(Type::address, 8);

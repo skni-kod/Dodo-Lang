@@ -265,11 +265,11 @@ AsmOperand Context::getFreeRegister(Type::TypeEnum valueType, uint16_t size) con
 Place::Place(Register* reg, const Location::Type where) : reg(reg), where(where) {}
 Place::Place(StackEntry* sta, const Location::Type where) : sta(sta), where(where){}
 
-AsmOperand::AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, uint8_t size, OperandValue value)
-    : op(op), type(type), useAddress(useAddress), size(size), value(value) {}
+AsmOperand::AsmOperand(Location::Type op, Type::TypeEnum type, bool isArgumentMove, uint8_t size, OperandValue value)
+    : op(op), type(type), isArgumentMove(isArgumentMove), size(size), value(value) {}
 
-AsmOperand::AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, LabelType label, OperandValue value)
-    : op(op), type(type), useAddress(useAddress), labelType(label), value(value) {}
+AsmOperand::AsmOperand(Location::Type op, Type::TypeEnum type, bool isArgumentMove, LabelType label, OperandValue value)
+    : op(op), type(type), isArgumentMove(isArgumentMove), labelType(label), value(value) {}
 
 AsmOperand::AsmOperand(const int32_t stackOffset) {
     op = Location::sta;

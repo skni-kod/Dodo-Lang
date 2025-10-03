@@ -3,7 +3,8 @@
 // ┃ Last revision: 30.09.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-extern mut i32* malloc (let i64 __size);
+extern mut any* malloc (let i64 __size);
+extern void free (let any* __ptr);
 
 type String {
     let mut char* _text = 0;
@@ -36,7 +37,9 @@ type String {
     }
 
     ~String() {
-        // TODO: add freeing here later
+        if (this._text != 0) {
+            free(this._text convert any*);
+        }
         return;
     }
 }

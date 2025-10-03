@@ -91,9 +91,12 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
                 TypeInfo expected;
                 if (called != nullptr)
                     expected = TypeInfo(called->parameters[index].typeObject, called->parameters[index].typeMeta());
-                else
+                else {
                     GetTypes(context, values, expected, current->left);
+                    expected.isReference = false;
+                }
                 arg.op3(GenerateExpressionRunner(context, values,  expected, isGlobal, current->left));
+                arg.AssignType(expected);
                 arg.op1Value = ++numbers;
                 argumentCodes.push_back(arg);
 
@@ -142,7 +145,7 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
             code.result(secondaryPassedOperand);
     }
     else {
-        code.result(context.insertTemporary(code.AssignType({&types["u" + std::to_string(8 * Options::addressSize)], {}})));
+        code.result(context.insertTemporary(code.AssignType({&types["any"], {}})));
     }
 
     return true;

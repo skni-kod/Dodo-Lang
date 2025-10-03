@@ -8,15 +8,30 @@
 
 namespace x86_64 {
 
+    struct ArgumentLocation {
+        bool isSplit            = false;
+        bool isStack            = false;
+        bool passStructAddress  = false;
+        uint16_t argumentNumber = 0;
+        uint32_t size           = 0;
+        int32_t memberOffset    = 0;
+        union {
+            int64_t regNumber   = 0;
+            int64_t offset;
+        };
+
+        ArgumentLocation(bool passStructAddress, uint16_t argNumber, uint32_t size, bool isSplit = false, int32_t memberOffset = 0);
+    };
+
     // functions that need to be exposed
 
     // converts simple moves into assembly
-    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr, bool setContent = true);
+    void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& moves, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters = nullptr, bool setContent = true, bool intendedComplexSingleMove = false);
     // returns a vector of registers and stack locations where arguments are to be placed
     // and amount of space on stack required for arguments
     // stack arguments are returned in the form used to reference arguments and not pass them (from 16 up)!
-    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target);
-    std::pair<std::vector <AsmOperand>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target, Context& context);
+    std::pair<std::vector <ArgumentLocation>, int32_t> GetFunctionMethodArgumentLocations(ParserFunctionMethod& target);
+    std::pair<std::vector <ArgumentLocation>, int32_t> GetFunctionMethodArgumentLocations(std::vector<Bytecode*>& target);
     // the driver function for converting bytecode to assembly
     void ConvertBytecode(Context& context, ParserFunctionMethod* source, std::ofstream& out);
     // prints all instructions

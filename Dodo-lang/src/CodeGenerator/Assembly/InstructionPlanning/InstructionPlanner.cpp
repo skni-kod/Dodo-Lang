@@ -1,6 +1,7 @@
 #include <GenerateCode.hpp>
 #include <iostream>
 
+#include "ErrorHandling.hpp"
 #include "InstructionPlanningInternal.hpp"
 #include "X86_64.hpp"
 
@@ -169,6 +170,11 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
         }
     }
 
+    std::vector <AsmOperand> forbiddenRegisters{};
+    for (auto& n : moves)
+        if (n.target.is(Location::reg))
+            forbiddenRegisters.push_back(n.target);
+
     // now that we have all the changes saved we need to resolve the operands
     for (uint16_t k = 0; k < moves.size(); k++) {
         auto& source = moves[k].source;
@@ -241,6 +247,13 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
             }
             else CodeGeneratorError("Internal: unimplemented operand source case move!");
         }
+        else if (target.is(Location::reg)) {
+            auto& content = context.registers[target.value.reg].content;
+            if (content.is(Location::var))
+                // TODO: what about not putting it to registers we'll need?
+                AsmOperand(Location::reg, content.type, false, content.size, target.value).moveAwayOrGetNewLocation(context, instructions, index, &forbiddenRegisters);
+        }
+        else Unimplemented();
     }
 
     // also checking for output operands here
@@ -316,6 +329,12 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
     ins.op4 = ops[3];
 
     for (auto& n : results) {
+        // TODO: find out why an operand can get through, could be something with function calls
+        if (n.source.is(Location::op))
+            n.source = ops[n.source.value.ui - 1];
+        if (n.target.is(Location::op))
+            n.target = ops[n.target.value.ui - 1];
+
         if (n.source.op == Location::Variable and n.source.object(context).lastUse <= index) continue;
         if (n.target.op == Location::Variable or context.getContent(n.target).is(Location::Variable)) {
             auto loc = n.target.moveAwayOrGetNewLocation(context, instructions, index, nullptr);

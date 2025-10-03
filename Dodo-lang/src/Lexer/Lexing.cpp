@@ -173,6 +173,8 @@ bool hasDot = false;
 bool hasFloatSign = false;
 uint8_t base = 0;
 
+LexerToken lastToken{};
+
 LexerLine LexLine(std::string& line) {
     LexerLine output;
     // TODO: find a big/little endian friendly way for this
@@ -332,6 +334,9 @@ LexerLine LexLine(std::string& line) {
 
     // now a go through the characters without context to create something
     for (int64_t n = 0; n < characters.size(); n++) {
+        if (not output.tokens.empty())
+            lastToken = output.tokens.back();
+
         auto& current = characters[n];
         switch (lexerState) {
             case State::normal:
@@ -429,7 +434,8 @@ LexerLine LexLine(std::string& line) {
                         doubleOperator = false;
                         output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
                     }
-                    if ((result[0] == '.' or result[0] == '-') and result.size() == 1 and current.code >= '0' and current.code <= '9') {
+                    // TODO: determine what operators a negative number can be after and try to add the condition here
+                    if ((result[0] == '.' or result[0] == '-') and (not lastToken.Match(Token::Identifier)) and result.size() == 1 and current.code >= '0' and current.code <= '9') {
                         n -= 2;
                         lexerState = State::number;
                         result.clear();
@@ -564,7 +570,7 @@ LexerLine LexLine(std::string& line) {
                 break;
             case State::number: {
                 bool parse = false;
-                if ((current.whitespaceBefore > 0 and not result.empty())
+                if ((current.whitespaceBefore > 0 and not result.empty() and result != "-" and result != ".")
                     or (current.specialWhitespace and current.code != '.' and current.code != '-')) {
                     parse = true;
                     n--;

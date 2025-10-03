@@ -26,7 +26,8 @@ namespace Location {
         ComplexOffset = 11, COff = 11, coff = 11,
         Zeroed = 12, Zer = 12, zer = 12, Zero = 12, zero = 12,
         Operand = 13, Op = 13, op = 13,
-        Element = 14
+        Element = 14,
+        Split = 15
     };
 }
 
@@ -61,6 +62,15 @@ struct RegisterOffset {
 
 };
 
+struct SplitArgument {
+    uint32_t memberOffset : 31 = 0;
+    uint32_t isRegister   : 1  = 0;
+    union {
+        uint32_t regNumber = 0;
+        int32_t stackOffset;
+    };
+};
+
 union OperandValue {
     RegisterOffset regOff{};
     uint64_t ui;
@@ -82,6 +92,7 @@ union OperandValue {
     uint64_t reg;
     ParserFunctionMethod* function;
     VariableLocation variable;
+    SplitArgument split;
 
     OperandValue() = default;
     OperandValue(uint64_t val);
@@ -388,8 +399,8 @@ struct AsmOperand {
     // value to set in the operand
     OperandValue value = {};
     AsmOperand() = default;
-    AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, uint8_t size, OperandValue value);
-    AsmOperand(Location::Type op, Type::TypeEnum type, bool useAddress, LabelType label, OperandValue value);
+    AsmOperand(Location::Type op, Type::TypeEnum type, bool isArgumentMove, uint8_t size, OperandValue value);
+    AsmOperand(Location::Type op, Type::TypeEnum type, bool isArgumentMove, LabelType label, OperandValue value);
     AsmOperand(int32_t stackOffset);
     AsmOperand(BytecodeOperand op, Context& context);
     // overrides the location to something else while preserving the size and type of operand
