@@ -282,10 +282,18 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
         DebugError(passedOperand.location != Location::Var, "Operand passed to member must be a variable!");
         DebugError(not context.getVariableObject(passedOperand).meta.isReference, "Member's base variable must be a reference!");
 
-        code.type = Bytecode::Member;
-        code.op1(passedOperand);
 
-        code.op2Value.offset = actual.type->getMemberOffsetAndSetType(current.identifier, actual);
+        // when we have a reference there's no need to get address, we can store pointer with changed value
+        code.op1(passedOperand);
+        if (actual.isReference) {
+            code.type = Bytecode::Add;
+            code.op2({Location::imm, {uint64_t(actual.type->getMemberOffsetAndSetType(current.identifier, actual))}, Type::address, Options::addressSize});
+        }
+        else {
+            code.type = Bytecode::Member;
+            code.op2Value.offset = actual.type->getMemberOffsetAndSetType(current.identifier, actual);
+        }
+
         actual.isReference = true;
         code.AssignType(actual);
 
@@ -655,15 +663,21 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
     bool wasPushAdded = false;
     ConditionalInfo currentCondition;
 
-    if (Options::informationLevel == Options::InformationLevel::full)
+    if (Options::informationLevel == Options::InformationLevel::full){
         std::cout << "INFO L3: Generating callable: " << callable.getFullName() <<
-            " with following instructions:\n";
+                    " based on parsed instructions:\n";
+        for (int64_t n = 0; n < callable.instructions.size(); n++) {
+            std::cout << "INFO L3: " << n << " - " << callable.instructions[n].typeName() << "\n";
+        }
+
+        std::cout << "Generated instructions:\n";
+    }
 
     size_t printIndex = 0;
 
     for (auto& n : callable.instructions) {
-        if (wasLastConditional and n.type != Instruction::BeginScope)
-            Error("Conditional statement without scope begin right after!");
+        //if (wasLastConditional and n.type != Instruction::BeginScope)
+        //    Error("Conditional statement without scope begin right after!");
         switch (n.type) {
         case Instruction::Expression:
             switch (n.valueArray[0].operation) {
@@ -720,6 +734,9 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
             break;
         case Instruction::EndScope:
             PopScope(context);
+            // this is non 0 when two scopes and at once
+            //if (n.expression1Index != 0)
+            //    PopScope(context);
             if (conditions.back().type == Instruction::If) {
                 if (&callable.instructions.back() != &n) {
                     if ((&n + 1)->type == Instruction::Else or (&n + 1)->type == Instruction::ElseIf) {
@@ -743,6 +760,33 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
                     }
                 }
             }
+
+            //if (n.expression1Index != 0) {
+            //    if (conditions.back().type == Instruction::None)
+            //        conditions.pop_back();
+            //    else {
+            //        if (conditions.back().loopConditionLabel) {
+            //            Bytecode code;
+            //            code.type = Bytecode::Jump;
+            //            code.op1({Location::Literal, conditions.back().loopConditionLabel, Type::none, 0});
+            //            context.codes.push_back(code);
+            //        }
+            //        if (conditions.back().afterLabel) {
+            //            Bytecode code;
+            //            code.type = Bytecode::Label;
+            //            code.op1({Location::Literal, conditions.back().afterLabel, Type::none, 0});
+            //            context.codes.push_back(code);
+            //        }
+            //        if (conditions.back().falseLabel and conditions.back().falseLabel != conditions.back().afterLabel) {
+            //            Bytecode code;
+            //            code.type = Bytecode::Label;
+            //            code.op1({Location::Literal, conditions.back().falseLabel, Type::none, 0});
+            //            context.codes.push_back(code);
+            //        }
+            //        conditions.pop_back();
+            //    }
+            //}
+
             if (conditions.back().loopConditionLabel) {
                 Bytecode code;
                 code.type = Bytecode::Jump;
@@ -779,6 +823,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
         break;
         case Instruction::Else:
             wasLastConditional = true;
+            currentCondition.type = Instruction::Else;
             break;
         case Instruction::While: {
             {
@@ -799,6 +844,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
             currentCondition.loopConditionLabel = labelCounter;
             code.op2({Location::Literal, ++labelCounter, Type::none, 0});
             currentCondition.falseLabel = code.op2Value.ui;
+            PopScope(context);
             context.codes.push_back(code);
         }
         break;

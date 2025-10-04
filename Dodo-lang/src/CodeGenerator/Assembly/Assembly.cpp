@@ -726,24 +726,26 @@ void Context::restoreSnapshot(std::vector<MemorySnapshotEntry>& snapshot, std::v
         }
     }
 
-    // now removing any residual stuff
-    uint32_t registerIndex = 0;
-    uint32_t stackIndex = 0;
-    for (auto& n : snapshot) {
-        if (n.where.op == Location::reg) {
-            for (uint32_t k = registerIndex; k < n.where.value.reg; k++) registers[k].content = {};
-            registerIndex = n.where.value.reg + 1;
-        }
-        else {
-            // goes through all stack entries and removes unused ones until it reaches the one that exists
-            for (; stack[stackIndex].offset != n.where.value.offset; stack.erase(stack.begin() + stackIndex)) {}
-            stackIndex++;
-        }
-    }
+    // TODO: why was I removing stuff though? lifetimes should take care of it anyawy and that thing adds complexity
 
-    // removes any data after the indexes
-    if (not registerIndex) for (auto& n: registers) n.content = {};
-    else for (; registerIndex < registers.size(); registerIndex++) registers[registerIndex].content = {};
-    if (not stackIndex) stack.clear();
-    else if (stackIndex != stack.size()) stack.erase(stack.begin() + stackIndex, stack.end());
+    // now removing any residual stuff
+    //uint32_t registerIndex = 0;
+    //uint32_t stackIndex = 0;
+    //for (auto& n : snapshot) {
+    //    if (n.where.op == Location::reg) {
+    //        for (uint32_t k = registerIndex; k < n.where.value.reg; k++) registers[k].content = {};
+    //        registerIndex = n.where.value.reg + 1;
+    //    }
+    //    else {
+    //        // goes through all stack entries and removes unused ones until it reaches the one that exists
+    //        for (; stack[stackIndex].offset != n.where.value.offset; stack.erase(stack.begin() + stackIndex)) {}
+    //        stackIndex++;
+    //    }
+    //}
+//
+    //// removes any data after the indexes
+    //if (not registerIndex) for (auto& n: registers) n.content = {};
+    //else for (; registerIndex < registers.size(); registerIndex++) registers[registerIndex].content = {};
+    //if (not stackIndex) stack.clear();
+    //else if (stackIndex != stack.size()) stack.erase(stack.begin() + stackIndex, stack.end());
 }

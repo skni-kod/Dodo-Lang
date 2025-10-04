@@ -83,6 +83,7 @@ struct ParserInstructionObject {
     uint16_t expression2Index = 0;
     uint16_t expression3Index = 0;
     std::vector <ParserTreeValue> valueArray{};
+    std::string typeName() const;
 };
 
 struct ParserMemberVariableParameter {

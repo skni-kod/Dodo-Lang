@@ -447,14 +447,19 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
         DebugError(passedOperand.location == Location::None, "Expected an operand to be passed!");
         DebugError(not actual.isReference, "Expected previous value to provide a reference!");
 
-        if (expected.isReference)
+        if (actual.isReference) {
+            actual.isReference = false;
+            passedOperand = Dereference(context, passedOperand, actual);
+        }
+
+        if (expected.isReference) {
+
             code.type = Bytecode::GetIndexAddress;
+            actual.isReference = expected.isReference;
+        }
         else {
             code.type = Bytecode::GetIndexValue;
-            if (actual.isReference) {
-                actual.isReference = false;
-                passedOperand = Dereference(context, passedOperand, actual);
-            }
+
         }
 
         if (actual.pointerLevel == 0)

@@ -69,6 +69,27 @@ std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
     return out << "INFO L3: It's total size is: " << type.typeSize << " byte(s), aligned to: " << type.typeAlignment << " byte(s)\n";
 }
 
+std::string ParserInstructionObject::typeName() const {
+    switch (type) {
+        case Instruction::Type::Expression: return "Expression";
+        case Instruction::Type::Return: return "Return";
+        case Instruction::Type::If: return "If";
+        case Instruction::Type::Else: return "Else";
+        case Instruction::Type::ElseIf: return "ElseIf";
+        case Instruction::Type::Switch: return "Switch";
+        case Instruction::Type::Case: return "Case";
+        case Instruction::Type::While: return "While";
+        case Instruction::Type::For: return "For";
+        case Instruction::Type::Do: return "Do";
+        case Instruction::Type::Break: return "Break";
+        case Instruction::Type::Continue: return "Continue";
+        case Instruction::Type::BeginScope: return "BeginScope";
+        case Instruction::Type::EndScope: return std::string("EndScope") + (expression1Index != 0 ? " - double" : "");
+        case Instruction::Type::Syscall: return "Syscall";
+        default: Unimplemented();
+    }
+}
+
 const TypeMeta& ParserMemberVariableParameter::typeMeta() const {
     return definition[0].typeMeta;
 }

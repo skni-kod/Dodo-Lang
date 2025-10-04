@@ -1,7 +1,6 @@
 import "Print.dodo";
 
 i32 Main() {
-    let mut String string = String("Hello world!");
-    Println(string);
-    return string.length;
+    Println("Hello world!");
+    return 0;
 }

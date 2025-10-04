@@ -24,9 +24,9 @@ The project is being developed as a SKNI "KOD" project. The entire codebase is 1
 
 ## Current progress of rewriting:
 - lexer - virtually done:
-  - fixing minor bugs if they arise and adding new keywords
+  - minor bugfixes
 - parser - virtually done
-  - methods might need some work
+  - minor bugfixes only
 - bytecode generator - mostly done:
   - increment/decrement don't work
   - default values for types don't work
@@ -34,13 +34,13 @@ The project is being developed as a SKNI "KOD" project. The entire codebase is 1
   - global variables are not supported
   - supports array indexing for both r- and l-values
   - supports braced list initialisation for arrays
-  - brackets work somewhat
+  - has a relatively nicely working expected vs actual type based type checking
 - assembly generator - mostly done
-  - all basic x86-64 instructions have been defined and are being implemented
+  - basic x86-64 instructions have been defined and are being implemented
   - can output instruction with operands that are defined
   - can convert types
-  - can do mostly correct x86-64 unix style calls and syscalls
-  - can do loops and conditional statements with memory state preservation
+  - can do mostly correct x86-64 unix style calls and syscalls, except for large complex types and float only complex types
+  - can do partially loops and conditional statements with memory state preservation
   - moving values and conversions between types largely done
   - can do offsets of registers for indexing
   - still needs a for lot of instructions to be added but it's just a lot of copy paste
