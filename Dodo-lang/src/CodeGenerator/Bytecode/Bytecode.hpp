@@ -334,6 +334,7 @@ struct Context {
 
     VariableObject& getVariableObject(const std::string* identifier);
     VariableObject& getVariableObject(BytecodeOperand operand);
+    VariableObject& getVariableObject(AsmOperand operand);
 
     Place get(AsmOperand& op);
     AsmOperand getContent(AsmOperand& op);
@@ -355,7 +356,8 @@ struct Context {
     // clears the data to default state before use
     void clearProcessor();
 
-    AsmOperand getFreeRegister(Type::TypeEnum valueType, uint16_t size) const;
+    bool isRegisterCalleeSaved(uint8_t registerNumber) const;
+    AsmOperand getFreeRegister(Type::TypeEnum valueType, uint16_t size, bool useCalleeSaved = false) const;
     // assigns new value to a variable at assigned location and disposes of all other instances of it in memory so that only the newest version exists
     // TODO: add support for pointers to ensure there is always a value at the address pointed to
     void assignVariable(AsmOperand variable, AsmOperand source, std::vector<AsmInstruction>& instructions);

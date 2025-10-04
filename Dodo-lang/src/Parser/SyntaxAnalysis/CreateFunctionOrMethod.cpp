@@ -58,17 +58,20 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
             auto instruction = ParseInstruction(generator, current, &braceLevel);
             if (instruction.type == Instruction::While or instruction.type == Instruction::For or instruction.type == Instruction::Do) {
                 output.instructions.emplace_back(Instruction::BeginScope, 0, 0, 0, std::vector<ParserTreeValue>());
-
                 //braceLevel++;
+                output.instructions.emplace_back(instruction);
+                //output.instructions.emplace_back(Instruction::EndScope, 0, 0, 0, std::vector<ParserTreeValue>());
                 //doubleScopeLevels.push(braceLevel);
             }
+            else
+                output.instructions.emplace_back(instruction);
             //else if (instruction.type == Instruction::EndScope and not doubleScopeLevels.empty() and doubleScopeLevels.top() == braceLevel) {
             //    doubleScopeLevels.pop();
             //    braceLevel--;
             //    instruction.expression1Index = 1;
             //}
 
-            output.instructions.emplace_back(instruction);
+
             if (output.instructions.back().type == Instruction::Else) {
                 output.instructions.emplace_back(Instruction::BeginScope);
                 braceLevel++;

@@ -61,11 +61,11 @@ void GenerateCode() {
         else if (Options::architectureVersion == Options::AMD64_v2) out << "x86-64_v2\n";
         else if (Options::architectureVersion == Options::AMD64_v3) out << "x86-64_v3\n";
         else if (Options::architectureVersion == Options::AMD64_v4) out << "x86-64_v4\n";
-        if (Options::targetSystem == "LINUX") {
+        if (Options::targetSystem == TARGET_SYSTEM_LINUX) {
             out << Options::commentPrefix << "Target system: Linux\n";
         }
-        else if (Options::targetSystem == "WINDOWS") {
-            CodeGeneratorError("Windows target is not supported due to different syscalls an the whole winapi mess!");
+        else if (Options::targetSystem == TARGET_SYSTEM_WINDOWS) {
+            CodeGeneratorError("Windows is not supported because I don't want to deal with their weird .dll's!");
         }
         else {
             CodeGeneratorError("Invalid target system!");

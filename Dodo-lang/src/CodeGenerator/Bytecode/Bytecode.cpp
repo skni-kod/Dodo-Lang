@@ -845,6 +845,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
             code.op2({Location::Literal, ++labelCounter, Type::none, 0});
             currentCondition.falseLabel = code.op2Value.ui;
             PopScope(context);
+            conditions.pop_back();
             context.codes.push_back(code);
         }
         break;
@@ -1181,6 +1182,23 @@ VariableObject& Context::getVariableObject(BytecodeOperand operand) {
         return temporaries[operand.value.variable.number];
     default:
         Error("Somehow could not find a variable object!");
+    }
+}
+
+VariableObject& Context::getVariableObject(AsmOperand operand) {
+    if (operand.op != Location::Variable)
+        Error("Cannot get a variable from non-variable location!");
+    switch (operand.value.variable.type) {
+    case VariableLocation::None:
+        Error("Invalid variable type in get!");
+    case VariableLocation::Global:
+        return globalVariableObjects[operand.value.variable.number];
+    case VariableLocation::Local:
+        return localVariables[operand.value.variable.level][operand.value.variable.number];
+    case VariableLocation::Temporary:
+        return temporaries[operand.value.variable.number];
+    default:
+        Error("Somehow could not find a variable object!");
         return globalVariableObjects[0];
     }
 }
@@ -1199,7 +1217,6 @@ int64_t TypeObject::getMemberOffsetAndSetType(std::string* identifier, TypeInfo&
         }
     }
     Error("Member \"" + *identifier + "\" is not a member of type \"" + typeName + "\"!");
-    return 0;
 }
 
 ParserFunctionMethod& TypeObject::findMethod(std::string* identifier) {
@@ -1208,7 +1225,6 @@ ParserFunctionMethod& TypeObject::findMethod(std::string* identifier) {
     }
 
     Error("Could not find a method with identifier: " + *identifier + " in type: " + typeName + "!");
-    return methods.front();
 }
 
 TypeInfo TypeInfo::AssignType(VariableObject& variable) {

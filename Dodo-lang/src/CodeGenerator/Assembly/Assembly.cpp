@@ -4,6 +4,7 @@
 #include <iostream>
 #include <Parser.hpp>
 #include <utility>
+#include "X86_64Enums.hpp"
 
 void Context::clearProcessor() {
     for (auto& n : registers) {
@@ -227,10 +228,31 @@ AsmOperand Context::tempStack(uint8_t size, uint8_t alignment) {
     return location;
 }
 
-AsmOperand Context::getFreeRegister(Type::TypeEnum valueType, uint16_t size) const {
-    // TODO: add register cost levels
+bool Context::isRegisterCalleeSaved(uint8_t registerNumber) const {
+    if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
+        if (Options::targetSystem == TARGET_SYSTEM_LINUX) {
+            switch (registerNumber) {
+            case x86_64::RBX:
+            case x86_64::RSP:
+            case x86_64::RBP:
+            case x86_64::R12:
+            case x86_64::R13:
+            case x86_64::R14:
+            case x86_64::R15:
+                return true;
+            default:
+                return false;
+            }
+        }
+    }
+    Unimplemented();
+}
+
+AsmOperand Context::getFreeRegister(Type::TypeEnum valueType, uint16_t size, bool useCalleeSaved) const {
     for (auto& n : registers) {
         if (n.content.op != Location::None) continue;
+        if (not useCalleeSaved and isRegisterCalleeSaved(n.number))
+            continue;;
         bool valid;
         switch (valueType) {
             case Type::address:
@@ -255,10 +277,11 @@ AsmOperand Context::getFreeRegister(Type::TypeEnum valueType, uint16_t size) con
             case 64: valid *= n.operandSize512; break;
             default: valid = false;
         }
-        if (valid) return AsmOperand(Location::reg, valueType, false, size, n.number);
+        if (valid) return {Location::reg, valueType, false, size, n.number};
     }
+    if (not useCalleeSaved)
+        return getFreeRegister(valueType, size, true);
     Error("Internal: could not find a valid register in first pass!");
-    return {};
 }
 
 
@@ -514,9 +537,12 @@ AsmOperand AsmOperand::moveAwayOrGetNewLocation(Context& context, std::vector<As
         auto move = MoveInfo(*this, {});
 
         if (is(Location::reg) and not stackOnly)
-            move.target = context.getFreeRegister(type, size);
+            move.target = context.getFreeRegister(content.type, content.size);
         else
             move.target = context.pushStack(content);
+
+        move.source.size = content.size;
+        move.source.type = content.type;
 
         AddConversionsToMove(move, context, instructions, content, forbiddenLocations);
         if (is(Location::Sta))
@@ -726,26 +752,63 @@ void Context::restoreSnapshot(std::vector<MemorySnapshotEntry>& snapshot, std::v
         }
     }
 
-    // TODO: why was I removing stuff though? lifetimes should take care of it anyawy and that thing adds complexity
+    // we need to go through the registers and stack. If something wasn't there during the snapshot then it needs to go
+    // also there needs to be an exception for the stuff that needs to stay alive
+    // sadly it is rather slow compared to the last implementation but it allows this thing to actually work
+    for (auto& n : registers) {
+        if (n.content.is(Location::Variable)) {
+            bool isInSnapshot = false;
+            bool notHere = false;
+            for (auto& snap : snapshot) {
+                if (snap.where.is(Location::reg) and snap.where.value.reg == n.number and snap.what == n.content) {
+                    isInSnapshot = true;
+                    break;
+                }
+                if (snap.what == n.content) {
+                    notHere = true;
+                    break;
+                }
+            }
 
-    // now removing any residual stuff
-    //uint32_t registerIndex = 0;
-    //uint32_t stackIndex = 0;
-    //for (auto& n : snapshot) {
-    //    if (n.where.op == Location::reg) {
-    //        for (uint32_t k = registerIndex; k < n.where.value.reg; k++) registers[k].content = {};
-    //        registerIndex = n.where.value.reg + 1;
-    //    }
-    //    else {
-    //        // goes through all stack entries and removes unused ones until it reaches the one that exists
-    //        for (; stack[stackIndex].offset != n.where.value.offset; stack.erase(stack.begin() + stackIndex)) {}
-    //        stackIndex++;
-    //    }
-    //}
-//
-    //// removes any data after the indexes
-    //if (not registerIndex) for (auto& n: registers) n.content = {};
-    //else for (; registerIndex < registers.size(); registerIndex++) registers[registerIndex].content = {};
-    //if (not stackIndex) stack.clear();
-    //else if (stackIndex != stack.size()) stack.erase(stack.begin() + stackIndex, stack.end());
+            if (not notHere) {
+                // now we have a variable that needs to go if it does not live later (mostly for loops producing temps)
+                auto& obj = getVariableObject(n.content);
+                if (obj.lastUse > index)
+                    continue;
+            }
+
+        }
+        n.content = {};
+    }
+
+    // the same but for stack
+    for (int64_t k = stack.size() - 1; k >= 0; k--) {
+        auto& n = stack[k];
+        if (n.content.is(Location::Variable)) {
+            bool isInSnapshot = false;
+            bool notHere = false;
+            for (auto& snap : snapshot) {
+                if (snap.where.is(Location::sta) and snap.where.value.offset == n.offset and snap.what == n.content) {
+                    isInSnapshot = true;
+                    break;
+                }
+                if (snap.what == n.content) {
+                    notHere = true;
+                    break;
+                }
+            }
+
+            if (isInSnapshot)
+                continue;
+
+            if (not notHere) {
+                // now we have a variable that needs to go if it does not live later (mostly for loops producing temps)
+                auto& obj = getVariableObject(n.content);
+                if (obj.lastUse > index)
+                    continue;
+            }
+
+        }
+        stack.erase(stack.begin() + k);
+    }
 }

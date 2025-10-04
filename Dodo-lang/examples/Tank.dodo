@@ -1,147 +1,149 @@
+// This example shows a simple tank simulation with 2 inputs and one output
+// Updated to work with version 4.0.0 on 04.10.2025
+
 // additional standard library modules import
 import "Print.dodo";
 import "Time.dodo";
 
-void PrintTank(let i32 level, let u8 state) {
+void PrintTank(let mut i32 level, let mut u8 state) {
 
-    Println(16, "-><|        |><-");
-    Println(16, "   |        |   ");
+    Println("-><|        |><-");
+    Println("   |        |   ");
     if (level > 50) {
         if (state == 0) {
-            Println(16, "|           :  |");
+            Println("|           :  |");
         }
         else {
-            Println(16, "|              |");
+            Println("|              |");
         }
-        Println(16, "|~~~~~~~~~~~~~~|");
-        Println(16, "|              |");
-        Println(16, "|              |");
-        Println(16, "|              |");
-        Println(16, "|              |");
-        Println(16, "|______________|");
+        Println("|~~~~~~~~~~~~~~|");
+        Println("|              |");
+        Println("|              |");
+        Println("|              |");
+        Println("|              |");
+        Println("|______________|");
 
     }
     else if (level > 40) {
         if (state == 0) {
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
         }
         else {
-            Println(16, "|              |");
-            Println(16, "|              |");
+            Println("|              |");
+            Println("|              |");
         }
-        Println(16, "|~~~~~~~~~~~~~~|");
-        Println(16, "|              |");
-        Println(16, "|              |");
-        Println(16, "|              |");
-        Println(16, "|______________|");
+        Println("|~~~~~~~~~~~~~~|");
+        Println("|              |");
+        Println("|              |");
+        Println("|              |");
+        Println("|______________|");
     }
     else if (level > 30) {
         if (state == 0) {
-            Println(16, "|           :  |");
-            Println(16, "|           :  |");
-            Println(16, "|           :  |");
+            Println("|           :  |");
+            Println("|           :  |");
+            Println("|           :  |");
         }
         else {
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
         }
-        Println(16, "|~~~~~~~~~~~~~~|");
-        Println(16, "|              |");
-        Println(16, "|              |");
-        Println(16, "|______________|");
+        Println("|~~~~~~~~~~~~~~|");
+        Println("|              |");
+        Println("|              |");
+        Println("|______________|");
     }
     else if (level > 20) {
         if (state == 0) {
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
         }
         else {
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
         }
-        Println(16, "|~~~~~~~~~~~~~~|");
-        Println(16, "|              |");
-        Println(16, "|______________|");
+        Println("|~~~~~~~~~~~~~~|");
+        Println("|              |");
+        Println("|______________|");
     }
     else if (level > 10) {
         if (state == 0) {
-            Println(16, "|           :  |");
-            Println(16, "|           :  |");
-            Println(16, "|           :  |");
-            Println(16, "|           :  |");
-            Println(16, "|           :  |");
+            Println("|           :  |");
+            Println("|           :  |");
+            Println("|           :  |");
+            Println("|           :  |");
+            Println("|           :  |");
         }
         else {
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
         }
-        Println(16, "|~~~~~~~~~~~~~~|");
-        Println(16, "|______________|");
+        Println("|~~~~~~~~~~~~~~|");
+        Println("|______________|");
     }
     else {
         if (state == 0) {
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
-            Println(16, "|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
+            Println("|  :           |");
         }
         else {
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
-            Println(16, "|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
+            Println("|              |");
         }
-        Println(16, "|==============|");
+        Println("|==============|");
     }
-    Println(18, "         |   ");
-    Println(20, "         |><|");
-    Println(16, "            |");
+    Println("         |   ");
+    Println("         |><|");
+    Println("            |");
     if (state == 0) {
-        Println(16, "             ");
+        Println("             ");
     }
     else {
-        Println(16, "            : ");
+        Println("            : ");
     }
 
     return;
 }
 
 void Wait(let u64 anything) {
-    // waiting for 100 ms
-    let mut Timespec waitTime = 0;
-    waitTime.ns = 100_000_000;
-    Sleep(&waitTime, 0);
+    let mut u64 seconds = 0;
+    let mut u64 nanoseconds = 150_000_000;
+    Sleep(seconds, nanoseconds);
     return;
 }
 
 i32 Main() {
 
-    let i32 level = 25;
-    let u8 state = 0;
+    let mut i32 level = 25;
+    let mut u8 state = 0;
 
     while (true) {
         // calculations here
         if (state == 0) {
-            level += 1;
+            level = level + 1;
             if (level > 55) {
                 state = 1;
             }
         }
         else {
-            level -= 1;
+            level  = level - 1;
             if (level < 5) {
                 state = 0;
             }

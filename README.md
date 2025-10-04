@@ -7,7 +7,7 @@
 - CMake
 
 ## About Dodo Lang:
-It's yet another statically typed language, though it has/will have some features I hope will make it unique enough. There are compound and simple types, but there is no separation between them, as such primitive types can have all the features of objects (with the C++ struct/class approach mind you, not as in object in C#/Java).
+It's yet another statically typed language, though it has/will have some features I hope will make it unique enough. There are compound and simple types, but there is no separation between them, as such primitive types can have all the features of objects (with the C++ struct/class approach mind you, not as in abstract object in C#/Java).
 
 #### [Documentation TBA]
 
@@ -35,6 +35,7 @@ The project is being developed as a SKNI "KOD" project. The entire codebase is 1
   - supports array indexing for both r- and l-values
   - supports braced list initialisation for arrays
   - has a relatively nicely working expected vs actual type based type checking
+  - supports (and even requires) constructors, destructors not yet implemented though
 - assembly generator - mostly done
   - basic x86-64 instructions have been defined and are being implemented
   - can output instruction with operands that are defined

@@ -336,7 +336,7 @@ namespace x86_64 {
         for (auto& n : target.parameters)
             types.emplace_back(n.typeObject, n.typeMeta());
 
-        if (Options::targetSystem == "LINUX")
+        if (Options::targetSystem == TARGET_SYSTEM_LINUX)
             GetArgumentLocationsLinux(types, result, stackOffset);
         else
             Error("Non-linux argument place preparation not implemented!");
@@ -354,7 +354,7 @@ namespace x86_64 {
         for (auto& n : target)
             types.emplace_back(n->opType, n->opMeta);
 
-        if (Options::targetSystem == "LINUX")
+        if (Options::targetSystem == TARGET_SYSTEM_LINUX)
             GetArgumentLocationsLinux(types, result, stackOffset, true);
         else
             Error("Non-linux argument place preparation not implemented!");

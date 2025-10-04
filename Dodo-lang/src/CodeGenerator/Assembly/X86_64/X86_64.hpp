@@ -35,7 +35,7 @@ namespace x86_64 {
     // the driver function for converting bytecode to assembly
     void ConvertBytecode(Context& context, ParserFunctionMethod* source, std::ofstream& out);
     // prints all instructions
-    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset);
+    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset, std::vector<uint8_t>& calleeSavedRegisters);
     // prints a single instruction
     void PrintInstruction(AsmInstruction& ins, std::ostream& out);
     void PrintInstruction(std::ostream& out, AsmInstruction ins);

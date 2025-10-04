@@ -66,7 +66,7 @@ std::ostream& operator<<(std::ostream& out, const TypeObject& type) {
     for (auto& n : type.members) {
         out << n;
     }
-    return out << "INFO L3: It's total size is: " << type.typeSize << " byte(s), aligned to: " << type.typeAlignment << " byte(s)\n";
+    return out << "INFO L3: Its total size is: " << type.typeSize << " byte(s), aligned to: " << type.typeAlignment << " byte(s)\n";
 }
 
 std::string ParserInstructionObject::typeName() const {

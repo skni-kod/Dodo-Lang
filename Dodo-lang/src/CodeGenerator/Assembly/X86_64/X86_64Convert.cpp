@@ -1716,6 +1716,56 @@ namespace x86_64 {
         }
 
         SetCompilationStage(CompilationStage::output);
-        PrintInstructions(instructions, out, maxOffset);
+
+        // TODO: speed this abomination of a check up
+        std::vector<uint8_t> calleeSavedRegisters{};
+        for (auto& n : instructions) {
+            if (n.op1.is(Location::reg) and context.isRegisterCalleeSaved(n.op1.value.reg)) {
+                bool found = false;
+                for (auto& m : calleeSavedRegisters)
+                    if (m == n.op1.value.reg) {
+                        found = true;
+                        break;
+                    }
+                if (found)
+                    continue;
+                calleeSavedRegisters.push_back(n.op1.value.reg);
+            }
+            if (n.op2.is(Location::reg) and context.isRegisterCalleeSaved(n.op2.value.reg)) {
+                bool found = false;
+                for (auto& m : calleeSavedRegisters)
+                    if (m == n.op2.value.reg) {
+                        found = true;
+                        break;
+                    }
+                if (found)
+                    continue;
+                calleeSavedRegisters.push_back(n.op2.value.reg);
+            }
+            if (n.op3.is(Location::reg) and context.isRegisterCalleeSaved(n.op3.value.reg)) {
+                bool found = false;
+                for (auto& m : calleeSavedRegisters)
+                    if (m == n.op3.value.reg) {
+                        found = true;
+                        break;
+                    }
+                if (found)
+                    continue;
+                calleeSavedRegisters.push_back(n.op3.value.reg);
+            }
+            if (n.op4.is(Location::reg) and context.isRegisterCalleeSaved(n.op4.value.reg)) {
+                bool found = false;
+                for (auto& m : calleeSavedRegisters)
+                    if (m == n.op4.value.reg) {
+                        found = true;
+                        break;
+                    }
+                if (found)
+                    continue;
+                calleeSavedRegisters.push_back(n.op4.value.reg);
+            }
+        }
+
+        PrintInstructions(instructions, out, maxOffset, calleeSavedRegisters);
     }
 }

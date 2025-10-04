@@ -5,12 +5,12 @@
 
 import "String.dodo";
 
-void Print(let u64 length, let char* message) {
+void Print(let i32 length, let char* message) {
     syscall(1, 0, message, length);
     return;
 }
 
-void Println(let u64 length, let char* message) {
+void Println(let i32 length, let char* message) {
     syscall(1, 0, message, length);
     syscall(1, 0, "\n", 1);
     return;
@@ -29,13 +29,12 @@ void Print(let char* message) {
 }
 
 void Print(let String str) {
-    syscall(1, 0, str._text, str.length);
+    Print(str.length, str._text);
     return;
 }
 
 void Println(let String str) {
-    syscall(1, 0, str._text, str.length);
-    syscall(1, 0, "\n", 1);
+    Println(str.length, str._text);
     return;
 }
 
@@ -56,15 +55,15 @@ void Print(let mut i32 number) {
     else {
         let mut i32 base = 1000000000;
 
-        //while (base > 0) {
-        //    if (base <= number) {
-        //        let mut char digit = (number / base) convert char;
-        //        digit = digit + '0';
-        //        syscall(1, 0, &digit, 1);
-        //        number = number % base;
-        //    }
-        //    base = base / 10;
-        //}
+        while (base > 0) {
+            if (base <= number) {
+                let mut char digit = (number / base) convert char;
+                digit = digit + '0';
+                syscall(1, 0, &digit, 1);
+                number = number % base;
+            }
+            base = base / 10;
+        }
     }
     return;
 }

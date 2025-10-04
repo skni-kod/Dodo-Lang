@@ -946,7 +946,16 @@ namespace x86_64 {
 
     }
 
-    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset) {
+    void PrintInstructions(std::vector <AsmInstruction>& instructions, std::ostream& out, int32_t maxOffset, std::vector<uint8_t>& calleeSavedRegisters) {
+
+        // TODO: what about stack passed arguments?
+        int32_t storeOffset = maxOffset;
+        if (not calleeSavedRegisters.empty()) {
+            maxOffset += 8 * calleeSavedRegisters.size();
+            if (calleeSavedRegisters.size() % 2 == 0)
+                maxOffset += 8;
+        }
+
         if (Options::assemblyFlavor == Options::AssemblyFlavor::GAS) {
             // stack stuff
             if (maxOffset % 16 != 0) maxOffset = (maxOffset / 16 - 1) * 16;
@@ -956,9 +965,22 @@ namespace x86_64 {
                 PrintInstruction(out, AsmInstruction(sub,  AsmOperand(Location::reg, Type::address, false, 8, RSP), AsmOperand(Location::imm, Type::address, false, 8, -maxOffset)));
             }
 
+            // moving the callee saved register values to stack
+            for (int32_t reg = 0; reg < calleeSavedRegisters.size(); reg++)
+                PrintInstruction(out, AsmInstruction(mov,
+                    AsmOperand(Location::sta, Type::unsignedInteger, false, 8, storeOffset - reg * 8),
+                    AsmOperand(Location::reg, Type::unsignedInteger, false, 8, calleeSavedRegisters[reg])));
+
+
             for (auto& n : instructions) {
                 if (n.code == ret) {
                     if (maxOffset != 0) {
+                        // moving the callee saved register values back from stack
+                        for (int32_t reg = 0; reg < calleeSavedRegisters.size(); reg++)
+                            PrintInstruction(out, AsmInstruction(mov,
+                                AsmOperand(Location::reg, Type::unsignedInteger, false, 8, calleeSavedRegisters[reg]),
+                                AsmOperand(Location::sta, Type::unsignedInteger, false, 8, storeOffset - reg * 8)));
+
                         PrintInstruction(out, AsmInstruction(leave));
                     }
                     else PrintInstruction(out, AsmInstruction(pop,  AsmOperand(Location::reg, Type::address, false, 8, RBP)));

@@ -4,6 +4,7 @@
 #include "ErrorHandling.hpp"
 #include "InstructionPlanningInternal.hpp"
 #include "X86_64.hpp"
+#include "X86_64Enums.hpp"
 
 // target resolution functions
 void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstruction>& instructions, AsmOperand contentToSet, std::vector<AsmOperand>* forbiddenRegisters, bool setContent) {
@@ -45,7 +46,7 @@ AsmOperand GetFreeRegister(Context& context, std::vector <RegisterRange>& allowe
             (opNumber == 2 and n.canBeOp2) or
             (opNumber == 3 and n.canBeOp3) or
             (opNumber == 4 and n.canBeOp4)) {
-            for (uint8_t m = n.first; m <= n.last; m++) {
+            for (uint16_t m = n.first; m <= n.last; m++) {
                 if (context.registers[m].content.op != Location::Variable) {
                     if (forbiddenRegisters != nullptr) {
                         bool isValid = true;
@@ -56,7 +57,7 @@ AsmOperand GetFreeRegister(Context& context, std::vector <RegisterRange>& allowe
                         }
                         if (not isValid) continue;
                     }
-                    return AsmOperand(Location::reg, Type::none, false, context.registers[m].size, m);
+                    return {Location::reg, Type::none, false, context.registers[m].size, m};
                 }
             }
         }

@@ -67,7 +67,9 @@ namespace Options {
     inline fs::path stdlibDirectory = "";
 #endif
     inline std::vector <fs::path> importDirectories;
-    inline std::string targetSystem = "LINUX";
+#define TARGET_SYSTEM_LINUX "LINUX"
+#define TARGET_SYSTEM_WINDOWS "WINDOWS"
+    inline std::string targetSystem = TARGET_SYSTEM_LINUX;
     inline std::string outputName = "out";
     inline std::string commentPrefix = "# ";
     inline std::string jumpLabelPrefix = ".LC";

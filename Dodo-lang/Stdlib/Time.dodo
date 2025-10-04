@@ -1,6 +1,6 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains functions for manipulating time.                                       ┃
-// ┃ Last revision: 29.09.2025                                                                 ┃
+// ┃ Last revision: 04.10.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 type Timespec {
@@ -16,4 +16,10 @@ type Timespec {
 
 i32 Sleep(let mut Timespec* duration, let mut Timespec* remaining) {
     return (syscall(35, duration, remaining)) convert i32;
+}
+
+i32 Sleep(let mut u64 seconds, let mut u64 nanoseconds) {
+    let mut Timespec time = Timespec(seconds, nanoseconds);
+    let mut Timespec rem = Timespec(seconds, nanoseconds);
+    return Sleep(&time, &rem);
 }
