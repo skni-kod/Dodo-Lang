@@ -1,6 +1,6 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains the standard string type used in Dodo Lang.                            ┃
-// ┃ Last revision: 30.09.2025                                                                 ┃
+// ┃ Last revision: 05.10.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 extern mut any* malloc (let i64 __size);
@@ -24,17 +24,34 @@ type String {
         while (text[this.length] != 0) {
             this.length = this.length + 1;
         }
-        let i64 size = this.length convert i64 + 1;
-        this._text = malloc(size) convert mut char*;
-        this.reserved = size convert i32;
-        let mut i64 index = 0;
-        while (index < size) {
+
+        this.reserved = this.length + 1;
+        this._text = malloc(this.reserved convert i64) convert mut char*;
+
+        let mut i32 index = 0;
+        while (index < this.reserved) {
             this._text[index] = text[index];
             index = index + 1;
         }
 
         return;
     }
+
+    // a copy constructor
+        String(let String& other) {
+           this.length = other.length;
+
+           this.reserved = other.reserved;
+           this._text = malloc(this.reserved convert i64) convert mut char*;
+
+           let mut i32 index = 0;
+           while (index < this.reserved) {
+               this._text[index] = other._text[index];
+               index = index + 1;
+           }
+
+            return;
+        }
 
     ~String() {
         if (this._text != 0) {

@@ -283,6 +283,8 @@ struct VariableObject {
     uint32_t uses = 0;
     bool isPointedTo = false;
     bool isReservedForArray = false;
+    // used to determine if the destructor should be called
+    bool isDestructible = false;
 
     uint8_t variableSize();
     void use(uint32_t index);

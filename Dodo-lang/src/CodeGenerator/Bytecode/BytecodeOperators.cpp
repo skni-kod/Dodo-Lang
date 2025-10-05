@@ -203,12 +203,12 @@ bool AssignOverloadedOperatorIfPossible(Context& context, std::vector<ParserTree
 }
 
 
-void PerformTwoOperatorExpression(Context& context, std::vector<ParserTreeValue>& values, const TypeInfo expected, TypeInfo& actual, Bytecode& code, ParserTreeValue current, bool isGlobal) {
+void PerformTwoOperatorExpression(Context& context, std::vector<ParserTreeValue>& values, const TypeInfo expected, TypeInfo& actual, Bytecode& code, ParserTreeValue current, bool isGlobal, bool rvalueReference = false) {
 
     code.op1(GenerateExpressionBytecode(context, values, expected, actual, current.left, isGlobal));
     auto leftType = actual;
     auto rightExpected = actual;
-    rightExpected.isReference = false;
+    rightExpected.isReference = rvalueReference;
     actual = {};
     auto right = GenerateExpressionBytecode(context, values, rightExpected, actual, current.right, isGlobal);
     code.op2(CheckCompatibilityAndConvertReference(context, rightExpected, actual, right));
@@ -357,24 +357,56 @@ BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTre
 
     case Operator::Assign: {
 
-        PerformTwoOperatorExpression(context, values, {nullptr, {0, 0, true}}, actual, code, current, isGlobal);
 
-        DebugError(actual.type == nullptr, "Expected lvalue type to be assigned!");
-        if (not actual.isMutable and not isGlobal and not current.isBeingDefined)
-            Error("Assignment target is immutable!");
 
-        // assigning the correct variant
-        if (actual.isReference) {
-            code.type = Bytecode::AssignAt;
-            if (not expected.isReference) {
-                actual.isReference = false;
+        if (passedOperand.location == Location::Var and passedOperand.value.variable.type != VariableLocation::Temporary) {
+            auto& obj = context.getVariableObject(passedOperand);
+
+            PerformTwoOperatorExpression(context, values, {obj.type, obj.meta}, actual, code, current, isGlobal, obj.meta.isReference);
+
+            DebugError(actual.type == nullptr, "Expected lvalue type to be assigned!");
+            if (not actual.isMutable and not isGlobal and not current.isBeingDefined)
+                Error("Assignment target is immutable!");
+
+            if (actual.isReference) {
+                if (obj.meta.isReference) {
+                    code.type = Bytecode::AssignTo;
+                }
+                else {
+                    code.type = Bytecode::AssignAt;
+                }
+                code.result(context.insertTemporary(actual));
+            }
+            else {
+                DebugError(obj.meta.isReference, "Expected a reference!");
+                code.type = Bytecode::AssignTo;
+                code.result(context.insertTemporary(actual));
+            }
+
+        }
+        else {
+            PerformTwoOperatorExpression(context, values, {nullptr, {0, 0, true}}, actual, code, current, isGlobal);
+
+            DebugError(actual.type == nullptr, "Expected lvalue type to be assigned!");
+            if (not actual.isMutable and not isGlobal and not current.isBeingDefined)
+                Error("Assignment target is immutable!");
+
+
+            // assigning the correct variant the normal way outside definitions
+            if (actual.isReference) {
+                code.type = Bytecode::AssignAt;
+                if (not expected.isReference) {
+                    actual.isReference = false;
+                    code.result(context.insertTemporary(actual));
+                }
+            }
+            else {
+                code.type = Bytecode::AssignTo;
                 code.result(context.insertTemporary(actual));
             }
         }
-        else {
-            code.type = Bytecode::AssignTo;
-            code.result(context.insertTemporary(actual));
-        }
+
+
 
 
         return context.addCodeReturningResult(code);

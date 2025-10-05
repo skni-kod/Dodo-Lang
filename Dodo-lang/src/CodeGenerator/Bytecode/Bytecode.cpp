@@ -471,7 +471,7 @@ BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserT
         current.isBeingDefined = true;
 
         if (current.value) {
-            GenerateExpressionBytecode(context, values, expected, actual, index, isGlobal, code.op1());
+            GenerateExpressionBytecode(context, values, {expected.type, TypeMeta(expected.pointerLevel, expected.isMutable, expected.isReference or actual.isReference)}, actual, index, isGlobal, code.op1());
         }
         else {
             // TODO: add default constructor call here
@@ -698,7 +698,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
                 // get the type of the last member of the lvalue used
                 GetTypes(context, n.valueArray, actual, n.valueArray[0].left);
 
-                GenerateExpressionRunner(context, n.valueArray, actual);
+                GenerateExpressionRunner(context, n.valueArray);
                 break;
             }
             case ParserOperation::Call:
@@ -886,9 +886,10 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
             Error("Unhandled instruction type!");
         }
 
-        for (; printIndex < context.codes.size(); printIndex++) {
-            std::cout << "INFO L3: (" << printIndex << ") " << context.codes[printIndex];
-        }
+        if (Options::informationLevel == Options::InformationLevel::full)
+            for (; printIndex < context.codes.size(); printIndex++) {
+                std::cout << "INFO L3: (" << printIndex << ") " << context.codes[printIndex];
+            }
     }
 
     // checking if all added brackets were terminated correctly just to be sure

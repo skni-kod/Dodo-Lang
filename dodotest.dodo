@@ -1,8 +1,9 @@
 import "Print.dodo";
 
 i32 Main() {
-    Println("Hello world!");
-    let mut i32 k = 564;
-    Println(k);
+    let mut String str = String("Hello world!");
+    let mut String& str2 = str;
+    let mut String str3 = String(str2);
+    Println(str3);
     return 0;
 }

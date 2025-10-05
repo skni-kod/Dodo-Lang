@@ -122,9 +122,8 @@ void PrintTank(let mut i32 level, let mut u8 state) {
     return;
 }
 
-void Wait(let u64 anything) {
+void Wait(let mut u64 nanoseconds) {
     let mut u64 seconds = 0;
-    let mut u64 nanoseconds = 150_000_000;
     Sleep(seconds, nanoseconds);
     return;
 }
@@ -152,7 +151,7 @@ i32 Main() {
         // printing the thing
         PrintTank(level, state);
 
-        Wait(0);
+        Wait(150_000_000);
     }
 
     return 0;

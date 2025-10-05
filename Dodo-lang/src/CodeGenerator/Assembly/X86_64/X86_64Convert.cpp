@@ -905,6 +905,9 @@ namespace x86_64 {
                         continue;
                     }
 
+                    if (context.isRegisterCalleeSaved(n.number))
+                        continue;
+
                     bool evacuate = true;
                     for (auto& m : argumentPlaces) {
                         if (not m.isStack and isCallerSaved(m.regNumber) and  m.regNumber == n.number) {
