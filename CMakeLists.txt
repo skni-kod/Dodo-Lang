@@ -17,14 +17,11 @@ include_directories(${INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-add_custom_command(
-        OUTPUT Dodo-lang/src/Misc/Increment.hpp
-        COMMAND ./increment.sh
-        COMMAND echo running
-        DEPENDS BuildNumberCache.txt
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-
-add_custom_target(IncrementBuildNumber ALL DEPENDS Dodo-lang/src/Misc/Increment.hpp)
+add_custom_target(
+        IncrementBuildNumber ALL
+        COMMAND python ../BuildTracking/IncrementBuild.py
+        WORKING_DIRECTORY ../BuildTracking/
+        BYPRODUCTS Dodo-lang/src/Misc/Increment.hpp)
 
 add_dependencies(${PROJECT_NAME} IncrementBuildNumber)
 

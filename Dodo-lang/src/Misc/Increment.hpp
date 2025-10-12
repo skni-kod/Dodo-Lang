@@ -3,6 +3,6 @@
 
 #include <string>
 
-const std::string incrementedVersionValue =  "0.4.1 (RAII WIP), build: 3922 (2025-10-12)";
+const std::string incrementedVersionValue = "0.4.1 (static-analysis-and-RAII), build: 3937, time: 2025-10-12 18:45:50";
 
 #endif

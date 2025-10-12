@@ -38,4 +38,3 @@ cmake-build-release-event-trace/
 
 # residual build files
 /build
-/Dodo-lang/examples/build
