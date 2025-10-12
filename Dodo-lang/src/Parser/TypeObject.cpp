@@ -128,6 +128,10 @@ TypeMeta TypeMeta::reference() const {
     return t;
 }
 
+bool TypeMeta::isPointer() const {
+    return isReference or pointerLevel;
+}
+
 char Type::FirstCharacter(TypeEnum type) {
     switch (type) {
     case unsignedInteger: return 'u';

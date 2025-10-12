@@ -7,3 +7,10 @@ i32 Main() {
     Println(str3);
     return 0;
 }
+
+//i32 Main() {
+//    let mut i32 k = 0;
+//    let i32 g = k;
+//    k = g;
+//    return g;
+//}

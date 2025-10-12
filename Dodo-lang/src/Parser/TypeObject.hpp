@@ -40,6 +40,7 @@ struct TypeMeta {
     TypeMeta(const TypeMeta& old, int8_t pointerLevelDifference);
     [[nodiscard]] TypeMeta noReference() const;
     [[nodiscard]] TypeMeta reference() const;
+    [[nodiscard]] bool isPointer() const;
 };
 
 struct TypeObject;
@@ -228,7 +229,8 @@ struct TypeObject {
     uint8_t primitiveType : 2 = Type::none;
 #endif
     uint64_t typeAlignment : 4 = 0;
-    uint64_t typeSize : 57 = 0;
+    uint64_t typeSize : 56 = 0;
+    uint64_t defaultRAII : 1 = true;
     struct {
 #define TypeAttribute_primitiveAssignFromLiteral primitiveAssignFromLiteral
         /// <summary>

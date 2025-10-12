@@ -285,6 +285,8 @@ struct VariableObject {
     bool isReservedForArray = false;
     // used to determine if the destructor should be called
     bool isDestructible = false;
+    BytecodeOperand content{};
+    TypeMeta contentMeta{};
 
     uint8_t variableSize();
     void use(uint32_t index);
@@ -522,6 +524,7 @@ void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 
 BytecodeOperand Dereference(Context& context, BytecodeOperand op, TypeInfo target);
 BytecodeOperand GetAddress(Context& context, BytecodeOperand op, TypeInfo target);
+void CallDestructor(Context& context, BytecodeOperand var, bool isGlobal = false);
 
 // printing functions
 

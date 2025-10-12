@@ -180,7 +180,7 @@ BytecodeOperand GetAddress(Context& context, BytecodeOperand op, TypeInfo target
 
     DebugError(op.location != Location::var, "Can only dereference variables!");
     DebugError(context.getVariableObject(op).type != target.type, "Address type mismatch!");
-    DebugError(context.getVariableObject(op).meta.isMutable < target.isMutable, "Cannot get an address of an immutable value as a mutable pointer!");
+    //DebugError(context.getVariableObject(op).meta.isMutable < target.isMutable, "Cannot get an address of an immutable value as a mutable pointer!");
     DebugError(context.getVariableObject(op).meta.pointerLevel == target.pointerLevel
            and context.getVariableObject(op).meta.isReference, "Cannot get an address without changing pointer meta attributes!");
     DebugError(context.getVariableObject(op).meta.isReference == target.isReference
@@ -195,6 +195,7 @@ BytecodeOperand GetAddress(Context& context, BytecodeOperand op, TypeInfo target
 }
 
 void CallDestructor(Context& context, BytecodeOperand var, bool isGlobal) {
+    Warning("isGlobal must be moved into context!");
 
     std::vector<ParserTreeValue> values{};
     std::vector<TypeInfo> arguments{};
@@ -206,9 +207,10 @@ void CallDestructor(Context& context, BytecodeOperand var, bool isGlobal) {
 
     for (auto& n : obj.type->methods)
         if (n.isDestructor) {
-            auto result = AddCallIfMatches(context, &n, values, value, arguments, code, {}, isGlobal);;
+            auto result = AddCallIfMatches(context, &n, values, value, arguments, code, var, isGlobal);;
             if (result == false)
                 Error("Could not call destructor!");
+            context.codes.push_back(code);
             return;
         }
 

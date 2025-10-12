@@ -1,7 +1,6 @@
 #include <complex>
 #include <GenerateCode.hpp>
 #include <iostream>
-#include <tbb/internal/_template_helpers.h>
 
 #include "Bytecode.hpp"
 #include "Lexing.hpp"
@@ -27,7 +26,7 @@ std::vector<TypeInfo> FindArgumentTypes(Context& context, std::vector<ParserTree
 
 bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
                     std::vector<ParserTreeValue>& values, ParserTreeValue& node, std::vector<TypeInfo>& arguments,
-                    Bytecode& code, BytecodeOperand passedOperand, bool isGlobal) {
+                    Bytecode& code, BytecodeOperand passedOperand, bool isGlobal, BytecodeOperand passedOperand2) {
     // TODO: change this after adding default parameters
     if (called != nullptr and called->parameters.size() != arguments.size()) return false;
 
@@ -78,6 +77,16 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
         arg.op3(passedOperand);
         arg.op1Value = ++numbers;
         argumentCodes.push_back(arg);
+
+        if (passedOperand2.location != Location::None) {
+            DebugError(passedOperand2.location != Location::var, "Expected variable as second passed operand");
+            auto& obj = context.getVariableObject(passedOperand2);
+
+            arg.AssignType(obj.type, obj.meta);
+            arg.op3(passedOperand2);
+            arg.op1Value = ++numbers;
+            argumentCodes.push_back(arg);
+        }
     }
 
     // now we can actually prepare the arguments and do the call
@@ -121,15 +130,16 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
             argumentCodes.push_back(arg);
         }
     }
-    else Unimplemented();
 
     for (auto& n : argumentCodes)
         context.codes.push_back(n);
 
     if (node.operation == ParserOperation::Syscall)
         code.type = Bytecode::Syscall;
-    else if (called->isMethod)
+    else if (called->isMethod) {
         code.type = Bytecode::Method;
+        code.opType = called->parentType;
+    }
     else
         code.type = Bytecode::Function;
 

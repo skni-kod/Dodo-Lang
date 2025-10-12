@@ -196,6 +196,15 @@ void CalculateTypeSizes() {
     }
 }
 
+void ResolveTypeStatistics() {
+    for (auto& type : types)
+        for (auto& method : type.second.methods)
+            if (method.isConstructor or method.isDestructor) {
+                type.second.defaultRAII = false;
+                break;
+            }
+}
+
 void ResolveCallParameterTypes(ParserFunctionMethod& called) {
     for (auto& n : called.parameters) {
         if (not types.contains(n.typeName()))

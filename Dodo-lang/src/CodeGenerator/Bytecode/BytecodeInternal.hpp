@@ -41,7 +41,7 @@ BytecodeOperand CheckCompatibilityAndConvertReference(Context& context, TypeInfo
 BytecodeOperand GenerateExpressionBytecode(Context& context, std::vector<ParserTreeValue>& values, TypeInfo expected, TypeInfo& actual, uint16_t index = 0, bool isGlobal = false, BytecodeOperand passedOperand = {});
 
 BytecodeOperand InsertOperatorExpression(Context& context, std::vector<ParserTreeValue>& values, TypeInfo expected, TypeInfo& actual, uint16_t index = 0, bool isGlobal = false, BytecodeOperand passedOperand = {});
-bool AddCallIfMatches(Context& context, ParserFunctionMethod* called, std::vector<ParserTreeValue>& values, ParserTreeValue& node, std::vector<TypeInfo>& arguments, Bytecode& code, BytecodeOperand passedOperand, bool isGlobal);
+bool AddCallIfMatches(Context& context, ParserFunctionMethod* called, std::vector<ParserTreeValue>& values, ParserTreeValue& node, std::vector<TypeInfo>& arguments, Bytecode& code, BytecodeOperand passedOperand, bool isGlobal, BytecodeOperand passedOperand2 = {});
 
 void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& result, uint16_t index);
 void GetTypes(Context& context, std::vector<ParserTreeValue>& values, TypeInfo& result, ParserTreeValue& current);

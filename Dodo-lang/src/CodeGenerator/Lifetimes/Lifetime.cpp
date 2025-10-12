@@ -2,7 +2,10 @@
 
 #include <stack>
 
-void CalculateLifetimes(Context& context) {
+#include "StaticAnalysis.hpp"
+
+void CalculateLifetimesInternal(Context& context) {
+
 
     // Theoretically this could be done during the bytecode generation
 
@@ -12,6 +15,8 @@ void CalculateLifetimes(Context& context) {
         n.firstUse = 0;
         n.lastUse = 0;
         n.isPointedTo = false;
+        n.isReservedForArray = false;
+        n.isDestructible = false;
     }
 
     std::stack<uint64_t> scopeLevels{};
@@ -111,4 +116,17 @@ void CalculateLifetimes(Context& context) {
             if (var.identifier != nullptr or var.isReservedForArray)
                 var.lastUse = context.codes.size() - 1;
         }
+}
+
+void CalculateLifetimes(Context& context) {
+
+    // first off let's do the initial calculation
+    CalculateLifetimesInternal(context);
+
+    // now run the static analysis
+    RunStaticAnalysis(context);
+
+    // and recalculate with modified bytecodes
+    CalculateLifetimesInternal(context);
+
 }
