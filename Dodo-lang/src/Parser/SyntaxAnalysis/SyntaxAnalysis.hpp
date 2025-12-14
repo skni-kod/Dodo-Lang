@@ -4,6 +4,6 @@
 #include "Lexing.hpp"
 #include "Generator.tpp"
 
-bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType = false, TypeObject* type = nullptr);
+void RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType = false, TypeObject* type = nullptr);
 
 #endif //DODO_LANG_SYNTAX_ANALYSIS_HPP

@@ -1,7 +1,7 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 // ┃ This file contains definitions of basic primitive types.                                  ┃
 // ┃ They behave according to base function definitions.                                       ┃
-// ┃ Last revision: 02.10.2025                                                                 ┃
+// ┃ Last revision: 14.12.2025                                                                 ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 primitive SIGNED_INTEGER   <1> type i8  (primitiveAssignFromLiteral, primitiveSimplyConvert);
@@ -14,7 +14,6 @@ primitive UNSIGNED_INTEGER <2> type u16 (primitiveAssignFromLiteral, primitiveSi
 primitive UNSIGNED_INTEGER <4> type u32 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 primitive UNSIGNED_INTEGER <8> type u64 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 
-primitive FLOATING_POINT   <2> type f16 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 primitive FLOATING_POINT   <4> type f32 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 primitive FLOATING_POINT   <8> type f64 (primitiveAssignFromLiteral, primitiveSimplyConvert);
 

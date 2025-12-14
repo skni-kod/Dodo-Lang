@@ -277,7 +277,7 @@ AsmOperand Context::getFreeRegister(Type::TypeEnum valueType, uint16_t size, boo
             case 64: valid *= n.operandSize512; break;
             default: valid = false;
         }
-        if (valid) return {Location::reg, valueType, false, size, n.number};
+        if (valid) return {Location::reg, valueType, false, static_cast<uint8_t>(size), n.number};
     }
     if (not useCalleeSaved)
         return getFreeRegister(valueType, size, true);

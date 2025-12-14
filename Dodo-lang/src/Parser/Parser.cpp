@@ -73,9 +73,7 @@ void RunParsing(std::vector<LexerFile>& lexed) {
     // Step 1: creating unprocessed structures
     {
         auto generator = LexerTokenGenerator(lexed);
-        if (RunSyntaxAnalysis(generator)) {
-            ParserError("Syntax analysis errors occurred!");
-        }
+        RunSyntaxAnalysis(generator);
     }
 
     // Step 2: processing type sizes, alignments and names

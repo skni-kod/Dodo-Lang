@@ -328,10 +328,6 @@ LexerLine LexLine(std::string& line) {
         std::cout << "\n";
     }
 
-    // removing whitespace from first character to use later
-    characters[0].whitespaceBefore = false;
-
-
     // now a go through the characters without context to create something
     for (int64_t n = 0; n < characters.size(); n++) {
         if (not output.tokens.empty())
@@ -412,7 +408,7 @@ LexerLine LexLine(std::string& line) {
                             output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
                         }
                         if ((output.tokens.empty()
-                                or (not output.tokens.empty() and not output.tokens.front().Match(Keyword::Operator)))
+                                or (not output.tokens.empty() and not output.tokens.front().is(Keyword::Operator)))
                                 and (result == "()" or result == "{}" or result == "[]")){
 
                             output.tokens.emplace_back(PushWrapper({result[0]}, n - result.size()));
@@ -435,7 +431,7 @@ LexerLine LexLine(std::string& line) {
                         output.tokens.emplace_back(Token::Operator, static_cast <uint64_t>(Operator::BracketClose), 0);
                     }
                     // TODO: determine what operators a negative number can be after and try to add the condition here
-                    if ((result[0] == '.' or result[0] == '-') and (not lastToken.Match(Token::Identifier)) and result.size() == 1 and current.code >= '0' and current.code <= '9') {
+                    if ((result[0] == '.' or result[0] == '-') and (not lastToken.is(Token::Identifier)) and result.size() == 1 and current.code >= '0' and current.code <= '9') {
                         n -= 2;
                         lexerState = State::number;
                         result.clear();
@@ -446,7 +442,7 @@ LexerLine LexLine(std::string& line) {
                         continue;
                     }
                     if ((output.tokens.empty()
-                        or (not output.tokens.empty() and not output.tokens.front().Match(Keyword::Operator)))
+                        or (not output.tokens.empty() and not output.tokens.front().is(Keyword::Operator)))
                         and (result == "()" or result == "{}" or result == "[]")){
 
                         output.tokens.emplace_back(PushWrapper({result[0]}, n - result.size()));
@@ -782,9 +778,9 @@ LexerLine LexLine(std::string& line) {
     }
 
     if (output.tokens.size() == 3
-        and output.tokens[0].Match(Keyword::Import)
+        and output.tokens[0].is(Keyword::Import)
         and output.tokens[1].type == Token::String
-        and output.tokens[2].Match(Keyword::End)) {
+        and output.tokens[2].is(Keyword::End)) {
         if (auto pos = output.tokens[1].text->find_last_of('/'); pos == std::string::npos) {
             Options::inputFiles.emplace(*output.tokens[1].text);
         }
@@ -848,8 +844,8 @@ std::vector <LexerFile> RunLexer() {
     std::vector<LexerFile> output;
     while (not Options::inputFiles.empty()) {
         if (not lexedFiles.contains(Options::inputFiles.front().filename())) {
+            lexedFiles.emplace(Options::inputFiles.front().filename(), output.size() + 1);
             output.emplace_back(LexFile(Options::inputFiles.front()));
-            lexedFiles.emplace(Options::inputFiles.front().filename(), output.size());
         }
         Options::inputFiles.pop();
     }

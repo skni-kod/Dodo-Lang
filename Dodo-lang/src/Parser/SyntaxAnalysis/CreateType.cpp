@@ -8,23 +8,23 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
     TypeObject type;
 
     // check if it's primitive
-    if (firstToken->Match(Keyword::Primitive)) {
-       type.isPrimitive = true;
+    if (firstToken->is(Keyword::Primitive)) {
+        type.isPrimitive = true;
         // format:
-        // primitive (SIGNED_INTEGER/UNSIGNED_INTEGER)<1/2/4/8>/FLOATING_POINT<2/4/8>
+        // primitive (SIGNED_INTEGER/UNSIGNED_INTEGER)<1/2/4/8>/FLOATING_POINT<4/8>
 
         if (not generator) {
             Error("Expected primitive type identifier!");
         }
         auto current = generator();
 
-        if (current->Match(Keyword::TypeSI)) {
+        if (current->is(Keyword::TypeSI)) {
             type.primitiveType = Type::signedInteger;
         }
-        else if (current->Match(Keyword::TypeUI)) {
+        else if (current->is(Keyword::TypeUI)) {
             type.primitiveType = Type::unsignedInteger;
         }
-        else if (current->Match(Keyword::TypeFP)) {
+        else if (current->is(Keyword::TypeFP)) {
             type.primitiveType = Type::floatingPoint;
         }
         else {
@@ -33,18 +33,18 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
 
         current = generator();
 
-        if (not generator or not current->Match(Operator::Lesser)) {
+        if (not generator or not current->is(Operator::Lesser)) {
             Error("Expected an opening triangle bracket after primitive type identifier!");
         }
 
         current = generator();
-        if (not current->Match(Type::unsignedInteger)) {
+        if (not current->is(Type::unsignedInteger)) {
             Error("Expected primitive size after bracket opening!");
         }
         type.typeAlignment = type.typeSize = current->_unsigned;
         if (type.primitiveType == Type::floatingPoint) {
-            if (type.typeSize != 2 and type.typeSize != 4 and type.typeSize != 8) {
-                Error("Only sizes of 2, 4 and 8 bytes are accepted for float primitives!");
+            if (type.typeSize != 4 and type.typeSize != 8) {
+                Error("Only sizes of 4 and 8 bytes are accepted for float primitives!");
             }
         }
         else {
@@ -54,11 +54,11 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
             }
         }
 
-        if (not generator or not generator()->Match(Operator::Greater)) {
+        if (not generator or not generator()->is(Operator::Greater)) {
             Error("Expected a closing bracket after primitive type identifier!");
         }
 
-        if (not generator or not generator()->Match(Keyword::Type)) {
+        if (not generator or not generator()->is(Keyword::Type)) {
             Error("Expected \"type\" keyword after primitive type identifier!");
         }
     }
@@ -68,7 +68,7 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
         Error("Expected type name after type keyword!");
     }
     auto current = generator();
-    if (not current->Match(Token::Identifier)) {
+    if (not current->is(Token::Identifier)) {
         Error("Expected type name identifier after type keyword!");
 
     }
@@ -83,7 +83,7 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
     current = generator();
 
     // type attributes
-    if (current->Match(Operator::BracketOpen)) {
+    if (current->is(Operator::BracketOpen)) {
 
 #define AssignTypeAttributeError(condition, error) if (condition) Error(error);
 
@@ -98,7 +98,7 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
 
         do {
             current = generator();
-            if (not current->Match(Token::Identifier))
+            if (not current->is(Token::Identifier))
                 Error("Expected an attribute identifier!");
 
             AssignTypeAttribute(TypeAttribute_primitiveAssignFromLiteral,
@@ -111,19 +111,19 @@ void CreateType(Generator<LexerToken*>& generator, LexerToken*& firstToken) {
 
             Error("Unknown type attribute: " + *current->text);
         }
-        while ((current = generator())->Match(Keyword::Comma));
+        while ((current = generator())->is(Keyword::Comma));
 #undef  AssignTypeAttribute
 #undef  AssignTypeAttributeError
-        if (not current->Match(Operator::BracketClose))
+        if (not current->is(Operator::BracketClose))
             Error("Expected an attribute identifier!");
         current = generator();
     }
 
-    if (current->Match(Keyword::End)) {
+    if (current->is(Keyword::End)) {
         types.emplace(type.typeName, std::move(type));
         return;
     }
-    if (not current->Match(Operator::BraceOpen)) {
+    if (not current->is(Operator::BraceOpen)) {
         Error("Expected an opening bracket or block end after type name!");
     }
 

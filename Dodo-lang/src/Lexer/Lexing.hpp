@@ -23,12 +23,12 @@ concept TokenEnum = (std::same_as<T, Operator::Type>
 struct LexerToken {
 #ifdef PACKED_ENUM_VARIABLES
     Token::Type type : 4 = Token::Unknown;
-    Type::TypeEnum literalType : 4 = Type::unsignedInteger;
+    Type::TypeEnum literalType : 3 = Type::unsignedInteger;
 #else
     uint8_t type : 4 = Token::Unknown;
-    uint8_t literalType : 4 = Type::unsignedInteger;
+    uint8_t literalType : 3 = Type::unsignedInteger;
 #endif
-    uint8_t isVerboseOperator = false;
+    uint8_t isVerboseOperator : 1 = false;
     uint32_t characterNumber = 0;
     union {
         Operator::Type op;
@@ -42,7 +42,6 @@ struct LexerToken {
         double _double;
         double float64;
         float float32;
-        // no 16 bit implementation!
         int64_t _signed;
         int64_t signed64;
         int32_t signed32;
@@ -71,15 +70,15 @@ struct LexerToken {
     /// <param name="matched">One of allowed types enums to match against</param>
     /// <returns>True if matches</returns>
     template <TokenEnum T>
-    [[nodiscard]] bool Match(T matched) const {
-        if (std::same_as<T, Operator::Type>)
-            return this->type == Token::Operator and this->op == static_cast<Operator::Type>(matched);
-        if (std::same_as<T, Keyword::KeywordType>)
-            return this->type == Token::Keyword and this->kw == static_cast<Keyword::KeywordType>(matched);
-        if (std::same_as<T, Type::TypeEnum>)
-            return this->type == Token::Number and this->literalType == static_cast<Type::TypeEnum>(matched);
-        if (std::same_as<T, Token::Type>)
-            return this->type == static_cast<Token::Type>(matched);
+    [[nodiscard]] bool is(T matched) const {
+        if constexpr (std::same_as<T, Operator::Type>)
+            return this->type == Token::Operator and this->op == matched;
+        if constexpr (std::same_as<T, Keyword::KeywordType>)
+            return this->type == Token::Keyword and this->kw == matched;
+        if constexpr (std::same_as<T, Type::TypeEnum>)
+            return this->type == Token::Number and this->literalType == matched;
+        if constexpr (std::same_as<T, Token::Type>)
+            return this->type == matched;
         Unimplemented();
     }
 
@@ -89,8 +88,8 @@ struct LexerToken {
     /// <param name="matched">Variable amount of parameters to check</param>
     /// <returns>True if any match</returns>
     template <TokenEnum... Ts>
-    [[nodiscard]] bool Match (Ts... matched) const {
-        return (Match(matched) or ...);
+    [[nodiscard]] bool anyOf (Ts... matched) const {
+        return false or (is(matched) or ...);
     }
 
     bool operator==(const LexerToken& other) const;

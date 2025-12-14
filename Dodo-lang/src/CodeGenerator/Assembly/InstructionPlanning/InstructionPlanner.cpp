@@ -302,7 +302,7 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
             if (object.lastUse >= index) {
                 // TODO: add searching for uses in other moves
 
-                // now checking if the value is in it's place
+                // now checking if the value is in its place
 
             }
         }

@@ -8,8 +8,6 @@
 #include "Parser/Parser.hpp"
 #include "CodeGenerator/GenerateCode.hpp"
 #include "Lexer/Lexing.hpp"
-
-
 int main(int argc, char* argv[]) {
 
     std::cout <<
@@ -75,14 +73,13 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    // new lexing here
     std::vector<LexerFile> lexed;
     try {
         SetCompilationStage(CompilationStage::lexing);
-        lexed = std::move(RunLexer());
+        lexed = RunLexer();
     }
     catch (LexerException& e) {
-        std::cout << "Lexing has failed. Compilation aborted!\n";
+        std::cout << "(outdated handler) Lexing has failed. Compilation aborted!\n";
         return 1;
     }
     catch (CompilerException& e) {
@@ -91,7 +88,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // TODO: macro system here
 
     std::cout << "INFO L1: Lexing done!\nINFO L1: Parsing:\n";
     try {
@@ -99,7 +95,7 @@ int main(int argc, char* argv[]) {
         RunParsing(lexed);
     }
     catch (ParserException& e) {
-        std::cout << "Parsing has failed. Compilation aborted!\n";
+        std::cout << "(outdated handler) Parsing has failed. Compilation aborted!\n";
         return 1;
     }
     catch (CompilerException& e) {
@@ -109,12 +105,11 @@ int main(int argc, char* argv[]) {
     }
     std::cout << "INFO L1: Parsing completed successfully!\nINFO L1: Generating code:\n";
 
-
     try {
         GenerateCode();
     }
     catch (__CodeGeneratorException& e) {
-        std::cout << "Code generation has failed. Compilation aborted!\n";
+        std::cout << "(outdated handler) Code generation has failed. Compilation aborted!\n";
         return 1;
     }
     catch (CompilerException& e) {
@@ -125,6 +120,5 @@ int main(int argc, char* argv[]) {
 
     //std::system("as -o build/out.o build/out.s");
     //std::system("ld build/out.o -o build/out");
-
     return 0;
 }

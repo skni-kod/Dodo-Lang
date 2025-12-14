@@ -126,7 +126,7 @@ struct ParserArgument {
 namespace ParserOperation {
     enum Type {
         None,
-        // type identifier and meta for a cast
+        // type identifier and meta for a cast or conversion
         TypeIdentifier,
         // an operation of 2 operators, resolved by the bytecode generator with possible overloads
         // lvalue and rvalue of the operation

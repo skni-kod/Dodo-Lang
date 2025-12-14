@@ -15,13 +15,13 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
 
     auto* current = generator();
 
-    if (current->Match(Operator::BracketOpen)) {
+    if (current->is(Operator::BracketOpen)) {
         current = generator();
     }
-    while (not current->Match(Operator::BracketClose)) {
-        if (current->Match(Keyword::Comma)) current = generator();
+    while (not current->is(Operator::BracketClose)) {
+        if (current->is(Keyword::Comma)) current = generator();
 
-        if (not current->Match(Keyword::Let)) {
+        if (not current->is(Keyword::Let)) {
             Error("Expected a parameter!");
         }
 
@@ -32,45 +32,36 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
         const auto result = ParseExpression(generator, output.parameters.back().definition, {current});
 
         current = result;
-        if (not result->Match(Keyword::Comma) and not result->Match(Operator::BracketClose)) {
+        if (not result->anyOf(Keyword::Comma, Operator::BracketClose)) {
             Error("Expected a comma or bracket close after parameter!");
         }
     }
 
-    if (not (current = generator())->Match(Operator::BraceOpen)) {
-        if (current->Match(Keyword::Const)) {
+    if (not (current = generator())->is(Operator::BraceOpen)) {
+        if (current->is(Keyword::Const)) {
             output.isConst = true;
             current = generator();
         }
-        if (current->Match(Keyword::End)) {
+        if (current->is(Keyword::End)) {
             if (not isExtern)
                 Error("Only external functions do not contain a function body!");
         }
-        else if (not (current)->Match(Operator::BraceOpen))
+        else if (not current->is(Operator::BraceOpen))
             Error("Expected an opening brace after function prototype!");
     }
 
     if (not isExtern) {
         uint32_t braceLevel = 0;
         //std::stack<uint32_t> doubleScopeLevels{};
-        while (not (current = generator())->Match(Operator::BraceClose) or braceLevel != 0) {
+        while (not (current = generator())->is(Operator::BraceClose) or braceLevel != 0) {
 
             auto instruction = ParseInstruction(generator, current, &braceLevel);
             if (instruction.type == Instruction::While or instruction.type == Instruction::For or instruction.type == Instruction::Do) {
                 output.instructions.emplace_back(Instruction::BeginScope, 0, 0, 0, std::vector<ParserTreeValue>());
-                //braceLevel++;
                 output.instructions.emplace_back(instruction);
-                //output.instructions.emplace_back(Instruction::EndScope, 0, 0, 0, std::vector<ParserTreeValue>());
-                //doubleScopeLevels.push(braceLevel);
             }
             else
                 output.instructions.emplace_back(instruction);
-            //else if (instruction.type == Instruction::EndScope and not doubleScopeLevels.empty() and doubleScopeLevels.top() == braceLevel) {
-            //    doubleScopeLevels.pop();
-            //    braceLevel--;
-            //    instruction.expression1Index = 1;
-            //}
-
 
             if (output.instructions.back().type == Instruction::Else) {
                 output.instructions.emplace_back(Instruction::BeginScope);
@@ -79,7 +70,8 @@ ParserFunctionMethod CreateMethodOrFunction(Generator<LexerToken*>& generator,
         }
     }
 
-    if (identifier != nullptr and identifier->type == Token::Identifier) output.name = identifier->string;
+    if (identifier != nullptr and identifier->type == Token::Identifier)
+        output.name = identifier->string;
 
-    return std::move(output);
+    return output;
 }

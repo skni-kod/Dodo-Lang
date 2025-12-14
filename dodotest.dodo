@@ -1,16 +1,7 @@
 import "Print.dodo";
 
 i32 Main() {
-    let mut String str = String("Hello world!");
-    let mut String& str2 = str;
-    let mut String str3 = String(str2);
-    Println(str3);
-    return 0;
+    let mut i32 k assign 10;
+    k assign k add 10;
+    return k;
 }
-
-//i32 Main() {
-//    let mut i32 k = 0;
-//    let i32 g = k;
-//    k = g;
-//    return g;
-//}

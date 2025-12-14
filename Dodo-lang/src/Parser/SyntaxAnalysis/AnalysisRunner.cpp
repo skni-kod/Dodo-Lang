@@ -1,4 +1,5 @@
 #include "SyntaxAnalysis.hpp"
+#include "ErrorHandling.hpp"
 #include "AnalysisInternal.hpp"
 #include "Bytecode.hpp"
 
@@ -8,34 +9,34 @@ std::pair<ParserValueTypeObject, LexerToken*> ParseValueType(Generator<LexerToke
     ParserValueTypeObject output;
     LexerToken* current;
 
-    if (not first->Match(Keyword::Void)) {
-        if (first->Match(Keyword::Mut)) {
+    if (not first->is(Keyword::Void)) {
+        if (first->is(Keyword::Mut)) {
             first = generator();
             output.type.isMutable = true;
         }
-        if (first->Match(Operator::Constructor, Operator::Destructor)) {
+        if (first->anyOf(Operator::Constructor, Operator::Destructor)) {
             output.typeName = &voidDummy;
         }
         else if (first->type != Token::Identifier) {
-            ParserError("Expected an identifier!");
+            Error("Expected an identifier!");
         }
         else {
             output.typeName = first->text;
         }
 
 
-        while ((current = generator())->Match(Operator::Multiply, Operator::Dereference)) {
+        while ((current = generator())->anyOf(Operator::Multiply, Operator::Dereference)) {
             output.type.pointerLevel++;
         }
 
-        if (current->Match(Operator::Address)) {
+        if (current->is(Operator::Address)) {
             output.type.isReference = true;
             current = generator();
         }
     }
     else current = generator();
 
-    if (current->type != Token::Identifier and not current->Match(Keyword::Operator)) ParserError("Expected an identifier after function return type!");
+    if (current->type != Token::Identifier and not current->is(Keyword::Operator)) Error("Expected an identifier after function return type!");
 
     return {output, current};
 }
@@ -84,64 +85,50 @@ bool IsOperatorOverloadAllowed(uint32_t type) {
 
 // the base runner for the analysis
 // it finds the base keywords that define the start of the next structure
-bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObject* type) {
-    // the compiler skips the given structure if it can in case of issues
-    bool didFail = false;
+void RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObject* type) {
     LexerToken* current = nullptr;
-    while (generator or (isInType and not current->Match(Operator::BraceClose))) {
+    while (generator or (isInType and not current->is(Operator::BraceClose))) {
         current = generator();
-        // TYPES
-        if (current->Match(Keyword::Type) or current->Match(Keyword::Primitive)) {
-            try {
-                if (isInType) {
-                    ParserError("Nested type declaration is prohibited!");
-                }
-                CreateType(generator, current);
-                continue;
-            }
-            catch (ParserException& e) {
-                didFail = true;
-                while (not current->Match(Operator::BraceClose) and not current->Match(Keyword::End)) {
-                    current = generator();
-                }
-                continue;
-            }
+        // types
+        if (current->anyOf(Keyword::Type, Keyword::Primitive)) {
+            if (isInType)
+                Error("Nested type declaration is prohibited!");
+            CreateType(generator, current);
+            continue;
         }
 
-        if (isInType and current->Match(Operator::BraceClose)) {
-            return didFail;
-        }
+        if (isInType and current->is(Operator::BraceClose))
+            return;
 
         // variable or member
-        if (current->Match(Keyword::Let)) {
+        if (current->is(Keyword::Let)) {
             ParserMemberVariableParameter out;
             ParseExpression(generator, out.definition, {current});
 
-            if (isInType) {
+            if (isInType)
                 type->members.push_back(std::move(out));
-            }
-            else {
+            else
                 globalVariables.emplace(out.name(), std::move(out));
-            }
         }
         // function or method
         else {
             if (isInType) {
                 bool isDestructor = false;
-                if (current->Match(Operator::Destructor)) {
+                if (current->is(Operator::Destructor)) {
                     isDestructor = true;
                     current = generator();
                 }
 
                 // destructors/constructors are special cases
-                if (current->type == Token::Identifier and *current->string == type->typeName) {
+                // TODO: allow for match function to handle string comparison
+                if (current->is(Token::Identifier) and *current->string == type->typeName) {
                     type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, {} , current, true, isDestructor ? Operator::Destructor : Operator::Constructor)));
                     continue;
                 }
             }
 
             bool isExtern = false;
-            if (current->Match(Keyword::Extern)) {
+            if (current->is(Keyword::Extern)) {
                 if (isInType)
                     Error("External functions can only be declared in global scope!");
 
@@ -153,26 +140,24 @@ bool RunSyntaxAnalysis(Generator<LexerToken*>& generator, bool isInType, TypeObj
             auto [thingType, thingIdentifier] = ParseValueType(generator, current);
 
             if (isInType) {
-                if (thingIdentifier->Match(Keyword::Operator)) {
+                if (thingIdentifier->is(Keyword::Operator)) {
                     current = generator();
-                    if (current->type != Token::Operator) {
-                        ParserError("Expected an operator!");
-                    }
-                    if (not IsOperatorOverloadAllowed(current->op)) {
-                        ParserError("This operator cannot be overloaded!");
-                    }
+                    if (current->type != Token::Operator)
+                        Error("Expected an operator!");
+                    if (not IsOperatorOverloadAllowed(current->op))
+                        Error("This operator cannot be overloaded!");
                     type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, true, current->op)));
                     type->methods.back().overloaded = current->op;
                 }
-                else {
+                else
                     type->methods.emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, true, Operator::None)));
-                }
             }
             else {
-                if (functions.contains(*thingIdentifier->text)) functions[*thingIdentifier->text].emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None, isExtern)));
-                else functions.emplace(*thingIdentifier->text, std::vector({std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None, isExtern))}));
+                if (functions.contains(*thingIdentifier->text))
+                    functions[*thingIdentifier->text].emplace_back(std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None, isExtern)));
+                else
+                    functions.emplace(*thingIdentifier->text, std::vector({std::move(CreateMethodOrFunction(generator, thingType, thingIdentifier, false, Operator::None, isExtern))}));
             }
         }
     }
-    return didFail;
 }

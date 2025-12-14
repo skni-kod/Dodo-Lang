@@ -15,10 +15,6 @@ void CLIHandlerO(std::string& arg) {
     isNextExecutableName = true;
 }
 
-void CLIHandlerhH(std::string& arg) {
-    Options::helpOption = true;
-}
-
 void CLIHandlerR(std::string& arg) {
     // TODO: add optimization enabling here
 }
@@ -74,7 +70,7 @@ void CLIHandlerImport(std::string& arg) {
 void CLIHandlerExtensions(std::string& arg) {
     if (arg.empty()) cliError = true;
     if (Options::targetArchitecture == Options::TargetArchitecture::x86_64) {
-             if (arg == "x86_64_v1" or arg == "AMD64_v1") Options::architectureVersion = Options::AMD64_v1;
+        if      (arg == "x86_64_v1" or arg == "AMD64_v1") Options::architectureVersion = Options::AMD64_v1;
         else if (arg == "x86_64_v2" or arg == "AMD64_v2") Options::architectureVersion = Options::AMD64_v2;
         else if (arg == "x86_64_v3" or arg == "AMD64_v3") Options::architectureVersion = Options::AMD64_v3;
         else if (arg == "x86_64_v4" or arg == "AMD64_v4") Options::architectureVersion = Options::AMD64_v4;
@@ -85,33 +81,20 @@ void CLIHandlerExtensions(std::string& arg) {
     }
 }
 
-std::unordered_map <std::string, void (*)(std::string&)> CLIHandlers = {
-    {"o", &CLIHandlerO},
-    {"O", &CLIHandlerO},
-    {"r", &CLIHandlerR},
-    {"R", &CLIHandlerR},
-    {"d", &CLIHandlerD},
-    {"D", &CLIHandlerD},
-    {"h", &CLIHandlerhH},
-    {"H", &CLIHandlerhH},
-    {"l1", &CLIHandlerL1},
-    {"L1", &CLIHandlerL1},
-    {"l2", &CLIHandlerL2},
-    {"L2", &CLIHandlerL2},
-    {"l3", &CLIHandlerL3},
-    {"L3", &CLIHandlerL3},
-    {"help", &CLIHandlerHelp},
-    {"HELP", &CLIHandlerHelp},
-    {"import", &CLIHandlerImport},
-    {"IMPORT", &CLIHandlerImport},
-    {"target", &CLIHandlerTarget},
-    {"TARGET", &CLIHandlerTarget},
-    {"platform", &CLIHandlerPlatform},
-    {"PLATFORM", &CLIHandlerPlatform},
-    {"stdlibdirectory", &CLIHandlerStdLibDirectory},
-    {"STDLIBDIRECTORY", &CLIHandlerStdLibDirectory},
-    {"extensions", &CLIHandlerExtensions},
-    {"EXTENSIONS", &CLIHandlerExtensions}
+const std::unordered_map <std::string, void (*)(std::string&)> CLIHandlers = {
+    {"-o", &CLIHandlerO},
+    {"-r", &CLIHandlerR},
+    {"-d", &CLIHandlerD},
+    {"-h", &CLIHandlerHelp},
+    {"-l1", &CLIHandlerL1},
+    {"-l2", &CLIHandlerL2},
+    {"-l3", &CLIHandlerL3},
+    {"--help", &CLIHandlerHelp},
+    {"--import", &CLIHandlerImport},
+    {"--target", &CLIHandlerTarget},
+    {"--platform", &CLIHandlerPlatform},
+    {"--stdlibdirectory", &CLIHandlerStdLibDirectory},
+    {"--extensions", &CLIHandlerExtensions},
 };
 
 
@@ -123,19 +106,24 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
 
         if (not current.empty()) {
             if (current.front() == '-') {
-                std::string name = current.substr(1);;
+                std::string name = current;
+
                 std::string argument;
 
                 if (current.contains('=')) {
                     argument = name.substr(name.find_first_of('=') + 1);
+                    name = name.substr(0, name.find_first_of('='));
                 }
+
+                for (auto& c : name)
+                    c = static_cast<char>(std::tolower(c));
 
                 if (not CLIHandlers.contains(name)) {
                     std::print("Invalid argument passed at position: {}!\n", n + 1);
                     return false;
                 }
 
-                CLIHandlers[name](argument);
+                CLIHandlers.at(name)(argument);
 
                 if (cliError) {
                     std::print("Malformed argument passed at position: {}!\n", n + 1);
@@ -175,8 +163,6 @@ bool ApplyCommandLineArguments(int argc, char** argv) {
     Options::importDirectories.push_back(Options::stdlibDirectory);
     Options::inputFiles.emplace("_BaseImports.dodo");
 
-    // it can realistically use quite a bit of memory
-    CLIHandlers.clear();
     if (Options::architectureVersion == Options::ArchitectureVersion::None) Options::architectureVersion = Options::ArchitectureVersion::AMD64_v1;
 
     return true;
