@@ -372,7 +372,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             out.operatorType = tokens[start]->op;
             valueArray.push_back(ParseExpressionStep(valueArray, {start + 1, end}, tokens));
             out.prefix = valueArray.size() - 1;
-            // TODO: lvalue at this point is probably  useless
+            // TODO: lvalue at this point is probably useless
             out.isLValued = true;
         }
         else if (tokens[end - 1]->anyOf(Operator::Increment, Operator::Decrement)) {
@@ -380,7 +380,7 @@ ParserTreeValue ParseExpressionStep(std::vector <ParserTreeValue>& valueArray, s
             out.operatorType = tokens[end - 1]->op;
             valueArray.push_back(ParseExpressionStep(valueArray, {start, end - 1}, tokens));
             out.postfix = valueArray.size() - 1;
-            // TODO: lvalue at this point is probably  useless
+            // TODO: lvalue at this point is probably useless
             out.isLValued = true;
         }
         else

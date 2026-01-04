@@ -136,8 +136,17 @@ namespace x86_64 {
                         }
                     }
                 }
-                else
-                    context.pushStack(current.op1());
+                else {
+                    auto& obj = context.getVariableObject(current.op1());
+
+                    if (obj.isPointedTo or (not obj.type->isPrimitive and not obj.meta.isPointer()))
+                        context.pushStack(current.op1());
+                    else {
+                        auto reg = context.getFreeRegister(obj.type->primitiveType, obj.type->typeSize);
+                        context.getContentRef(reg) = AsmOperand(current.op1(), context);
+                    }
+
+                }
                 break;
 
             case Bytecode::Return: {
@@ -211,7 +220,8 @@ namespace x86_64 {
                 }
 
                 // now let's assign the location or value to the variable
-                if (not skip) context.assignVariable(sourceOp, valueOp, instructions);
+                if (not skip)
+                    context.assignVariable(sourceOp, valueOp, instructions);
             }
             break;
             case Bytecode::AssignAt: {
@@ -542,7 +552,7 @@ namespace x86_64 {
             }
             break;
             case Bytecode::Address: {
-                // TODO: add move to stack
+                // TODO: make it so that things that are non-const pointed-to have only one instance
                 auto sourceOp = AsmOperand(current.op1(), context);
                 auto sourceLocation = sourceOp;
 

@@ -4,19 +4,24 @@
 
 #include "StaticAnalysis.hpp"
 
-void CalculateLifetimesInternal(Context& context) {
-
-
-    // Theoretically this could be done during the bytecode generation
-
-    // resetting global variable use counters
-    for (auto& n : globalVariableObjects) {
-        n.uses = 0;
-        n.firstUse = 0;
-        n.lastUse = 0;
-        n.isPointedTo = false;
-        n.isReservedForArray = false;
-        n.isDestructible = false;
+void CalculateLifetimes(Context& context) {
+    // resetting values
+    for (auto& n : context.localVariables)
+        for (auto& m : n) {
+            m.uses = 0;
+            m.firstUse = 0;
+            m.lastUse = 0;
+            m.isPointedTo = false;
+            m.isReservedForArray = false;
+            m.isDestructible = false;
+        }
+    for (auto& m : context.temporaries) {
+        m.uses = 0;
+        m.firstUse = 0;
+        m.lastUse = 0;
+        m.isPointedTo = false;
+        m.isReservedForArray = false;
+        m.isDestructible = false;
     }
 
     std::stack<uint64_t> scopeLevels{};
@@ -78,8 +83,17 @@ void CalculateLifetimesInternal(Context& context) {
                 auto& obj = context.getVariableObject(current.op1());
                 obj.use(n);
                 if (current.op1Value.variable.type != VariableLocation::Temporary) {
-                    for (auto& m : scopes) m.toExtend.push_back(&obj);
+                    for (auto& m : scopes)
+                        m.toExtend.push_back(&obj);
                     if (current.type == Bytecode::Address) {
+                        // copied from down
+                        if (n <= context.codes.size() - 3
+                        and context.codes[n + 1].type == Bytecode::Argument
+                        and context.codes[n + 1].op3Value.ui == context.codes[n].op3Value.ui
+                        and context.codes[n + 2].type == Bytecode::Method
+                        and context.codes[n + 2].op1Value.function->isDestructor)
+                            continue;
+
                         // first off see if it's already there
                         bool found = false;
                         uint64_t level = current.op1Value.variable.level;
@@ -99,12 +113,14 @@ void CalculateLifetimesInternal(Context& context) {
             if (current.op2Location == Location::Variable) {
                 auto& obj = context.getVariableObject(current.op2());
                 obj.use(n);
-                if (current.op2Value.variable.type != VariableLocation::Temporary) for (auto& m : scopes) m.toExtend.push_back(&obj);
+                if (current.op2Value.variable.type != VariableLocation::Temporary) for (auto& m : scopes)
+                    m.toExtend.push_back(&obj);
             }
             if (current.type == Bytecode::Argument and current.op3Location == Location::Variable) {
                 auto& obj = context.getVariableObject(current.op3());
                 obj.use(n);
-                if (current.op3Value.variable.type != VariableLocation::Temporary) for (auto& m : scopes) m.toExtend.push_back(&obj);
+                if (current.op3Value.variable.type != VariableLocation::Temporary) for (auto& m : scopes)
+                    m.toExtend.push_back(&obj);
             }
         }
     }
@@ -116,17 +132,40 @@ void CalculateLifetimesInternal(Context& context) {
             if (var.identifier != nullptr or var.isReservedForArray)
                 var.lastUse = context.codes.size() - 1;
         }
+
+    for (std::size_t n = 0; n < context.codes.size(); n++)
+        if (context.codes[n].type == Bytecode::Address) {
+
+            // not counting calls to destructors and constructors
+            // TODO: add copy constructor check here when its instruction order is known
+            // update above too
+            if (n <= context.codes.size() - 3
+                and context.codes[n + 1].type == Bytecode::Argument
+                and context.codes[n + 1].op3Value.ui == context.codes[n].op3Value.ui
+                and context.codes[n + 2].type == Bytecode::Method
+                and context.codes[n + 2].op1Value.function->isDestructor)
+                continue;
+
+            auto var = context.getVariableObject(context.codes[n].op1());
+            if (var.identifier != nullptr or var.isReservedForArray)
+                var.lastUse = context.codes.size() - 1;
+        }
 }
 
-void CalculateLifetimes(Context& context) {
+void AnalyseAndOptimize(Context& context) {
 
     // first off let's do the initial calculation
-    CalculateLifetimesInternal(context);
+    CalculateLifetimes(context);
 
     // now run the static analysis
     RunStaticAnalysis(context);
 
     // and recalculate with modified bytecodes
-    CalculateLifetimesInternal(context);
+    CalculateLifetimes(context);
 
+    // and again
+    RemoveUnusedInstructions(context);
+
+    // and once again recalculate
+    CalculateLifetimes(context);
 }

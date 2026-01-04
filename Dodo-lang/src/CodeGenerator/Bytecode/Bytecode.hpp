@@ -73,6 +73,7 @@ struct SplitArgument {
 
 union OperandValue {
     RegisterOffset regOff{};
+    VariableLocation variable;
     uint64_t ui;
     uint64_t u64;
     uint32_t u32;
@@ -91,7 +92,6 @@ union OperandValue {
     int64_t offset;
     uint64_t reg;
     ParserFunctionMethod* function;
-    VariableLocation variable;
     SplitArgument split;
 
     OperandValue() = default;
@@ -104,14 +104,12 @@ union OperandValue {
 struct BytecodeOperand {
 #ifdef PACKED_ENUM_VARIABLES
     Location::Type location : 4 = Location::None;
-    uint8_t size = 0;
-    Type::TypeEnum literalType : 4 = Type::none;
+    Type::TypeEnum literalType : 2 = Type::none;
 #else
     uint8_t type : 4 = Location::None;
-    uint8_t size = 0;
-    uint8_t literalType = Type::none;
+    uint8_t literalType : 2 = Type::none;
 #endif
-    bool isTheRestZeroes : 1 = false;
+    uint8_t size = 0;
     OperandValue value;
     BytecodeOperand() = default;
     BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType, uint8_t literalSize);
@@ -134,7 +132,7 @@ struct Bytecode {
         //      syntax: value at op1 (address) = op2 (any scalar), result in op3 / result
         AssignAt,
         //      syntax: address of op1 (variable) => op3 / result
-        Address,
+         Address,
         // gets value from address
         //      syntax: value at op1 => op3 / result
         Dereference,
@@ -310,19 +308,8 @@ struct Context {
     std::vector <StackEntry> stack;
     uint32_t index = 0;
 
-    // if it's constant then
-    bool isConstExpr = false;
     bool isMutable = false;
-    // this one is not passed as it's context specific
     bool isGeneratingReference = false;
-
-    // ALWAYS update the current() method after adding variables
-
-    // makes a copy with empty vector
-    [[nodiscard]] Context current() const;
-
-    // adds another context into this one
-    void merge(Context& context);
 
     BytecodeOperand addCodeReturningResult(Bytecode code);
     // inserts a new local scope variable
@@ -525,6 +512,7 @@ void OptimizeBytecode(std::vector<Bytecode>& bytecode);
 BytecodeOperand Dereference(Context& context, BytecodeOperand op, TypeInfo target);
 BytecodeOperand GetAddress(Context& context, BytecodeOperand op, TypeInfo target);
 void CallDestructor(Context& context, BytecodeOperand var, bool isGlobal = false);
+BytecodeOperand CopyConstruct(Context& context, BytecodeOperand var);
 
 // printing functions
 

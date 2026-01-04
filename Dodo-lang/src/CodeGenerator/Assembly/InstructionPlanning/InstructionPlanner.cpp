@@ -13,7 +13,7 @@ void AddConversionsToMove(MoveInfo& move, Context& context, std::vector<AsmInstr
             x86_64::AddConversionsToMove(move, context, instructions, contentToSet, forbiddenRegisters, setContent);
             break;
         default:
-            CodeGeneratorError("Internal: invalid architecture in move conversion!");
+            Error("Internal: invalid architecture in move conversion!");
     }
 }
 
@@ -24,7 +24,7 @@ AsmOpDefinition& GetOpDefinition(AsmInstructionVariant& selected, uint8_t number
         case 3: return selected.op3;
         case 4: return selected.op4;
     }
-    CodeGeneratorError("Internal: invalid op number!");
+    Error("Internal: invalid op number!");
     return selected.op1;
 }
 
@@ -62,7 +62,7 @@ AsmOperand GetFreeRegister(Context& context, std::vector <RegisterRange>& allowe
             }
         }
     }
-    CodeGeneratorError("Internal: could not find a free register!");
+    Error("Internal: could not find a free register!");
     return {};
 }
 
@@ -147,7 +147,7 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
 
 
         }
-        if (instruction.selected == nullptr) CodeGeneratorError("Internal: could not find a viable instruction variant!");
+        if (instruction.selected == nullptr) Error("Internal: could not find a viable instruction variant!");
     }
 
     // after that all the needed moves need to be prepared
@@ -208,7 +208,7 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
                     // TODO: forbidden registers
                     target = op = source.copyTo(Location::reg, GetFreeRegister(context, selected.allowedRegisters, target.value.ui, nullptr).value.reg);
                 }
-                else CodeGeneratorError("Internal: unimplemented immediate to somewhere move!");
+                else Error("Internal: unimplemented immediate to somewhere move!");
             }
             else if (source.op == Location::sta) {
                 if (def.opType == Location::sta) {
@@ -220,14 +220,14 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
                     auto where = GetFreeRegister(context, selected.allowedRegisters, target.value.ui, nullptr);
                     op = target = target.copyTo(Location::reg, where.value.ui);
                 }
-                else CodeGeneratorError("Internal: unimplemented stack to somewhere move!");
+                else Error("Internal: unimplemented stack to somewhere move!");
             }
             else if (source.op == Location::reg or source.op == Location::off) {
                 if (def.opType == source.op) {
                     // registers are a more complex thing
                     if (IsRegisterAllowed(selected.allowedRegisters, target.value.ui, source.value.reg))
                         target = op = source;
-                    else CodeGeneratorError("Internal: unimplemented register to valid register move!");
+                    else Error("Internal: unimplemented register to valid register move!");
                 }
                 else if (def.opType == Location::Stack and source.op == Location::reg) {
                     auto content = context.getContent(source);
@@ -239,14 +239,14 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
                     }
                     target = op = source;
                 }
-                else CodeGeneratorError("Internal: unimplemented register to somewhere move!");
+                else Error("Internal: unimplemented register to somewhere move!");
                 if (source.op == Location::off) {
                     moves.erase(moves.begin() + k);
                     k--;
                     op.size = Options::addressSize;
                 }
             }
-            else CodeGeneratorError("Internal: unimplemented operand source case move!");
+            else Error("Internal: unimplemented operand source case move!");
         }
         else if (target.is(Location::reg)) {
             auto& content = context.registers[target.value.reg].content;
@@ -263,7 +263,7 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
         auto& target = n.target;
         if (n.target.op == Location::op) {
             AsmOperand& op = ops[target.value.ui - 1];
-            if (op.op == Location::None) CodeGeneratorError("Internal: empty operand for move!");
+            if (op.op == Location::None) Error("Internal: empty operand for move!");
 
             n.target = ops[target.value.ui - 1];
         }
@@ -274,10 +274,10 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
                 AsmOperand& op = ops[source.value.ui - 1];
                 op = target;
             }
-            else CodeGeneratorError("Internal: invalid instruction target!");
+            else Error("Internal: invalid instruction target!");
         }
         //else {
-        //    CodeGeneratorError("Internal: unhandled output!");
+        //    Error("Internal: unhandled output!");
         //}
     }
 

@@ -210,12 +210,17 @@ void CallDestructor(Context& context, BytecodeOperand var, bool isGlobal) {
             auto result = AddCallIfMatches(context, &n, values, value, arguments, code, var, isGlobal);;
             if (result == false)
                 Error("Could not call destructor!");
+            code.op1Location = Location::Call;
             context.codes.push_back(code);
             return;
         }
 
     TypeInfo actual = {obj.type, obj.meta};
 
+    if (obj.type->isPrimitive)
+        return;
+
+    // TODO: don't do that if no member has a destructor
     if (not actual.isReference) {
         // if no destructor was defined then do one for each member
         actual.isReference = true;
@@ -232,6 +237,40 @@ void CallDestructor(Context& context, BytecodeOperand var, bool isGlobal) {
         context.codes.push_back(get);
         CallDestructor(context, get.result(), isGlobal);
     }
+}
+
+BytecodeOperand CopyConstruct(Context& context, BytecodeOperand var) {
+    DebugError(var.location != Location::var, "Cannot copy construct a non-variable!");
+
+    auto& obj = context.getVariableObject(var);
+
+    for (auto& n : obj.type->methods) {
+        if (n.isConstructor and n.parameters.size() == 1
+            and n.parameters[0].typeObject == obj.type
+            and n.parameters[0].typeMeta() == TypeMeta(0, false, true)) {
+                // TODO: add defining a new variable to store it in and calling the copy constructor
+            Unimplemented();
+            }
+    }
+
+    if (obj.type->isPrimitive)
+        return var;
+
+    // copying complex types needs to take copy constructors on members into account...
+
+    TypeInfo actual = {obj.type, obj.meta};
+
+    // TODO: don't do that if no member has a copy constructor
+    if (not actual.isReference) {
+        // if no destructor was defined then do one for each member
+        actual.isReference = true;
+        var = GetAddress(context, var, actual);
+    }
+
+    // TODO: add copying value of each member into a new variable with correct offseting
+    Unimplemented();
+
+
 }
 
 BytecodeOperand CheckCompatibilityAndConvertReference(Context& context, const TypeInfo expected, const TypeInfo actual, BytecodeOperand op) {
@@ -493,7 +532,6 @@ Context GenerateGlobalVariablesBytecode() {
 
     // at the very least this will take up 1 instruction per variable, so let's prepare it
     Context context;
-    context.isConstExpr = true;
     context.codes.reserve(globalVariables.size() * 2);
 
     // let's go through every variable and parse their codes
@@ -642,7 +680,7 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
         code.opType = callable.parentType;
         code.opMeta = TypeMeta(0, not callable.isConst, true);
         code.type = Bytecode::Define;
-        code.op1(context.insertVariable(&ThisDummy, {callable.parentType, {0, context.isMutable, true}}));
+        code.op1(context.insertVariable(&ThisDummy, {callable.parentType, {0, not callable.isConst, true}}));
         code.op3({Location::Argument, {0}, Type::none, 0});
 
         context.codes.push_back(code);
@@ -879,12 +917,10 @@ Context GenerateFunctionBytecode(ParserFunctionMethod& callable) {
         }
         break;
         case Instruction::Switch:
-            Error("Switch not implemented!");
         case Instruction::Case:
-            Error("Case not implemented!");
         case Instruction::For:
-            Error("Internal: for loop unimplemented!");
         default:
+
             Error("Unhandled instruction type!");
         }
 
@@ -996,28 +1032,6 @@ void VariableObject::use(uint32_t index) {
     else {
         ++uses;
         lastUse = index;
-    }
-}
-
-
-Context Context::current() const {
-    Context newContext;
-    newContext.localVariables = localVariables;
-    newContext.temporaries = temporaries;
-    newContext.isConstExpr = isConstExpr;
-    newContext.isMutable = isMutable;
-    newContext.activeLevels = activeLevels;
-    return newContext;
-}
-
-void Context::merge(Context& context) {
-    localVariables = std::move(context.localVariables);
-    temporaries = std::move(context.temporaries);
-    // activeLevels = std::move(context.activeLevels)
-    const auto start = codes.size();
-    codes.resize(codes.size() + context.codes.size());
-    for (size_t n = 0; n < context.codes.size(); n++) {
-        codes[start + n] = context.codes[n];
     }
 }
 

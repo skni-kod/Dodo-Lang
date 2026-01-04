@@ -102,7 +102,7 @@ void GenerateCode() {
             }
         }
 
-        CalculateLifetimes(context);
+        AnalyseAndOptimize(context);
         SetCompilationStage(CompilationStage::assembly);
         x86_64::ConvertBytecode(context, nullptr, out);
         SetCompilationStage(CompilationStage::output);
@@ -133,7 +133,7 @@ void GenerateCode() {
 
             auto context = GenerateFunctionBytecode(m);
             x86_64::PrepareProcessor(context);
-            CalculateLifetimes(context);
+            AnalyseAndOptimize(context);
             SetCompilationStage(CompilationStage::output);
             auto label = AsmInstruction(x86_64::label, AsmOperand(&m));
             out << "\n";
@@ -152,7 +152,7 @@ void GenerateCode() {
 
             auto context = GenerateFunctionBytecode(m);
             x86_64::PrepareProcessor(context);
-            CalculateLifetimes(context);
+            AnalyseAndOptimize(context);
             SetCompilationStage(CompilationStage::output);
             auto label = AsmInstruction(x86_64::label, AsmOperand(&m));
             out << "\n";

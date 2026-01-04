@@ -81,7 +81,7 @@ AsmOperand Context::getContent(AsmOperand& op) {
         return {};
     }
     Error("Internal: invalid context location 2!");
-    return {};
+
 }
 
 AsmOperand Context::getContentAtOffset(int32_t offset) {
@@ -93,7 +93,6 @@ AsmOperand& Context::getContentRefAtOffset(int32_t offset) {
     for (auto& n : stack) if (n.offset == offset) return n.content;
     // in that case it does not exist
     Error("Internal: cannot get content in stack!");
-    return stack[0].content;
 }
 
 AsmOperand Context::getLocation(AsmOperand& op) {

@@ -4,6 +4,6 @@
 #include "Bytecode.hpp"
 
 // calculates lifetime information for all local, global and temporary variables
-void CalculateLifetimes(Context& context);
+void AnalyseAndOptimize(Context& context);
 
 #endif //LIFETIME_HPP
