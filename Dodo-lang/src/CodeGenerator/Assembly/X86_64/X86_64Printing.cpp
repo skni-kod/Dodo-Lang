@@ -1,5 +1,6 @@
 #include <GenerateCode.hpp>
 
+#include "ErrorHandling.hpp"
 #include "X86_64.hpp"
 #include "X86_64Enums.hpp"
 
@@ -488,9 +489,9 @@ namespace x86_64 {
                 if (size == 1) return out << "r31b";
             break;
             default:
-                CodeGeneratorError("Internal: unhandled register in printing!");
+                Error("Internal: unhandled register in printing!");
         }
-        CodeGeneratorError("Internal: invalid register size in printing!");
+        Error("Internal: invalid register size in printing!");
         return out;
     }
 
@@ -511,10 +512,10 @@ namespace x86_64 {
                 out << "LC" << std::to_string(op.value.ui);
                 return;
             }
-            CodeGeneratorError("Internal: unimplemented operand print!");
+            Error("Internal: unimplemented operand print!");
             return;
         case Location::Call:
-            CodeGeneratorError("Internal: unimplemented operand print!");
+            Error("Internal: unimplemented operand print!");
             return;
         case Location::Register :
             if (op.useAddress)
@@ -525,7 +526,7 @@ namespace x86_64 {
                 out << ")";
             return;
         case Location::Memory:
-            CodeGeneratorError("Internal: unimplemented operand print!");
+            Error("Internal: unimplemented operand print!");
             return;
         case Location::Stack:
             out << std::to_string(op.value.offset) << "(%rbp)";
@@ -534,7 +535,7 @@ namespace x86_64 {
             if (not op.value.regOff.isPrefixLabel) {
                 if (op.value.regOff.offset != 0) out << std::to_string(op.value.regOff.offset);
             }
-            else CodeGeneratorError("Label register offsets not supported!");
+            else Error("Label register offsets not supported!");
             if (op.value.regOff.addressRegister != NO_REGISTER_IN_OFFSET) {
                 out << "(%";
                 PrintRegisterName(op.value.regOff.addressRegister, Options::addressSize, out);
@@ -548,7 +549,7 @@ namespace x86_64 {
                 out << ")";
             return;
         default:
-            CodeGeneratorError("Internal: unhandled operand in printing!");
+            Error("Internal: unhandled operand in printing!");
         }
     }
 
@@ -558,7 +559,7 @@ namespace x86_64 {
             case 4: return "l";
             case 2: return "w";
             case 1: return "b";
-            default: CodeGeneratorError("Internal: invalid GAS prefix size!");
+            default: Error("Internal: invalid GAS prefix size!");
         }
         return "";
     }
@@ -569,7 +570,7 @@ namespace x86_64 {
         case 4: return "l";
         case 2: return "w";
         case 1: return "b";
-        default: CodeGeneratorError("Internal: invalid GAS prefix size!");
+        default: Error("Internal: invalid GAS prefix size!");
         }
         return "";
     }
@@ -865,7 +866,7 @@ namespace x86_64 {
         case InstructionCode::label:
             return "";
             default:
-                CodeGeneratorError("Internal: invalid GAS instruction!");
+                Error("Internal: invalid GAS instruction!");
         }
         return "";
     }
@@ -988,7 +989,7 @@ namespace x86_64 {
                 PrintInstruction(n, out);
             }
         }
-        else CodeGeneratorError("Invalid assembly type!");
+        else Error("Invalid assembly type!");
     }
 
 }

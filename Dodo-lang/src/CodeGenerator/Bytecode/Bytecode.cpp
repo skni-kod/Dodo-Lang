@@ -1019,6 +1019,13 @@ BytecodeOperand::BytecodeOperand(Location::Type location, OperandValue value, Ty
     this->size = literalSize;
 }
 
+bool BytecodeOperand::operator==(const BytecodeOperand& other) const {
+    return location == other.location
+    and literalType == other.literalType
+    and size == other.size
+    and value.ui == other.value.ui;
+}
+
 uint8_t VariableObject::variableSize() {
     return meta.variableSize(*type);
 }

@@ -113,6 +113,7 @@ struct BytecodeOperand {
     OperandValue value;
     BytecodeOperand() = default;
     BytecodeOperand(Location::Type location, OperandValue value, Type::TypeEnum literalType, uint8_t literalSize);
+    bool operator==(const BytecodeOperand& other) const;
 };
 
 // represents a single bytecode instruction

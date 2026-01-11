@@ -211,7 +211,7 @@ AsmOperand Context::pushStackTemp(uint32_t size, uint32_t alignment) {
     else offset = -stack.back().offset + size;
     if (offset % alignment) offset = (offset / alignment + 1) * alignment;
     stack.emplace_back(AsmOperand(), -offset, size);
-    return -offset;
+    return {Location::sta, Type::none, false, size, -offset};
 }
 
 AsmOperand Context::tempStack(uint8_t size, uint8_t alignment) {
@@ -478,7 +478,7 @@ void AsmOperand::print(std::ostream& out, Context& context) {
             }
             break;
         case Location::String:
-            out << "String: " << "<placeholder>" << " ";
+            out << "String: " << *GetString(value.string) << " ";
             break;
         case Location::Label:
             out << "";

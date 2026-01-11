@@ -1,18 +1,11 @@
-import "Print.dodo";
-
-primitive SIGNED_INTEGER <4> type dest (primitiveAssignFromLiteral, primitiveSimplyConvert) {
-    ~dest() {
-        Println("Destroyed!");
-        Println(this convert i32);
-        this = 0;
-        return;
-    }
-}
-
 i32 Main() {
-    let mut dest var_returned = 0;
-    while (var_returned < 3) {
-        var_returned = var_returned + 1;
+    let mut f32 val = 3.1415f;
+    let mut i32 n = 1;
+
+    while (n <= 5) {
+        val = val + val;
+        n = n + 1;
     }
-    return var_returned convert i32;
+
+    return val $ i32;
 }

@@ -147,8 +147,10 @@ void CalculateLifetimes(Context& context) {
                 continue;
 
             auto var = context.getVariableObject(context.codes[n].op1());
-            if (var.identifier != nullptr or var.isReservedForArray)
+            if (var.identifier != nullptr or var.isReservedForArray) {
                 var.lastUse = context.codes.size() - 1;
+                var.isPointedTo = true;
+            }
         }
 }
 

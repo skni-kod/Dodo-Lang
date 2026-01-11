@@ -143,7 +143,9 @@ bool AddCallIfMatches(Context& context, ParserFunctionMethod* called,
     else
         code.type = Bytecode::Function;
 
+
     code.op1Value.function = called;
+    code.op1Location = Location::Call;
 
     if (code.type != Bytecode::Syscall) {
         if (called != nullptr and called->returnType.typeName != nullptr) {

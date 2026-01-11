@@ -250,7 +250,7 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
         }
         else if (target.is(Location::reg)) {
             auto& content = context.registers[target.value.reg].content;
-            if (content.is(Location::var))
+            if (source != target and content.is(Location::var))
                 // TODO: what about not putting it to registers we'll need?
                 AsmOperand(Location::reg, content.type, false, content.size, target.value).moveAwayOrGetNewLocation(context, instructions, index, &forbiddenRegisters);
         }
@@ -336,7 +336,7 @@ void ExecuteInstruction(Context& context, AsmInstructionInfo& instruction, std::
         if (n.target.is(Location::op))
             n.target = ops[n.target.value.ui - 1];
 
-        if (n.source.op == Location::Variable and n.source.object(context).lastUse <= index) continue;
+        if (n.source.op == Location::Variable and (n.source.object(context).lastUse <= index or n.source == context.getContent(n.target))) continue;
         if (n.target.op == Location::Variable or context.getContent(n.target).is(Location::Variable)) {
             auto loc = n.target.moveAwayOrGetNewLocation(context, instructions, index, nullptr);
             context.getContentRef(loc) = n.source;

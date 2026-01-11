@@ -39,6 +39,16 @@ uint64_t FindString(std::string* string) {
     return 0;
 }
 
+const std::string* GetString(uint64_t id) {
+    for (auto& n : passedStrings)
+        if (n.second == id)
+            return &n.first;
+    for (auto& n : passedLongStrings)
+        if (n.second == id)
+            return n.first;
+    Error("Internal: Could not find string by id!");
+}
+
 void ParserError(const std::string& message) {
     if (currentFile == nullptr) {
         std::cout << "ERROR! Outside file!\n";

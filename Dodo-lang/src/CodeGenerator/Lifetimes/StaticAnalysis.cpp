@@ -2,8 +2,55 @@
 
 #include <iostream>
 
+#include "Bytecode.hpp"
 #include "BytecodeInternal.hpp"
 #include "ErrorHandling.hpp"
+
+#define OPERATION_CASES \
+case Bytecode::ToReference: \
+case Bytecode::GetIndexValue: \
+case Bytecode::GetIndexAddress: \
+case Bytecode::Member: \
+case Bytecode::Convert: \
+case Bytecode::Power: \
+case Bytecode::Multiply: \
+case Bytecode::Divide: \
+case Bytecode::Modulo: \
+case Bytecode::Add: \
+case Bytecode::Subtract: \
+case Bytecode::ShiftRight: \
+case Bytecode::ShiftLeft: \
+case Bytecode::NAnd: \
+case Bytecode::BinNAnd: \
+case Bytecode::And: \
+case Bytecode::BinAnd: \
+case Bytecode::XOr: \
+case Bytecode::BinXOr: \
+case Bytecode::NOr: \
+case Bytecode::BinNOr: \
+case Bytecode::Or: \
+case Bytecode::BinOr: \
+case Bytecode::NImply: \
+case Bytecode::Imply: \
+case Bytecode::BinNImply: \
+case Bytecode::BinImply: \
+case Bytecode::Lesser: \
+case Bytecode::Greater: \
+case Bytecode::Equals: \
+case Bytecode::LesserEqual: \
+case Bytecode::GreaterEqual: \
+case Bytecode::NotEqual: \
+case Bytecode::Not: \
+case Bytecode::BinNot:
+
+bool IsOperationType(Bytecode::BytecodeInstruction type) {
+    switch (type) {
+        OPERATION_CASES
+            return true;
+        default:
+        return false;
+    }
+}
 
 void RunStaticAnalysis(Context& context) {
 
@@ -18,9 +65,14 @@ void RunStaticAnalysis(Context& context) {
         std::cout << "INFO L3: Running static analysis...\nINFO L3: Bytecodes after processing:\n";
 
     std::size_t printIndex = 0;
-
+    bool skipNext = false;
 
     for (std::size_t n = 0; n < old.size(); n++) {
+        if (skipNext) {
+            skipNext = false;
+            continue;
+        }
+
         auto& current = old[n];
         auto op1 = current.op1();
         auto op2 = current.op2();
@@ -158,6 +210,14 @@ void RunStaticAnalysis(Context& context) {
         case Bytecode::AssignAt: {
             auto obj = context.getVariableObject(op1);
             if (obj.content.location == Location::Variable and obj.contentMeta.pointerLevel == 1) {
+                if (n > 0 and IsOperationType(old[n - 1].type)) {
+                    auto& prev = old[n - 1];
+                    if (prev.op3() == op2) {
+                        context.codes.back().op3(obj.content);
+                        break;
+                    }
+                }
+
                 current.type = Bytecode::AssignTo;
                 current.op1(obj.content);
                 op1 = obj.content;
@@ -245,41 +305,7 @@ void RunStaticAnalysis(Context& context) {
             context.codes.emplace_back(current);
             break;
 
-        case Bytecode::ToReference:
-        case Bytecode::GetIndexValue:
-        case Bytecode::GetIndexAddress:
-        case Bytecode::Member:
-        case Bytecode::Convert:
-        case Bytecode::Power:
-        case Bytecode::Multiply:
-        case Bytecode::Divide:
-        case Bytecode::Modulo:
-        case Bytecode::Add:
-        case Bytecode::Subtract:
-        case Bytecode::ShiftRight:
-        case Bytecode::ShiftLeft:
-        case Bytecode::NAnd:
-        case Bytecode::BinNAnd:
-        case Bytecode::And:
-        case Bytecode::BinAnd:
-        case Bytecode::XOr:
-        case Bytecode::BinXOr:
-        case Bytecode::NOr:
-        case Bytecode::BinNOr:
-        case Bytecode::Or:
-        case Bytecode::BinOr:
-        case Bytecode::NImply:
-        case Bytecode::Imply:
-        case Bytecode::BinNImply:
-        case Bytecode::BinImply:
-        case Bytecode::Lesser:
-        case Bytecode::Greater:
-        case Bytecode::Equals:
-        case Bytecode::LesserEqual:
-        case Bytecode::GreaterEqual:
-        case Bytecode::NotEqual:
-        case Bytecode::Not:
-        case Bytecode::BinNot:
+        OPERATION_CASES
             AssignValue(op3, op3, 0, true);
             context.codes.emplace_back(current);
             break;
@@ -374,6 +400,13 @@ void RemoveUnusedInstructions(Context& context) {
                 RemoveUse(op2);
                 context.codes.erase(context.codes.begin() + n);
             }
+            break;
+
+        case Bytecode::Function:
+        case Bytecode::Method:
+        case Bytecode::Syscall:
+            if (op3.location == Location::Variable and context.getVariableObject(op3).uses == 0)
+                current.op3({});
             break;
 
             // removing assignments to the same variable

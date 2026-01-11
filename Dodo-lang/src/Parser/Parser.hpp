@@ -9,6 +9,7 @@ inline std::unordered_map <std::string, uint64_t> passedStrings;
 
 void AddString(std::string* string);
 uint64_t FindString(std::string* string);
+const std::string* GetString(uint64_t id);
 
 
 const std::string* GetCurrentFile();

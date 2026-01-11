@@ -30,8 +30,9 @@ namespace x86_64 {
     }
 
     void AddMoveWithRegisterNeededBetweenCheck(Context& context, std::vector <AsmInstruction>& moves, AsmOperand s, AsmOperand t, InstructionCode firstMove = mov, InstructionCode actualMove = mov) {
-        if (s.anyOf(Location::Sta, Location::Mem, Location::Off) and t.anyOf(Location::Sta, Location::Mem, Location::Off)) {
-            auto reg = context.getFreeRegister(s.type, s.size);
+        if (s.anyOf(Location::Sta, Location::Mem, Location::Off) and t.anyOf(Location::Sta, Location::Mem, Location::Off)
+            or (t.is(Location::reg) and firstMove != mov)) {
+            auto reg = context.getFreeRegister(t.type, t.size);
             moves.emplace_back(firstMove, reg, s);
             moves.emplace_back(actualMove, t, reg);
         }
@@ -127,7 +128,7 @@ namespace x86_64 {
                     else {
                         // 4 -> 8 byte is a special case where movzx does not apply and we need to split it
                         AddMoveWithRegisterNeededBetweenCheck(context, moves, AsmOperand(Location::imm, Type::unsignedInteger, false, 8, 0), t);
-                        AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t, mov, movzx);
+                        AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t, movzx);
                     }
                 }
             }
@@ -141,7 +142,7 @@ namespace x86_64 {
                     AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t);
                 }
                 else
-                    AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t, mov, movsx);
+                    AddMoveWithRegisterNeededBetweenCheck(context, moves, s, t, movsx);
             }
             else if (s.type != Type::floatingPoint and t.type == Type::floatingPoint) {
                 // converting to floating point can only start from a 32-bit or 64-bit integer register or memory location
@@ -178,6 +179,14 @@ namespace x86_64 {
                     else if (s.op == Location::imm) {
                         if (t.op == Location::sta) {
                             moves.emplace_back(mov, t, s);
+                        }
+                        else if (IsFloatOperationRegister(t)) {
+                            auto temp = context.pushStackTemp(s.size, s.size);
+                            moves.emplace_back(mov, temp, s);
+                            if (s.size == 4)
+                                moves.emplace_back(movss, t, temp);
+                            else
+                                moves.emplace_back(movsd, t, temp);
                         }
                         else Error("Internal: invalid target in float move!");
                     }
