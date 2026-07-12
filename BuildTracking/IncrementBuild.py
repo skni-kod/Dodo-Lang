@@ -1,11 +1,12 @@
 from datetime import datetime
+import pathlib
 
-current_version_num  = "0.4.1"
+current_version_num  = "0.0.0"
 
 # this script simply takes the cache file and adds a number to it while also generating version header file for dodoc
 print("Updating build number...")
 
-source = open("IncrementCache.text", "r")
+source = open(str(pathlib.Path(__file__).parent.resolve()) + "/IncrementCache.text", "r")
 
 # first off let's get the values from file
 values = {}
@@ -23,7 +24,7 @@ source.close()
 
 # finding the current branch
 branch = ""
-with open("../.git/HEAD", "r") as f: content = f.read().splitlines()
+with open(str(pathlib.Path(__file__).parent.resolve()) + "/../.git/HEAD", "r") as f: content = f.read().splitlines()
 
 for line in content:
     if line[0:4] == "ref:":
@@ -48,30 +49,24 @@ total = sum(values.values())
 print("Final summed build number: " + total.__str__())
 
 print("Updating cache...")
-cache = open("IncrementCache.text", "w")
+cache = open(str(pathlib.Path(__file__).parent.resolve()) + "/IncrementCache.text", "w")
 
 for key, val in values.items():
     cache.write(key + " " + val.__str__() + "\n")
 
 cache.close()
 
-# and finally generating the header
-print("Generating incremented header file...")
-header = open("../Dodo-lang/src/Misc/Increment.hpp", "w")
-header.writelines([
-    "#ifndef INCREMENTED_VALUE\n"
-    "#define INCREMENTED_VALUE\n"
-    "\n"
-    "#include <string>\n"
-    "\n"
-    "const std::string incrementedVersionValue = \""
-    + current_version_num + " ("
-    + branch + "), build: "
-    + total.__str__() + ", time: "
-    + datetime.today().strftime('%Y-%m-%d %H:%M:%S') + "\";\n"
-    "\n"
-    "#endif"
+# and finally generating the file
+print("Generating incremented source file...")
+file = open(str(pathlib.Path(__file__).parent.resolve()) + "/../src/misc/version.zig", "w")
+file.writelines([
+    "// This file is generated automatically on every build\n"
+    f"pub const number       : []const u8 = \"{current_version_num}\";\n"
+    f"pub const branch       : []const u8 = \"{branch}\";\n"
+    f"pub const branch_build : []const u8 = \"{str(values[branch])}\";\n"
+    f"pub const total_build  : []const u8 = \"{total}\";\n"
+    f"pub const date_time    : []const u8 = \"{datetime.today().strftime('%Y-%m-%d %H:%M:%S')}\";\n"
 ])
-header.close()
+file.close()
 
 print("Done!")

@@ -37,4 +37,6 @@ cmake-build-release-event-trace/
 *.sln
 
 # residual build files
-/build
+build/
+zig-out/
+.zig-cache/

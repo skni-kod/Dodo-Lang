@@ -1,0 +1,8 @@
+DODO_LANG_COMPILER: {Kompilator Dodo Lang}
+VERSION: {Wersja}
+VERSION_INFORMATION: {informacje o wersji}
+BUILD: {kompilacja}
+BRANCH: {Gałąź}
+SUMMED: {W sumie}
+COMPILATION_TIME: {Czas kompilacji}
+WRITTEN_BY: {Autor}

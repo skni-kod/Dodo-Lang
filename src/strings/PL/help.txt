@@ -1,0 +1,4 @@
+USAGE: {Użycie}
+HELP: {Pomoc}
+OPTIONS: {opcje}
+FILE: {plik}
