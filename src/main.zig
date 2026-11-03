@@ -1,7 +1,6 @@
 const std = @import("std");
-const console = @import("console/console.zig");
 const messages = @import("console/messages.zig");
-const settings = @import("misc/settings.zig");
+const arg_parser = @import("misc/arguments.zig");
 const screens = @import("console/screens.zig");
 
 pub fn main(init: std.process.Init) !void {
@@ -16,14 +15,9 @@ pub fn main(init: std.process.Init) !void {
 
     const args = try init.minimal.args.toSlice(allocator);
 
-    // will be redone
-    for (args) |arg| {
-        if (std.mem.eql(u8,arg, "-h"))
-            return screens.print_help_screen(stdout);
-        if (std.mem.eql(u8,arg, "-v"))
-            return screens.print_version_screen(stdout);
-    }
-    
+    var sett = try arg_parser.parse(args, allocator, stdout);
+    defer sett.deinit(allocator);
+
     try messages.message_info(stdout, "Starting compilation...");
     try messages.message_info(stdout, "Lexing...");
     try messages.message_info(stdout, "Parsing...");
