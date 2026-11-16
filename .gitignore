@@ -40,3 +40,6 @@ cmake-build-release-event-trace/
 build/
 zig-out/
 .zig-cache/
+.script-cache/
+src/flex/flex.c
+src/bison/bison.c

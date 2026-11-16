@@ -63,6 +63,15 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+
+    exe.root_module.addCSourceFile(
+        std.Build.Module.CSourceFile{ .file = b.path("src/flex/flex.c") });
+    exe.root_module.addIncludePath(b.path("src/flex"));
+    exe.root_module.addIncludePath(b.path("src/bison"));
+    exe.root_module.link_libc = true;
+    exe.root_module.linkSystemLibrary("fl", .{});
+
+
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
     // step). By default the install prefix is `zig-out/` but can be overridden
@@ -76,8 +85,8 @@ pub fn build(b: *std.Build) void {
     // steps (e.g. a Run step, as we will see in a moment).
     const run_step = b.step("run", "Run the app");
 
-    const python_cmd = b.addSystemCommand(&.{ "python", "BuildTracking/IncrementBuild.py" });
-    run_step.dependOn(&python_cmd.step);
+    const pre_build_cmd = b.addSystemCommand(&.{ "bash", "pre_build.sh" });
+    run_step.dependOn(&pre_build_cmd.step);
 
     // This creates a RunArtifact step in the build graph. A RunArtifact step
     // invokes an executable compiled by Zig. Steps will only be executed by the
