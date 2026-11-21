@@ -2,8 +2,9 @@ const std = @import("std");
 const messages = @import("console/messages.zig");
 const arg_parser = @import("misc/arguments.zig");
 const screens = @import("console/screens.zig");
-const lexer = @cImport({
-    @cInclude("flex.h");
+const parsing = @cImport({
+    @cInclude("bison.h");
+    @cInclude("stdio.h");
 });
 
 pub fn main(init: std.process.Init) !void {
@@ -24,12 +25,13 @@ pub fn main(init: std.process.Init) !void {
     try messages.message_info(stdout, "Starting compilation...");
     try messages.message_info(stdout, "Lexing and parsing...");
 
-    const file = lexer.fopen("stdlib/base/types.dodo", "r");
-    lexer.yyset_in(file);
-    _ = lexer.yylex();
-    _ = lexer.fclose(file);
+    //const file = lexer.fopen("stdlib/base/types.dodo", "r");
+    //lexer.yyset_in(file);
+    //_ = lexer.yylex();
+    //_ = lexer.fclose(file);
 
-
+    _ = parsing.freopen("test.dodo", "r", parsing.stdin);
+    _ = parsing.yyparse();
 
 
     try messages.message_info(stdout, "Analysing...");

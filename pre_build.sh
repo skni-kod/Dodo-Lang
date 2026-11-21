@@ -17,6 +17,7 @@ FLEX_OUT_HEADER="$FLEX_SRC_DIR/flex.h"
 BISON_SRC_DIR="$SRC_DIR/bison"
 BISON_IN_FILE="$BISON_SRC_DIR/dodo_lang.y"
 BISON_OUT_FILE="$BISON_SRC_DIR/bison.c"
+BISON_OUT_HEADER="$BISON_SRC_DIR/bison.h"
 
 STRINGS_PATH="$SRC_DIR/strings"
 LANGUAGE_LINK="$STRINGS_PATH/selected"
@@ -83,6 +84,9 @@ fi
 
 if [[ "$RUN_BISON" == "T" ]]; then
     echo "Running bison..."
+    bison -o $BISON_OUT_FILE --header=$BISON_OUT_HEADER --language=C $BISON_IN_FILE
+    $HASH_COMMAND $BISON_IN_FILE > $BISON_HASH_FILE
+    echo "Bison finished running, input file hash saved"
 fi
 
 echo "Pre run script done!"
