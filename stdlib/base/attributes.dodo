@@ -1,0 +1,23 @@
+/* ================================================================================================================== */
+/* These are the basic type attributes                                                                                */
+/* They allow for functionality to be easily injected into types with high flexibility                                */
+/* ================================================================================================================== */
+
+type_attribute __assignable_from_numeric_literal<primitive& T> {
+    public inline T& operator = <literal V>(T& this, V value) {
+        if (T::meta::is_unsigned and V::meta::is_signed)
+            @error();
+        if (not T::meta::is_float and V::meta::is_float)
+            @error();
+        auto converted = @base_convert<V, T>(value);
+        if (T::meta::data_bits < converted::type::meta::data_bits_min)
+            @error();
+        return @base_move(&converted, this);
+    }
+
+    public inline T& operator = (T& this, T other)
+        => return @base_move(&other, this);
+
+    public inline implicit T(T& this, V value)
+        => this = value;
+}

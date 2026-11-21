@@ -36,5 +36,14 @@ cmake-build-release-event-trace/
 *.vcxproj
 *.sln
 
+# test file
+test.dodo
+
 # residual build files
-/build
+build/
+zig-out/
+.zig-cache/
+.script-cache/
+src/flex/flex.c
+src/bison/bison.c
+src/misc/version.zig

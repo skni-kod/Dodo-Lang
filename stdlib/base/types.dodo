@@ -1,0 +1,9 @@
+/* ================================================================================================================== */
+/* These are the fundamental numeric and character types available within the default Dodo Lang standard library      */
+/* ================================================================================================================== */
+
+type i64 : __assignable_from_numeric_literal<value>,
+           __basic_operations<value>
+{
+    this primitive_i[8] value = 0;
+}

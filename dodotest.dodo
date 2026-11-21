@@ -1,8 +1,0 @@
-import "Print.dodo";
-
-i32 Main() {
-    Println("Hello world!");
-    let mut i32 k = 564;
-    Println(k);
-    return 0;
-}
