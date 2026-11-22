@@ -36,8 +36,8 @@ cmake-build-release-event-trace/
 *.vcxproj
 *.sln
 
-# test file
-test.dodo
+# test files
+test/
 
 # residual build files
 build/

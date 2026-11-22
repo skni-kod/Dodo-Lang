@@ -2,7 +2,8 @@ const std = @import("std");
 const messages = @import("console/messages.zig");
 const arg_parser = @import("misc/arguments.zig");
 const screens = @import("console/screens.zig");
-const parsing = @cImport({
+const parsing = @import("c_interop/parsing.zig");
+const bison = @cImport({
     @cInclude("bison.h");
     @cInclude("stdio.h");
 });
@@ -18,6 +19,7 @@ pub fn main(init: std.process.Init) !void {
     const allocator = arena.allocator();
 
     const args = try init.minimal.args.toSlice(allocator);
+    defer allocator.free(args);
 
     var sett = try arg_parser.parse(args, allocator, stdout);
     defer sett.deinit(allocator);
@@ -30,8 +32,10 @@ pub fn main(init: std.process.Init) !void {
     //_ = lexer.yylex();
     //_ = lexer.fclose(file);
 
-    _ = parsing.freopen("test.dodo", "r", parsing.stdin);
-    _ = parsing.yyparse();
+    parsing.setup(&sett);
+
+    _ = bison.freopen("test/test.dodo", "r", bison.stdin);
+    _ = bison.yyparse();
 
 
     try messages.message_info(stdout, "Analysing...");

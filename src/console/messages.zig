@@ -42,24 +42,24 @@ fn print_header_info(writer : *std.Io.Writer) !void {
 }
 
 pub const err = struct {
-    const arguments = struct {
+    const _arguments = struct {
         message : []const u8,
         code    : err_code,
 
-        fn create(comptime code : err_code, comptime message : string_utils.translation) arguments {
-            return arguments {
+        fn create(comptime code : err_code, comptime message : string_utils.translation) _arguments {
+            return _arguments {
                 .message = message.capitalized,
                 .code = code
             };
         }
 
-        pub fn display(this : *const arguments, sett : *settings, argument : []const u8, from : usize, to : usize) err_code {
+        pub fn display(this : *const _arguments, sett : *settings, argument : []const u8, from : usize, to : usize) err_code {
             this._display(sett, argument, from, to)
             catch return err_code.crash;
             return this.code;
         }
 
-        fn _display(this : *const arguments, sett : *settings, argument : []const u8, from : usize, to : usize) !void {
+        fn _display(this : *const _arguments, sett : *settings, argument : []const u8, from : usize, to : usize) !void {
             // error type
             try print_header_error(sett.writer);
             try console.print_str(sett.writer, this.message, colour.white());
@@ -87,7 +87,46 @@ pub const err = struct {
         }
     };
 
-    pub const invalid_flag = arguments.create(err_code.invalid_flag, strings.errors.invalid_flag);
+    const _parser = struct {
+        message : []const u8,
+        code    : err_code,
+
+        fn create(comptime code : err_code, comptime message : string_utils.translation) _parser {
+            return _parser {
+                .message = message.capitalized,
+                .code = code
+            };
+        }
+
+        pub fn display(this : *const _parser, sett : *settings, message : []const u8, line : c_int, column : c_int) err_code {
+            this._display(sett, message, line, column)
+            catch return err_code.crash;
+            return this.code;
+        }
+
+        fn _display(this : *const _parser, sett : *settings, message : []const u8, line : c_int, column : c_int) !void {
+            // error type
+            try print_header_error(sett.writer);
+            try console.print_str(sett.writer, this.message, colour.white());
+            try console.print_str(sett.writer, message, colour.white());
+            try console.print_char(sett.writer, '\n', colour.white());
+
+            try console.print_str(sett.writer, "       ", colour.white());
+            try console.print_str(sett.writer, strings.general.at.capitalized, colour.white());
+            try console.print_str(sett.writer, ": ", colour.white());
+            try console.print_cint(sett.writer, line, colour.white());
+            try console.print_char(sett.writer, ':', colour.white());
+            try console.print_cint(sett.writer, column, colour.white());
+            try console.print_char(sett.writer, '\n', colour.white());
+
+            // location
+
+            try sett.writer.flush();
+        }
+    };
+
+    pub const invalid_flag = _arguments.create(err_code.invalid_flag, strings.errors.invalid_flag);
+    pub const parser = _parser.create(err_code.parser, strings.errors.parser);
 
 };
 
@@ -95,4 +134,5 @@ pub const err_code = error {
     crash,
     invalid_flag,
     invalid_arg_syntax,
+    parser,
 };

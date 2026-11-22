@@ -1,9 +1,10 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "../c_interop/parsing.h"
 #define YY_NO_UNPUT
 int yylex(void);
-void yyerror(char* err);
+
 %}
 
 %union {
@@ -20,7 +21,7 @@ void yyerror(char* err);
 %%
 
 input:	/* empty */
-		| exp	{ printf("Exp: %i\n", $1); }
+		| exp	{ printf("Exp: %ld\n", $1); }
 		;
 
 exp:	LITERAL        	{ $$ = $1; }
@@ -28,5 +29,3 @@ exp:	LITERAL        	{ $$ = $1; }
 		;
 
 %%
-
-void yyerror(char* err) {}

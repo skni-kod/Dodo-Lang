@@ -42,6 +42,10 @@ pub fn print_char(writer : *std.Io.Writer, value : u21, col : colour) !void {
     return writer.print("\x1b[38;2;{d};{d};{d}m{u}", .{col.r, col.g, col.b, value});
 }
 
+pub fn print_cint(writer : *std.Io.Writer, value : c_int, col : colour) !void {
+    return writer.print("\x1b[38;2;{d};{d};{d}m{d}", .{col.r, col.g, col.b, value});
+}
+
 pub fn print_frame(writer : *std.Io.Writer, comptime file_path : []const u8, col_frame : colour, col_inside : colour) !void {
     var frame = std.mem.splitAny(u8, @embedFile("../strings/" ++ file_path), "\n");
 

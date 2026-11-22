@@ -70,6 +70,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addCSourceFile(
         std.Build.Module.CSourceFile{ .file = b.path("src/bison/bison.c") });
     exe.root_module.addIncludePath(b.path("src/bison"));
+    exe.root_module.addIncludePath(b.path("src/c_interop/"));
     exe.root_module.link_libc = true;
     exe.root_module.linkSystemLibrary("fl", .{});
 

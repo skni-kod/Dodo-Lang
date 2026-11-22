@@ -2,21 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../bison/bison.h"
+#include "../c_interop/parsing.h"
 void lexer_print(const char* data, int len);
-int yyline_no;
 
-/*UTF8_1  [\x00-\x7F]
-UTF8_2  [\xB0-\xDF]
-UTF8_3  [\xE0-\xEF]
-UTF8_4  [\xF0-\xEF]
-UTF8_N  [\x80-\xCF]
-UTF8    [UTF8_1]/[UTF8_2][UTF8_N]/[UTF8_3][UTF8_N][UTF8_N]/[UTF8_4][UTF8_N][UTF8_N][UTF8_N]
-WSPC    [\s\t\n]
-CHAR    [a-zA-Z]
-ISYM    [_]
-NUM     [0-9]
-WSPC    [\t\s]
-*/
+#define YY_USER_ACTION    \
+yycol_no_prev = yycol_no; \
+yycol_no += yyleng;
 
 %}
 
@@ -31,7 +22,7 @@ WSPC    [\t\s]
 
 "+"         { return PLUS; }
 
-[\n]        { yyline_no++; }
+[\n]        { yyline_no++; yycol_no = 1; }
 
 %%
 
